@@ -68,6 +68,18 @@ class Spectrum(object):
         plt.xlabel(self.x)
         plt.ylabel(self.y)
     
+    def load_conversion(self,filename,origin,result,axis="x"):
+        """Loads a conversion file of equivalent points along an axis to convert between two different axis types."""
+        if axis == "x":
+            self.__check_axis(x=origin)
+            self.__check_axis(x=result)
+        elif axis == "y":
+            self.__check_axis(y=origin)
+            self.__check_axis(y=result)
+        else:
+            raise ValueError("Axis Invalid: %s, should be \"x\" or \"y\"!")
+        
+        conversionFile = open(filename,"r")
     
 
     
