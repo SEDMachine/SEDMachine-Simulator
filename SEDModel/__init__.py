@@ -1,6 +1,7 @@
 # 
 #  __init__.py
 #  SEDMachine
+#  Version: 0.0
 #  
 #  Created by Alexander Rudy on 2011-10-04.
 #  Copyright 2011 Alexander Rudy. All rights reserved.

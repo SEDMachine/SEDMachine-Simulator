@@ -1,3 +1,13 @@
+// 
+//  calc_R.c
+//  SEDMachine
+//  Version: 0.0
+//  
+//  Created by Alexander Rudy on 2011-10-04.
+//  Copyright 2011 Alexander Rudy. All rights reserved.
+// 
+
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>

@@ -2,8 +2,7 @@
 # 
 #  plotWL.py
 #  SEDMachine
-#  
-#  Created by Alexander Rudy on 2011-10-03.
+#  Version: 0.0
 #  Copyright 2011 Alexander Rudy. All rights reserved.
 # 
 
