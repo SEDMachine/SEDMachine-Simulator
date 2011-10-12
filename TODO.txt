@@ -1,2 +1,0 @@
-- Make Distribution Script which includes AstroObject modules by default
-- Make stripped-down version of plot.py which only does data operations
