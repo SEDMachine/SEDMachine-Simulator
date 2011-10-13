@@ -99,5 +99,8 @@ for T,i in zip(temperatures,range(len(temperatures))):
     image.show()
     plt.title("Generated Spectrum at %sK" % T)
 plt.show()
+plt.savefig("BlackbodyImage.png")
+plt.figure(1)
+plt.savefig("BlackbodySpectrum.png")
 LOG.info("Done with Program")
 
