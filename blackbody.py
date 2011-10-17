@@ -18,32 +18,52 @@ import scipy as sp
 import pyfits
 from scipy.interpolate import splprep, splev, splrep, interp1d
 
-from AstroObjects.AstroSpectra import FITSSpectra
-from AstroObjects.AstroImage import FITSImage
-from AstroObjects.Utilities import BlackBody
+try:
+    
+    import AstroObjects
+    from AstroObjects.AstroSpectra import SpectraObject
+    from AstroObjects.AstroImage import ImageObject
+    from AstroObjects.Utilities import BlackBody, get_padding
+    
+    print("AstroObjects Version %s" % AstroObjects.__version__)
+    
+except ImportError:
+    
+    print("Critical Error! Cannot Import AstroObject Model")
+    raise
+    sys.exit(1)
 
-spectra = FITSSpectra()
+spectra = SpectraObject()
 
 # Generate a generic BlackBody Spectrum to play with:
 
+# Intial Conditions
 temperatures = [4000,5000,6000]
+WLstart = 0.37e-6 # In m
+WLfinish = 1e-6 # In m
+Points = 1e6
+WL = np.linspace(WLstart,WLfinish,Points)
+PixelSize = 13.5e-3 # In mm
+PixelOffset = 2 # In mm, accounts for the distance measurement being from the 0 dispersion point in the optical system
+ImageSize = (20,500) # In pixels
 
 for T,i in zip(temperatures,range(len(temperatures))):
-    WLstart = 0.37e-6
-    WLfinish = 1e-6
-    Points = 1e6
+    
+    # Generate the BlackBody spectrum
     LOG.info("Generating BlackBody Curve at %dK from %.1em to %.1em with %.1e points" % (T,WLstart,WLfinish,Points))
-    WL = np.linspace(WLstart,WLfinish,Points)
     Flux = BlackBody(WL,T)
     
     # Save the spectrum to our object
     spectra.save(np.array([WL,Flux]),"BlackBody Absolute Units %d" % T)
     
+    # Plot the spectra in the normal style
     plt.figure(1)
-    plt.plot(WL,Flux)
+    plt.plot(WL,Flux,label="BlackBody at %dK" % T)
+    plt.xlim([0.35e-6,1.02e-6])
     plt.gca().ticklabel_format(style="sci",scilimits=(3,3))
     plt.xlabel("Wavelength")
-    plt.ylabel("Joules")
+    plt.ylabel("J/s")
+    plt.legend()
     
     LOG.info("Constructing Conversion from WL to mm along CCD...")
     # Read the conversion file
@@ -58,17 +78,13 @@ for T,i in zip(temperatures,range(len(temperatures))):
     spline = lambda x: splev(x,spvars)
     
     LOG.info("Converting the Spectrum from Wavelength to CCD mm")
-    # Convert the spectrum to MM
+    # Convert the spectrum to MM using the SPLINE function
     WL,Flux = spectra.data()
     spectra.save(np.array([spline(WL),Flux]),"mm on CCD, spline conversion %d" % T)
     
     # Convert the spectrum to Pixels
     LOG.info("Converting the Spectrum from CCD mm to CCD pixels %d" % T)
     MM,Flux = spectra.data()
-    
-    PixelSize = 13.5e-3
-    PixelOffset = 2
-    ImageSize = (20,500)
     
     # Establish an array of pixels
     Pixels = np.arange(ImageSize[1])
@@ -83,24 +99,34 @@ for T,i in zip(temperatures,range(len(temperatures))):
     # Clip out non-zero elements to save
     nonZeroIDX = np.nonzero(PixelFluxes)
     
+    # Save the spectra everywhere
     spectra.save(np.array([Pixels[:-1],PixelFluxes]),"Pixels on CCD (all) %d" % T)
+    # Save only the data which isn't zero.
     spectra.save(np.array([Pixels[nonZeroIDX],PixelFluxes[nonZeroIDX]]),"Pixels on CCD (nonzero) %d" % T)
     
-    image = FITSImage()
+    # Create a new image
+    image = ImageObject()
+    
+    # The size of the spectra to insert into the image
     SpectraSize = (4,spectra.data()[1].size)
     
+    # Generate a flat Image
     data = np.zeros(ImageSize)
+    # Insert the spectrum
     data[9:13,spectra.data()[0].astype(int)] = np.resize(spectra.data()[1],SpectraSize)
     
+    # Save that generated image
     image.save(data,"GeneartedImage %d" % T)
     
+    # Show the image in a field.
     plt.figure(2)
     plt.subplot(len(temperatures),1,i)
     image.show()
     plt.title("Generated Spectrum at %sK" % T)
-plt.show()
+
 plt.savefig("BlackbodyImage.png")
 plt.figure(1)
 plt.savefig("BlackbodySpectrum.png")
+plt.show()
 LOG.info("Done with Program")
 

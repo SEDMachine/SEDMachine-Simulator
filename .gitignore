@@ -11,3 +11,5 @@ Logs/*
 *.pyc
 *.log
 TODO.txt
+AstroObjects/*
+*.png
