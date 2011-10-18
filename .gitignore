@@ -9,3 +9,7 @@
 Logs/*
 .fits
 *.pyc
+*.log
+TODO.txt
+AstroObjects/*
+*.png
