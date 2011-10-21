@@ -10,6 +10,8 @@ Logs/*
 .fits
 *.pyc
 *.log
-TODO.txt
+TODO/*
 AstroObjects/*
 *.png
+*.fits
+*.TXT

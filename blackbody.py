@@ -20,12 +20,12 @@ from scipy.interpolate import splprep, splev, splrep, interp1d
 
 try:
     
-    import AstroObjects
-    from AstroObjects.AstroSpectra import SpectraObject
-    from AstroObjects.AstroImage import ImageObject
-    from AstroObjects.Utilities import BlackBody, get_padding
+    import AstroObject
+    from AstroObject.AstroSpectra import SpectraObject
+    from AstroObject.AstroImage import ImageObject
+    from AstroObject.Utilities import BlackBody, get_padding
     
-    print("AstroObjects Version %s" % AstroObjects.__version__)
+    print("AstroObjects Version %s" % AstroObject.__version__)
     
 except ImportError:
     
