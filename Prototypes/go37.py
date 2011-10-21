@@ -36,7 +36,7 @@ def blur_image(im, n, ny=None) :
     return(improc)
 
 try:
-    f = open("xy_13oct2011_v40.TXT")
+    f = open("../Data/lenslet_xy_13-10-2011.txt")
     lines = f.readlines()
     f.close()
 except:
@@ -93,7 +93,7 @@ lenslets = np.unique(ix)
 lengths = []
 
 
-WLtoMM = np.genfromtxt("Rtest.dat").T
+WLtoMM = np.genfromtxt("../Data/dispersion_12-10-2011.txt").T
 
 WL = WLtoMM[0]
 MM = WLtoMM[1]

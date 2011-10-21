@@ -32,7 +32,7 @@ def blur_image(im, n, ny=None) :
 
 
 try:
-    f = open("xy_13oct2011_v40.TXT")
+    f = open("../Data/lenslet_xy_13-10-2011.txt")
     lines = f.readlines()
     f.close()
 except:

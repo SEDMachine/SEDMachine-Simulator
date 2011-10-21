@@ -67,7 +67,7 @@ for T,i in zip(temperatures,range(len(temperatures))):
     
     LOG.info("Constructing Conversion from WL to mm along CCD...")
     # Read the conversion file
-    WLtoMM = np.genfromtxt("Rtest.dat")
+    WLtoMM = np.genfromtxt("../Data/dispersion_12-10-2011.txt")
     
     # Define a basic Floor function interpolation
     floor = lambda x: np.vectorize(lambda ax: WLtoMM[(np.abs(ax-(WLtoMM[:,0]*1e-6))).argmin(),1])(x)
