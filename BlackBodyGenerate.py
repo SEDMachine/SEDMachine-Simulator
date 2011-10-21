@@ -14,7 +14,7 @@ bbody1 = BlackBodySpectrum(100)
 
 test = SEDImage()
 
-test.loadOpticsData("xy_13oct2011_v40.TXT","Rtest.dat")
+test.loadOpticsData("Data/lenslet_xy_13-10-2011.txt","Data/dispersion_12-10-2011.txt")
 test.generate_blank()
 
 points, wl, deltawl = test.get_wavelengths(2129)

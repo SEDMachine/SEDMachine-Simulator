@@ -69,7 +69,7 @@ class SEDImage(ImageObject):
         cntix = np.argmin(p1**2 + p2**2)
         self.center = (xs[cntix] * self.pixunit, ys[cntix] * self.pixunit)
         
-        WLtoMM = np.genfromtxt("Rtest.dat").T
+        WLtoMM = np.genfromtxt(dispspec).T
         
         WL = WLtoMM[0]
         MM = WLtoMM[1]
