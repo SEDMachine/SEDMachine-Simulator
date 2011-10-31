@@ -225,28 +225,58 @@ class SEDSystem(object):
 class SEDImage(ImageObject):
     """Representation of an SEDMachine Image, with methods for placing spectra"""
     
-    def place(self,lenslet,spectrum,label,model,density):
+    def place(self,lenslet,spectrum,label,model,density,stdev):
         """Place the given AstroObject.AnalyticSpectra.AnalyticSpectrum onto the SEDMachine Image"""
-        image = self.data()
-        
-        points, wl, deltawl = model.get_wavelengths(lenslet,density)
-        
-        radiance = spectrum(wl*1e-6)
-        
-                
+        points, intpoints, wl, deltawl, density = model.get_wavelengths(lenslet,density)
+        radiance = spectrum(wl*1e-6) * 1e-6
         flux = radiance[1,:-1] * deltawl
+
+        x,y = intpoints[:-1].T.astype(np.int)
+
+        xint,yint = points.T.astype(np.int)
+
+        padding = 10
+
+        x -= np.min(x)
+        y -= np.min(y)
+
+        xdist = np.max(x)-np.min(x)
+        ydist = np.max(y)-np.min(y)
+
+        xdist += (5 - xdist % 5)
+        ydist += (5 - ydist % 5)
+
+        x += padding * density
+        y += padding * density
+
+        img = np.zeros((xdist+2*padding*density,ydist+2*padding*density))
+
+        img[x,y] = flux
+
+        img2 = model.blur_image(img,stdev*density)
+
+        small = bin(img2,density).astype(np.int16)
+
+        corner = np.array([ xint[np.argmax(x)], yint[np.argmin(y)]]) - np.array([padding,padding])
         
-        x,y = points[:-1].T
+        xstart = corner[0]
+        xend = xstart + small.shape[0]
+        ystart = corner[1]
+        yend = ystart + small.shape[1]
+
+        data = self.data()
         
-        self.used = x,y
+        if data.shape[0] < xend or data.shape[1] < yend:
+            raise SEDLimits
+            
+        if xstart < 0 or ystart < 0:
+            raise SEDLimits
         
-        gain = 1e-7
+        if xend < 0 or yend < 0:
+            raise SEDLimits
+
+        data[xstart:xend,ystart:yend] += small
         
-        flux = (flux  * gain).astype(np.int)
-        
-        image[x,y] = flux
-        
-        self.save(image,label)
         
     def generate_blank(self,shape):
         """Generates a blank SEDMachine Image"""
