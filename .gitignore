@@ -15,3 +15,4 @@ AstroObjects/*
 *.png
 *.fits
 *.TXT
+experiment.py
