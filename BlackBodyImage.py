@@ -21,7 +21,7 @@ model = SEDSystem()
 model.loadOpticsData("Data/lenslet_xy_13-10-2011.txt","Data/dispersion_12-10-2011.txt")
 test.generate_blank((model.npix,model.npix))
 start = time.clock()
-test.place(2138,bbody1,"",model,5,3)
+test.place_sed(2138,bbody1,"",model,5,3)
 end = time.clock()
 
 print "Placing a single spectrum took %3.4fs" % (end-start)
@@ -38,7 +38,7 @@ total = float(max(model.lenslets))
 for i in model.lenslets:
     bar.render(int(float(i)/total * 100),"%d" % i)
     try:
-        test.place(i,bbody,"addOne%d" % i,model,5,3)
+        test.place_sed(i,bbody,"addOne%d" % i,model,5,3)
     except SEDLimits:
         LOG.warning("Couldn't place %d" % i)
     else:

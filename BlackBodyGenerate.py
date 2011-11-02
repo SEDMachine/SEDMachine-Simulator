@@ -15,84 +15,45 @@ import os
 
 bbody = BlackBodySpectrum(5000)
 bbody1 = BlackBodySpectrum(100)
+flat = FlatSpectrum(1e12)
 
-test = SEDImage()
+image = SEDImage()
+clip = ImageObject()
 model = SEDSystem()
+
 density = 5
 size = model.npix
+lenslet = 2129
+spectrum = flat
+label = spectrum.label
+resolution_element = 2.4
+psf_fwhm = 2.4
+gain = 1e2
 
 model.loadOpticsData("Data/lenslet_xy_13-10-2011.txt","Data/dispersion_12-10-2011.txt")
-test.generate_blank((size,size))
-points, intpoints, wl, deltawl, density = model.get_wavelengths(2128,density)
-radiance = bbody(wl*1e-6) * 1e-6
-flux = radiance[1,:-1] * deltawl
+img,corner = model.get_dense_image(lenslet,spectrum,model,density)
 
-x,y = intpoints[:-1].T.astype(np.int)
+clip.save(img,label + "-Dense")
 
-xint,yint = points.T.astype(np.int)
+img_circ = sp.signal.convolve(img,model.circular_kern(resolution_element*density),mode='same')
 
-padding = 10
+clip.save(img_circ,label+"-Dense-Circ")
 
-x -= np.min(x)
-y -= np.min(y)
+img2 = model.blur_image(img_circ,psf_fwhm*density)
 
-xdist = np.max(x)-np.min(x)
-ydist = np.max(y)-np.min(y)
+clip.save(img2,label+"-Dense-Blurry")
 
-xdist += (5 - xdist % 5)
-ydist += (5 - ydist % 5)
+small = bin(img2/gain,density).astype(np.int16)
 
-x += padding * density
-y += padding * density
-
-img = np.zeros((xdist+2*padding*density,ydist+2*padding*density))
-
-print img.shape
-
-img[x,y] = flux
-
-img2 = model.blur_image(img,12)
-
-print img2.shape
-
-small = bin(img2,density).astype(np.int16)
-
-
-corner = np.array([ xint[np.argmax(x)], yint[np.argmin(y)]]) - np.array([padding,padding])
-
-xstart = corner[0]
-xend = xstart + small.shape[0]
-ystart = corner[1]
-yend = ystart+small.shape[1]
-
-data = test.data()
-
-print xstart,xend,ystart,yend,data.shape
-
-data[xstart:xend,ystart:yend] += small
+clip.save(small,label+"-Blurry")
 
 plt.figure()
-plt.imshow(small)
+clip.show(label+"-Blurry")
 plt.figure()
-plt.imshow(img2)
+clip.show(label+"-Dense-Blurry")
 plt.figure()
-plt.imshow(img)
+clip.show(label + "-Dense-Circ")
 plt.show()
 
-# test.place(2130,bbody,"Test",model,1)
-
-# test.write("Image2.fits")
-
-
-# test.place(2129,bbody,"HMMM",model)
-# 
-# print test.used
-# 
-# test.remove("Blank")
-# test.crop(model.center[0],model.center[1],1024,1024)
-# test.remove("HMMM")
-# test.save(blur_image(test.data(),3),"Blur")
-# os.remove("RotTest.fits")
-# test.write("RotTest.fits")
-
+clip.write("Test.fits",clobber=True)
 

@@ -25,22 +25,10 @@ LOG = logging.getLogger("Basic SED Image")
 import AstroObject
 from AstroObject.AstroSpectra import SpectraObject
 from AstroObject.AstroImage import ImageObject,ImageFrame
-from AstroObject.AnalyticSpectra import BlackBodySpectrum, AnalyticSpectrum
-from AstroObject.Utilities import BlackBody, get_padding
+from AstroObject.AnalyticSpectra import BlackBodySpectrum, AnalyticSpectrum, FlatSpectrum
+from AstroObject.Utilities import *
 
-from AOFuture import expandLim, disable_Console, enable_Console
-
-def bin(array,factor):
-    """Bins an array by the given factor"""
-    
-    finalShape = tuple((np.array(array.shape) / factor).astype(np.int))
-    Aout = np.zeros(finalShape)
-    
-    for i in range(factor):
-        Ai = array[i::factor,i::factor]
-        Aout += Ai
-    
-    return Aout
+from Utilities import *
 
 class SEDSystem(object):
     """A Model for the SED System which can be used by SEDImage to place spectra etc."""
@@ -52,6 +40,7 @@ class SEDSystem(object):
         self.pixunit = 1 / (0.0135/1) #Pixels per mm
         self.npix = np.round(self.widthmm * self.pixunit, 0) #Number of Pixels
         self.deltmm = self.widthmm / self.npix #Spacing, in mm, between pixels
+        self.PADDING = 5
         
     def gauss_kern(self,size, sizey=None):
         """ Returns a normalized 2D gauss kernel array for convolutions """
@@ -63,7 +52,16 @@ class SEDSystem(object):
         x, y = np.mgrid[-size:size+1, -sizey:sizey+1]
         g = np.exp(-(x**2/np.float(size)+y**2/np.float(sizey)))
         return g / g.sum()
-
+    
+    def circular_kern(self,radius):
+        """Returns a circular kernel of the given radius"""
+        radius = int(radius)
+        
+        x,y = np.mgrid[-radius:radius+1, -radius:radius+1]
+        d = np.sqrt(x**2.0 + y**2.0)
+        tv = d <= radius
+        return tv.astype(np.float)
+        
     def blur_image(self,im, n, ny=None) :
         """ blurs the image by convolving with a gaussian kernel of typical
             size n. The optional keyword argument ny allows for a different
@@ -138,6 +136,38 @@ class SEDSystem(object):
         
         self.LoadDispersionData(dispspec)
         self.LoadLensletData(laspec)
+        
+        
+        
+    def get_dense_image(self,lenslet,spectrum,model,density):
+        """This function returns a dense image array, with flux placed into single pixels."""
+        points, intpoints, wl, deltawl, density = model.get_wavelengths(lenslet,density)
+        radiance = spectrum(wl*1e-6) * 1e-6
+        flux = radiance[1,:-1] * deltawl
+
+        x,y = intpoints[:-1].T.astype(np.int)
+
+        xint,yint = points.T.astype(np.int)
+
+        x -= np.min(x)
+        y -= np.min(y)
+
+        xdist = np.max(x)-np.min(x)
+        ydist = np.max(y)-np.min(y)
+
+        xdist += (5 - xdist % 5)
+        ydist += (5 - ydist % 5)
+
+        x += self.PADDING * density
+        y += self.PADDING * density
+
+        img = np.zeros((xdist+2*self.PADDING*density,ydist+2*self.PADDING*density))
+
+        img[x,y] = flux
+
+        corner = np.array([ xint[np.argmax(x)], yint[np.argmin(y)]]) - np.array([self.PADDING,self.PADDING])
+
+        return img, corner
     
     def get_wavelengths(self,lenslet_num,density=1):
         """Returns an array of wavelengths for a given lenslet number"""
@@ -225,57 +255,39 @@ class SEDSystem(object):
 class SEDImage(ImageObject):
     """Representation of an SEDMachine Image, with methods for placing spectra"""
     
-    def place(self,lenslet,spectrum,label,model,density,stdev):
-        """Place the given AstroObject.AnalyticSpectra.AnalyticSpectrum onto the SEDMachine Image"""
-        points, intpoints, wl, deltawl, density = model.get_wavelengths(lenslet,density)
-        radiance = spectrum(wl*1e-6) * 1e-6
-        flux = radiance[1,:-1] * deltawl
-
-        x,y = intpoints[:-1].T.astype(np.int)
-
-        xint,yint = points.T.astype(np.int)
-
-        padding = 10
-
-        x -= np.min(x)
-        y -= np.min(y)
-
-        xdist = np.max(x)-np.min(x)
-        ydist = np.max(y)-np.min(y)
-
-        xdist += (5 - xdist % 5)
-        ydist += (5 - ydist % 5)
-
-        x += padding * density
-        y += padding * density
-
-        img = np.zeros((xdist+2*padding*density,ydist+2*padding*density))
-
-        img[x,y] = flux
-
+    def get_sub_image(self,lenslet,spectrum,model,density,stdev):
+        """docstring for get_sub_image"""
+        img,corner = model.get_dense_image(lenslet,spectrum,model,density)
         img2 = model.blur_image(img,stdev*density)
-
         small = bin(img2,density).astype(np.int16)
-
-        corner = np.array([ xint[np.argmax(x)], yint[np.argmin(y)]]) - np.array([padding,padding])
+        
+        return small,corner
+    
+    def place_sed(self,lenslet,spectrum,label,model,density,stdev):
+        """docstring for place_sed"""
+        small, corner = self.get_sub_image(lenslet,spectrum,model,density,stdev)
+        
+        self.place(small,corner,label)
+        
+    def place(self,img,corner,label):
+        """Place the given AstroObject.AnalyticSpectra.AnalyticSpectrum onto the SEDMachine Image"""
         
         xstart = corner[0]
-        xend = xstart + small.shape[0]
+        xend = xstart + img.shape[0]
         ystart = corner[1]
-        yend = ystart + small.shape[1]
-
+        yend = ystart + img.shape[1]
         data = self.data()
         
         if data.shape[0] < xend or data.shape[1] < yend:
             raise SEDLimits
-            
+        
         if xstart < 0 or ystart < 0:
             raise SEDLimits
         
         if xend < 0 or yend < 0:
             raise SEDLimits
-
-        data[xstart:xend,ystart:yend] += small
+        
+        data[xstart:xend,ystart:yend] += img
         
         
     def generate_blank(self,shape):
