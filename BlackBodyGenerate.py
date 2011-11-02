@@ -23,7 +23,7 @@ size = model.npix
 
 model.loadOpticsData("Data/lenslet_xy_13-10-2011.txt","Data/dispersion_12-10-2011.txt")
 test.generate_blank((size,size))
-points, intpoints, wl, deltawl, density = model.get_wavelengths(2331,density)
+points, intpoints, wl, deltawl, density = model.get_wavelengths(2128,density)
 radiance = bbody(wl*1e-6) * 1e-6
 flux = radiance[1,:-1] * deltawl
 
@@ -71,9 +71,17 @@ print xstart,xend,ystart,yend,data.shape
 
 data[xstart:xend,ystart:yend] += small
 
-test.place(2130,bbody,"Test",model,1)
+plt.figure()
+plt.imshow(small)
+plt.figure()
+plt.imshow(img2)
+plt.figure()
+plt.imshow(img)
+plt.show()
 
-test.write("Image2.fits")
+# test.place(2130,bbody,"Test",model,1)
+
+# test.write("Image2.fits")
 
 
 # test.place(2129,bbody,"HMMM",model)
