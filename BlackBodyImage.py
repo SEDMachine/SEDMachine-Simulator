@@ -52,10 +52,22 @@ def sed(i):
 
 po = Pool()
 
-po.map_async(sed,model.lenslets)
+lenses = model.lenslets
+lenses = np.arange(100) + 2000
+
+start = time.clock()
+
+po.map_async(sed,lenses)
 
 po.close()
 po.join()
+end = time.clock()
+
+stopw = end - start
+totalt = (stopw / len(lenses)) * len(model.lenslets) / 60.0
+nlenslets = len(model.lenslets)
+ntestlens = len(lenses)
+print "Placing %d spectra took %3.4fs,\n so all spectra should take about %3.4fmin (%d spectra)" % (ntestlens,stopw,totalt,nlenslets)
 test.crop(model.center[0],model.center[1],1024,1024)
 test.save(test.data().astype(np.int16).T,"Final")
 test.remove("Cropped")

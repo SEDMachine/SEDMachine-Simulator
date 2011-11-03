@@ -41,6 +41,7 @@ class SEDSystem(object):
         self.npix = np.round(self.widthmm * self.pixunit, 0) #Number of Pixels
         self.deltmm = self.widthmm / self.npix #Spacing, in mm, between pixels
         self.PADDING = 5
+        self.resolution_element = 2.4
         
     def gauss_kern(self,size, sizey=None):
         """ Returns a normalized 2D gauss kernel array for convolutions """
@@ -258,7 +259,8 @@ class SEDImage(ImageObject):
     def get_sub_image(self,lenslet,spectrum,model,density,stdev):
         """docstring for get_sub_image"""
         img,corner = model.get_dense_image(lenslet,spectrum,model,density)
-        img2 = model.blur_image(img,stdev*density)
+        img2 = sp.signal.convolve(img,model.circular_kern(model.resolution_element * density / 2.0), mode='same')
+        img3 = model.blur_image(img,stdev*density)
         small = bin(img2,density).astype(np.int16)
         
         return small,corner
