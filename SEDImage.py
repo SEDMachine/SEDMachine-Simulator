@@ -35,7 +35,7 @@ class SEDSystem(object):
     def __init__(self):
         super(SEDSystem, self).__init__()
         # Some data about this system
-        self.spectrumFWHM = 2.4 # In pixels
+        self.spectrumFWHM = 2/1.26 # In pixels
         self.widthmm = 35.0
         self.pixunit = 1 / (0.0135/1) #Pixels per mm
         self.npix = np.round(self.widthmm * self.pixunit, 0) #Number of Pixels

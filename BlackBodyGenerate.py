@@ -24,7 +24,7 @@ model = SEDSystem()
 density = 5
 size = model.npix
 lenslet = 2129
-spectrum = flat
+spectrum = bbody
 label = spectrum.label
 resolution_element = 2.4
 psf_fwhm = 2.4
@@ -35,7 +35,7 @@ img,corner = model.get_dense_image(lenslet,spectrum,model,density)
 
 clip.save(img,label + "-Dense")
 
-img_circ = sp.signal.convolve(img,model.circular_kern(resolution_element*density),mode='same')
+img_circ = sp.signal.convolve(img,model.circular_kern(resolution_element*density/2.0),mode='same')
 
 clip.save(img_circ,label+"-Dense-Circ")
 
@@ -55,5 +55,5 @@ plt.figure()
 clip.show(label + "-Dense-Circ")
 plt.show()
 
-clip.write("Test.fits",clobber=True)
+clip.write("Lenslet%4d.fits" % lenslet,clobber=True)
 

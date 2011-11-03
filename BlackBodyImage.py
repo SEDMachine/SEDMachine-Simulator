@@ -11,6 +11,7 @@ from SEDImage import *
 import scipy.signal
 import os,time
 
+from multiprocessing import Pool, Value
 
 
 bbody = BlackBodySpectrum(5000)
@@ -29,22 +30,32 @@ print "Placing all spectra should take about %6.4fs" % ((end-start) * len(model.
 print "That would be %d min" % ((end-start) * len(model.lenslets)/60)
 
 last = 0
-disable_Console()
 bar = arpytools.progressbar.ProgressBar()
 print("Placing Spectra in All Lenslets")
 bar.render(0,"%d" % 0)
 total = float(max(model.lenslets))
+prog = Value('d',0.0)
 
-for i in model.lenslets:
-    bar.render(int(float(i)/total * 100),"%d" % i)
+def sed(i):
+    """SED"""
+    
+    bar.render(int(prog.value/total * 100),"%d" % prog.value)
     try:
         test.place_sed(i,bbody,"addOne%d" % i,model,5,3)
     except SEDLimits:
         LOG.warning("Couldn't place %d" % i)
     else:
         LOG.info("Placed %d" % i)
-enable_Console()
+    finally:
+        prog.value += 1
+        return
 
+po = Pool()
+
+po.map_async(sed,model.lenslets)
+
+po.close()
+po.join()
 test.crop(model.center[0],model.center[1],1024,1024)
 test.save(test.data().astype(np.int16).T,"Final")
 test.remove("Cropped")
