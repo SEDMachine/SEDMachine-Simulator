@@ -25,7 +25,7 @@ density = 5
 size = model.npix
 lenslet = 2129
 spectrum = bbody
-label = spectrum.label
+label = "BlackBody"
 resolution_element = 2.4
 psf_fwhm = 2.4
 gain = 1e2
@@ -47,12 +47,19 @@ small = bin(img2/gain,density).astype(np.int16)
 
 clip.save(small,label+"-Blurry")
 
+
+plt.figure()
+clip.show(label+"-Dense")
+plt.savefig(label+"-Dense.png")
 plt.figure()
 clip.show(label+"-Blurry")
+plt.savefig(label+"-Blurry.png")
 plt.figure()
 clip.show(label+"-Dense-Blurry")
+plt.savefig(label+"-Dense-Blurry.png")
 plt.figure()
 clip.show(label + "-Dense-Circ")
+plt.savefig(label+"-Dense-Circ.png")
 plt.show()
 
 clip.write("Lenslet%4d.fits" % lenslet,clobber=True)

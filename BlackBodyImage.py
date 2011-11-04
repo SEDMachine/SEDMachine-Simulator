@@ -50,17 +50,19 @@ def sed(i):
         prog.value += 1
         return
 
+
+start = time.clock()
 po = Pool()
 
 lenses = model.lenslets
-lenses = np.arange(100) + 2000
-
-start = time.clock()
+# lenses = np.arange(100) + 2000
 
 po.map_async(sed,lenses)
 
 po.close()
 po.join()
+
+
 end = time.clock()
 
 stopw = end - start

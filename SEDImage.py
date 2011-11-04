@@ -261,7 +261,12 @@ class SEDImage(ImageObject):
         img,corner = model.get_dense_image(lenslet,spectrum,model,density)
         img2 = sp.signal.convolve(img,model.circular_kern(model.resolution_element * density / 2.0), mode='same')
         img3 = model.blur_image(img,stdev*density)
-        small = bin(img2,density).astype(np.int16)
+        
+        gain_exp = np.log(np.max(img3)).astype(np.int) - 4
+        gain = 10 ** gain_exp
+        img4 = img3 / gain
+        
+        small = bin(img4,density).astype(np.int16)
         
         return small,corner
     
