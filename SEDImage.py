@@ -42,6 +42,7 @@ class SEDSystem(object):
         self.deltmm = self.widthmm / self.npix #Spacing, in mm, between pixels
         self.PADDING = 5
         self.resolution_element = 2.4
+        self.gain = 1
         
     def gauss_kern(self,size, sizey=None):
         """ Returns a normalized 2D gauss kernel array for convolutions """
@@ -261,14 +262,11 @@ class SEDImage(ImageObject):
         img,corner = model.get_dense_image(lenslet,spectrum,model,density)
         img2 = sp.signal.convolve(img,model.circular_kern(model.resolution_element * density / 2.0), mode='same')
         img3 = model.blur_image(img,stdev*density)
-        
-        gain_exp = np.log(np.max(img3)).astype(np.int) - 4
-        gain = 10 ** gain_exp
-        img4 = img3 / gain
-        
+        img4 = img3 / model.gain
         small = bin(img4,density).astype(np.int16)
         
         return small,corner
+    
     
     def place_sed(self,lenslet,spectrum,label,model,density,stdev):
         """docstring for place_sed"""
@@ -295,6 +293,8 @@ class SEDImage(ImageObject):
             raise SEDLimits
         
         data[xstart:xend,ystart:yend] += img
+        
+        self.save(data,label)
         
         
     def generate_blank(self,shape):
