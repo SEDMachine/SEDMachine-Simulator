@@ -41,32 +41,37 @@ total = float(len(lenslets))
 prog = Value('f',0.0)
 
 def cache_sed(i):
-    small = None
+    success = False
     try:
         small, corner = System.get_sub_image_fast(i,Spectrum)
     except SED.SEDLimits:
         SED.LOG.info("Skipped Lenslet %d, Limits Out of Bounds" % i)
     else:
+        success = True
         SED.LOG.info("Cached Lenslet %d" % i)
     finally:
         prog.value += 1.0
-        bar.render(int((prog.value/total) * 100),"L:%d" % i)
-    if isinstance(small,np.ndarray):
+        bar.render(int((prog.value/total) * 100),"L:%4d" % i)
+    if success:
         return (small,corner,i)
+    else:
+        return False
 
-def cache_sed_cb(result):
+def cache_sed_cb(results):
     """Takes the result and saves it to the system object"""
-    
-    if isinstance(result,multiprocessing.pool.MapResult):
-        result = result.get(timeout=1)
-    small, corner, lenslet = result
-    label = "SUBIMG%d" % lenslet
-    System.save(small,label)
-    System.frame().metadata=dict(Lenslet=lenslet,Corner=corner)
-    SED.LOG.info("Saved Lenslet Cache %d" % lenslet)
+    for result in results:
+        if hasattr(result,'get'):
+            result = result.get(timeout=1)
+        if result == False:
+            return
+        small, corner, lenslet = result
+        label = "SUBIMG%d" % lenslet
+        System.save(small,label)
+        System.frame().metadata=dict(Lenslet=lenslet,Corner=corner)
+        SED.LOG.info("Saved Lenslet Cache %d" % lenslet)
     
 print("Placing Spectra in %d Lenslets" % len(lenslets))
-bar.render(0,"L:%d" % 0)
+bar.render(0,"L:%4d" % 0)
 
 # Do the actuall multi-threading
 
@@ -76,12 +81,12 @@ if THREAD_ME:
     pool.close()
     pool.join()
 else:
-    for i in lenslets:
-        cache_sed_cb(cache_sed(i))
+    results = [cache_sed(i) for i in lenslets]
+    cache_sed_cb(results)
 
 
 print("Rendering Spectra to Full Image...")
-bar.render(0,"L:%d" % 0)
+bar.render(0,"L:%4d" % 0)
 prog = Value('f',0.0)
 for i in lenslets:
     try:
@@ -98,9 +103,10 @@ for i in lenslets:
         SED.LOG.info("Placed Spectrum %d" % i)
     finally:
         prog.value += 1.0
-        bar.render(int((prog.value/total) * 100),"L:%d" % i)
+        bar.render(int((prog.value/total) * 100),"L:%4d" % i)
         
 
 System.keep("Blank")
 System.select("Blank")
+System.crop(System.center[0],System.center[1],1024,1024)
 System.write("Experiment.fits",clobber=True)
