@@ -14,7 +14,6 @@ import scipy as sp
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
-from multiprocessing import Pool, Value
 
 import SED
 from AstroObject.AnalyticSpectra import BlackBodySpectrum
