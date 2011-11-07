@@ -377,7 +377,10 @@ class Model(ImageObject):
     def place_cached_sed(self,lenslet,label,dlabel):
         """Places a cached SED Subimage"""
         slabel = "SUBIMG%d" % lenslet
-        subframe = self.frame(slabel)
+        try:
+            subframe = self.frame(slabel)
+        except KeyError as e:
+            raise SEDLimits(str(e))
         subimg = subframe()
         mlenslet = subframe.metadata['Lenslet']
         mcorner = subframe.metadata['Corner']

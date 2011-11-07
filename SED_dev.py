@@ -14,21 +14,56 @@ import scipy as sp
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
+from multiprocessing import Pool, Value
+
 import SED
-from AstroObject.AnalyticSpectra import BlackBodySpectrum, AnalyticSpectrum, FlatSpectrum
+from AstroObject.AnalyticSpectra import BlackBodySpectrum
+import arpytools.progressbar
 import scipy.signal
 
 np.set_printoptions(precision=3,linewidth=100)
-lenslet = 2129
+
 
 System = SED.Model()
 Spectrum = BlackBodySpectrum(5000)
-
 System.setup()
 
-System.cache_sed_subimage(lenslet,Spectrum)
+lenslets = np.arange(50) + 2100
 
-System.place_cached_sed(lenslet,"Included Spectrum %d" % lenslet,"Blank")
 
-# System.keep("Included Spectrum %d" % lenslet)
+# Setup for Multi-Threading
+bar = arpytools.progressbar.ProgressBar()
+total = float(len(lenslets))
+prog = Value('f',0.0)
+
+def cache_sed(i):
+    try:
+        System.cache_sed_subimage(i,Spectrum)
+    except SED.SEDLimits:
+        SED.LOG.info("Skipped Lenslet %d, Limits Out of Bounds" % i)
+    else:
+        SED.LOG.info("Cached Lenslet %d" % i)
+    finally:
+        prog.value += 1.0
+        bar.render(int((prog.value/total) * 100),"L:%d" % i)
+
+print("Placing Spectra in %d Lenslets" % len(lenslets))
+bar.render(0,"L:%d" % 0)
+
+# Do the actuall multi-threading
+pool = Pool()
+pool.map_async(cache_sed,lenslets)
+
+pool.close()
+pool.join()
+
+for i in lenslets:
+    try:
+        System.place_cached_sed(i,"Included Spectrum %d" % i,"Blank")
+    except SED.SEDLimits:
+        SED.LOG.info("Encoutered Unplaced Spectrum %d" % i)
+    else:
+        SED.LOG.info("Placed Spectrum %d" % i)
+
+System.keep("Blank")
 System.write("Experiment.fits",clobber=True)
