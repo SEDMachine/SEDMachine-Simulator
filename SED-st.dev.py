@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # 
-#  SED_dev.py
+#  SED-st.dev.py
 #  Simulation Software
 #  
 #  Created by Alexander Rudy on 2011-11-07.
@@ -39,6 +39,9 @@ prog = Value('f',0.0)
 def cache_sed(i):
     try:
         System.cache_sed_subimage(i,Spectrum)
+        System.show()
+        plt.savefig("Images/Subimage-%04d.png" % i)
+        plt.clf()
     except SED.SEDLimits:
         SED.LOG.info("Skipped Lenslet %d, Limits Out of Bounds" % i)
     else:
@@ -56,6 +59,9 @@ for i in lenslets:
 for i in lenslets:
     try:
         System.place_cached_sed(i,"Included Spectrum %d" % i,"Blank")
+        System.show("Blank")
+        plt.savefig("Images/Fullimage-%04d.png" % i)
+        plt.clf()
     except SED.SEDLimits:
         SED.LOG.info("Encoutered Unplaced Spectrum %d" % i)
     else:

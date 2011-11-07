@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # 
-#  SED_dev.py
+#  SED-st.py
 #  Simulation Software
 #  
 #  Created by Alexander Rudy on 2011-11-07.
