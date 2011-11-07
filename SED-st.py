@@ -28,7 +28,7 @@ System = SED.Model()
 Spectrum = BlackBodySpectrum(5000)
 System.setup()
 
-lenslets = np.arange(20) + 2100
+lenslets = System.lenslets
 
 
 # Setup for Multi-Threading
