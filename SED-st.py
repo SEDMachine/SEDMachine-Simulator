@@ -14,6 +14,7 @@ import scipy as sp
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
+from multiprocessing import Pool, Value
 
 import SED
 from AstroObject.AnalyticSpectra import BlackBodySpectrum
@@ -21,7 +22,6 @@ import arpytools.progressbar
 import scipy.signal
 
 np.set_printoptions(precision=3,linewidth=100)
-
 
 System = SED.Model()
 Spectrum = BlackBodySpectrum(5000)

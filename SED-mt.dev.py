@@ -46,6 +46,8 @@ def cache_sed(i):
         small, corner = System.get_sub_image_fast(i,Spectrum)
     except SED.SEDLimits:
         SED.LOG.info("Skipped Lenslet %d, Limits Out of Bounds" % i)
+    except Exception:
+        SED.LOG.error("caught in cache_sed: %s" % str(Exception))
     else:
         success = True
         SED.LOG.info("Cached Lenslet %d" % i)
@@ -60,15 +62,18 @@ def cache_sed(i):
 def cache_sed_cb(results):
     """Takes the result and saves it to the system object"""
     for result in results:
-        if hasattr(result,'get'):
-            result = result.get(timeout=1)
-        if result == False:
-            return
-        small, corner, lenslet = result
-        label = "SUBIMG%d" % lenslet
-        System.save(small,label)
-        System.frame().metadata=dict(Lenslet=lenslet,Corner=corner)
-        SED.LOG.info("Saved Lenslet Cache %d" % lenslet)
+        try:
+            if hasattr(result,'get'):
+                result = result.get(timeout=1)
+            if result == False:
+                return
+            small, corner, lenslet = result
+            label = "SUBIMG%d" % lenslet
+            System.save(small,label)
+            System.frame().metadata=dict(Lenslet=lenslet,Corner=corner)
+            SED.LOG.info("Saved Lenslet Cache %d" % lenslet)
+        except Exception:
+            SED.LOG.error("caught in cache_sed: %s" % str(Exception))
     
 print("Placing Spectra in %d Lenslets" % len(lenslets))
 bar.render(0,"L:%4d" % 0)
