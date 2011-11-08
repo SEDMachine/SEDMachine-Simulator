@@ -103,7 +103,11 @@ class Model(ImageObject):
         
     def get_psf_kern(self):
         """Returns the PSF Kernel"""
-        return self.gauss_kern( (self.psf_stdv["px"] * self.density) )
+        USE_EN_ENG = True
+        if USE_EN_ENG:
+            return self.psf_kern("Data/encircled_energy_4nov11.TXT")
+        else:
+            return self.gauss_kern( (self.psf_stdv["px"] * self.density) )
         
     def get_blank_img(self):
         """Returns an image of the correct size to use for spectrum placement"""
@@ -186,6 +190,35 @@ class Model(ImageObject):
         wl = self.spline(distance)
         
         return points,wl,np.diff(wl)
+        
+    def psf_kern(self,filename,size=0):
+        """Generates a PSF Kernel from a file with mm-encircled energy conversions"""
+        
+        uM,FR = np.genfromtxt(filename,skip_header=18).T
+        
+        PX = uM * 1e-3 * self.convert["mmtopx"] * self.density
+        
+        if np.max(PX) > size:
+            size = np.int(np.max(PX))
+        else:
+            size = np.int(size)
+                
+        fit_vars = sp.interpolate.splrep(PX,FR)
+        
+        fit = lambda x : sp.interpolate.splev(x,fit_vars,der=1)
+        
+        vfit = np.vectorize(fit)
+        
+        x , y = np.mgrid[-size:size+1,-size:size+1]
+        
+        r = np.sqrt(x**2 + y**2)
+        
+        v = vfit(r)
+        
+        val = v
+        
+        return val / np.sum(val)
+        
         
         
     def circle_kern(self,radius,size=0,normalize=False):
