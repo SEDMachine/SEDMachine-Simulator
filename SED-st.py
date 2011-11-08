@@ -62,4 +62,4 @@ for i in lenslets:
 
 System.keep("Blank")
 System.select("Blank")
-System.write("Experiment.fits",clobber=True)
+System.write("Experiment-st.fits",clobber=True)
