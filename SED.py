@@ -25,9 +25,26 @@ from AstroObject.Utilities import *
 
 from Utilities import *
 
+LOG = logger.get_logger(__name__)
+
 class SEDLimits(Exception):
     """A Basic Error-Differentiation Class"""
     pass
+
+class SimulationStage(object):
+    """docstring for SimulationStage"""
+    def __init__(self, func, number, description):
+        super(SimulationStage, self).__init__()
+        self.func = func
+        self.number = number
+        self.description = description
+    
+    def run(self):
+        """Run the commands required for this stage"""
+        LOG.info("Starting Stage %d: %s" % (number,description))
+        result = self.func()
+        LOG.info("Finished Stage %d" % (number,description))
+        return result
 
 class Model(ImageObject):
     """This object is model"""

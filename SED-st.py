@@ -29,6 +29,8 @@ System.setup()
 
 lenslets = System.lenslets
 
+DateTime = time.strftime("%Y-%m-%d")
+Filename = "Generate-st-%s.fits" % DateTime
 
 # Setup for Multi-Threading
 bar = arpytools.progressbar.ProgressBar()
@@ -62,4 +64,4 @@ for i in lenslets:
 
 System.keep("Blank")
 System.select("Blank")
-System.write("Experiment-st.fits",clobber=True)
+System.write(Filename,clobber=True)
