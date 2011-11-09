@@ -28,7 +28,7 @@ System = SED.Model()
 Spectrum = BlackBodySpectrum(5000)
 System.setup()
 
-lenslets = np.arange(20) + 2100
+lenslets = np.arange(1) + 2150
 
 
 # Setup for Multi-Threading
@@ -67,6 +67,6 @@ for i in lenslets:
     else:
         SED.LOG.info("Placed Spectrum %d" % i)
 
-System.keep("Blank")
+# System.keep("Blank")
 System.select("Blank")
 System.write("Experiment.fits",clobber=True)
