@@ -25,7 +25,7 @@ from AstroObject.Utilities import *
 
 from Utilities import *
 
-LOG = logger.get_logger(__name__)
+LOG = logging.getLogger(__name__)
 
 class SEDLimits(Exception):
     """A Basic Error-Differentiation Class"""
@@ -68,7 +68,7 @@ class Model(ImageObject):
         
         self.ccd_size["px"] = 2048 #pixels
         self.ccd_size["mm"] = self.ccd_size["px"] * self.convert["pxtomm"]
-        self.image_sz["mm"] = 35.0 #mm
+        self.image_sz["mm"] = 40.0 #mm
         self.image_sz["px"] = np.round( self.image_sz["mm"] * self.convert["mmtopx"] , 0 )
         
         # Telescope Information
