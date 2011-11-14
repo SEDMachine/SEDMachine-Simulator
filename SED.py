@@ -89,7 +89,7 @@ class Model(ImageObject):
         self.gain = 1e-6
         
         self.files = {}
-        self.files["lenslets"] = "Data/lenslet_xy_13-10-2011.txt"
+        self.files["lenslets"] = "Data/xy_24oct2011_v53.txt"
         self.files["dispersion"] = "Data/dispersion_12-10-2011.txt"
         
     def setup(self):
