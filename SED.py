@@ -559,12 +559,13 @@ class Model(ImageObject):
         self.save(small,label)
         self.frame().metadata=dict(Lenslet=lenslet,Corner=corner)
         
-        for i,step in enumerate(steps):
-            self.save(step,"Intermediate%d" % i)
-            plt.imshow(step)
-            plt.title("Intermediate Image Generation Steps for Lenslet %4d" % lenslet)
-            plt.savefig("Images/%04d-Intermediate-%d%s" % (lenslet,i,self.fmt))
-            plt.clf()
+        if LOG.getEffectiveLevel() >= logging.DEBUG:
+            for i,step in enumerate(steps):
+                self.save(step,"Intermediate%d" % i)
+                plt.imshow(step)
+                plt.title("Intermediate Image Generation Steps for Lenslet %4d" % lenslet)
+                plt.savefig("Images/%04d-Intermediate-%d%s" % (lenslet,i,self.fmt))
+                plt.clf()
         
     
     def place_cached_sed(self,lenslet,label,dlabel):

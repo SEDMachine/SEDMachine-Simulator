@@ -23,7 +23,7 @@ import scipy.signal
 
 import math, copy, sys, time, logging, os, argparse
 
-
+SED.LOG.setLevel(logging.INFO)
 np.set_printoptions(precision=3,linewidth=100)
 
 WL,Flux = np.genfromtxt("Data/SNII.R1000.dat").T
