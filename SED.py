@@ -260,7 +260,7 @@ class Model(ImageObject):
         
         wl = self.spline(distance)
         
-        if LOG.getEffectiveLevel() >= logging.DEBUG:
+        if LOG.getEffectiveLevel() <= logging.DEBUG:
             LOG.debug("Dense Data Shapes: dummy_pts %s | dummy_distance %s" % (dummy_pts[1,:-1].shape,dummy_distance.shape))
             
             np.savetxt("Distances_Dense.txt",np.vstack((dummy_pts[0,1:],dummy_pts[1,1:],dummy_distance)).T,
@@ -467,7 +467,7 @@ class Model(ImageObject):
         
         LOG.debug("Got Flux with bounds [%1.4e,%1.4e]" % (np.max(flux),np.min(flux)))
         
-        if LOG.getEffectiveLevel() >= logging.DEBUG:
+        if LOG.getEffectiveLevel() <= logging.DEBUG:
             LOG.debug("Generating Plots for Spectra")
             plt.clf()
             plt.plot(wl[:-1],flux,"b.")
@@ -559,9 +559,9 @@ class Model(ImageObject):
         self.save(small,label)
         self.frame().metadata=dict(Lenslet=lenslet,Corner=corner)
         
-        if LOG.getEffectiveLevel() >= logging.DEBUG:
+        if LOG.getEffectiveLevel() <= logging.DEBUG:
             for i,step in enumerate(steps):
-                self.save(step,"Intermediate%d" % i)
+                self.save(step,"%4d-Intermediate%d" % (lenslet,i))
                 plt.imshow(step)
                 plt.title("Intermediate Image Generation Steps for Lenslet %4d" % lenslet)
                 plt.savefig("Images/%04d-Intermediate-%d%s" % (lenslet,i,self.fmt))

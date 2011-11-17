@@ -42,7 +42,7 @@ System = SED.Model()
 Spectrum = SN_Spectra
 System.setup()
 
-lenslets = np.arange(1) + 2150
+lenslets = np.arange(2) + 2150
 
 
 # Setup for Multi-Threading
