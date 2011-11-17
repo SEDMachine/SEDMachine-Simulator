@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 from multiprocessing import Pool, Value
 
 import SED
-from AstroObject.AnalyticSpectra import BlackBodySpectrum
+from AstroObject.AnalyticSpectra import BlackBodySpectrum,InterpolatedSpectrum as AS
 import arpytools.progressbar
 import scipy.signal
 
@@ -26,9 +26,21 @@ import math, copy, sys, time, logging, os, argparse
 
 np.set_printoptions(precision=3,linewidth=100)
 
+WL,Flux = np.genfromtxt("Data/SNII.R1000.dat").T
+WL *= 1e-10
+Flux *= 1e18 * 1e6
+SN_Spectra = AS(np.array([WL,Flux]),"SNII.R1000")
+
 System = SED.Model()
 Spectrum = BlackBodySpectrum(5000)
 System.setup()
+
+WL,Flux = np.genfromtxt("Data/SNII.R1000.dat").T
+WL *= 1e-10
+Flux *= 1e20 * 1e6
+SN_Spectra = AS(np.array([WL,Flux]),"SNII.R1000")
+
+Spectrum = SN_Spectra
 
 lenslets = System.lenslets
 

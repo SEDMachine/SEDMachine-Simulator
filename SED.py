@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 # 
 #  SED.py
 #  Simulation Software
@@ -17,6 +18,8 @@ import matplotlib.pyplot as plt
 import scipy.signal
 import scipy.interpolate
 
+import os,logging,time
+
 import AstroObject
 from AstroObject.AstroSpectra import SpectraObject
 from AstroObject.AstroImage import ImageObject,ImageFrame
@@ -26,6 +29,32 @@ from AstroObject.Utilities import *
 from Utilities import *
 
 LOG = logging.getLogger(__name__)
+
+logfolder = "Logs/"
+filename = __name__+"-"+time.strftime("%Y-%m-%d")
+longFormat = "%(asctime)s : %(levelname)-8s : %(name)-20s : %(message)s"
+shortFormat = '%(levelname)-8s: %(message)s'
+dateFormat = "%Y-%m-%d-%H:%M:%S"
+
+LOG.setLevel(logging.DEBUG)
+
+console = logging.StreamHandler()
+console.setLevel(logging.INFO)
+consoleFormatter = logging.Formatter(shortFormat,datefmt=dateFormat)
+console.setFormatter(consoleFormatter)
+LOG.addHandler(console)
+
+if os.access(logfolder,os.F_OK):
+    logfile = logging.FileHandler(filename=logfolder+filename+".log",mode="a")
+    logfile.setLevel(logging.DEBUG)
+    fileformatter = logging.Formatter(longFormat,datefmt=dateFormat)
+    logfile.setFormatter(fileformatter)
+    LOG.addHandler(logfile)
+    LOG.removeHandler(console)
+
+LOG.info("---------------------")
+LOG.info("Welcome to SEDM model")
+
 
 class SEDLimits(Exception):
     """A Basic Error-Differentiation Class"""
@@ -92,6 +121,9 @@ class Model(ImageObject):
         self.files["lenslets"] = "Data/xy_24oct2011_v53.txt"
         self.files["dispersion"] = "Data/dispersion_12-10-2011.txt"
         
+        # MPL Plotting Save Format
+        self.fmt = ".pdf"
+        
     def setup(self):
         """Function handles the setup of simulation information"""
         
@@ -108,6 +140,8 @@ class Model(ImageObject):
         self.loadOpticsData(self.files["lenslets"],self.files["dispersion"])
         
         self.generate_blank()
+        
+        LOG.info("Done with SEDM setup")
         
     def get_tel_kern(self):
         """Returns the telescope kernel"""
@@ -186,25 +220,99 @@ class Model(ImageObject):
         # illuminated pixel positions in this spectrum
         dummy_pts = np.array([fx(dummy_lam),fy(dummy_lam)])
         
+        dummy_interval = np.sqrt(np.sum(np.power(np.diff(dummy_pts,axis=1),2),axis=0))
+        dummy_distance = np.array([np.sum(dummy_interval[:i]) for i in range(1,(npix*100))])
+        
         if self.density == 1:
             dummy_pts = dummy_pts.astype(np.int)
         else:
             dummy_pts = np.round(dummy_pts * self.density) / self.density
+            dummy_int = (dummy_pts * self.density).astype(np.int) 
             
+        dummy_hash = dummy_int[1,:] + 1e10 * dummy_int[0,:]
+        
+        # unique_hash,unique_idx,unique_inv = np.unique(dummy_hash,return_index=True,return_inverse=True)
+        
+        unique_x,unique_y = np.diff(dummy_int).astype(np.bool)
+        
+        unique_idx = np.logical_or(unique_x,unique_y)
+        
+        
         # Remove any duplicate points. This does not do so in order, so we must
         # sort the array of unique points afterwards...
-        unique_pts = np.array([np.array(x) for x in set(tuple(x) for x in dummy_pts.T)])
+        unique_pts = dummy_pts[:,1:][:,unique_idx]
+        # unique_pts = np.array([np.array(x) for x in set(tuple(x) for x in dummy_pts.T)])
         
         # An array of distances to the origin of this spectrum, can be used to find wavelength
         # of light at each distance
-        distance = np.array([np.sqrt(np.sum((x * self.convert["pxtomm"])-start)**2) for x in unique_pts])
+        # distance = np.array([np.sqrt(np.sum((x * self.convert["pxtomm"])-start)**2) for x in unique_pts])
+        distance = dummy_distance[unique_idx] * self.convert["pxtomm"]
+        
+        
+        # distance = np.array([np.sq])
+        #FIXME
+        # Ought to fix this to use distance along the trace
         
         sorted_idx = np.argsort(distance)
         
         distance = distance[sorted_idx]
-        points = unique_pts[sorted_idx]
+        points = unique_pts[:,sorted_idx].T
         
         wl = self.spline(distance)
+        
+        if LOG.getEffectiveLevel() >= logging.DEBUG:
+            LOG.debug("Dense Data Shapes: dummy_pts %s | dummy_distance %s" % (dummy_pts[1,:-1].shape,dummy_distance.shape))
+            
+            np.savetxt("Distances_Dense.txt",np.vstack((dummy_pts[0,1:],dummy_pts[1,1:],dummy_distance)).T,
+                #header="dummy_pts-x dummy_pts-y dummy_distance"
+                )
+            
+            LOG.debug("Unique Data Shapes: idx %s | pts %s | dist %s | diff %s " % (unique_idx.shape,unique_pts.shape,distance.shape,np.diff(distance).shape))
+            np.savetxt("Distances.txt",np.vstack((unique_pts[0,1:],unique_pts[1,1:],
+                distance[1:] / self.convert["pxtomm"],np.diff(distance))).T,
+                #header="Index Distance_x Distance_y Distance_px Diff Distance"
+                )
+            
+            plt.clf()
+            plt.plot(dummy_pts[1,:-1],dummy_distance,'b.')
+            plt.title("Dense Distance Along Arc")
+            plt.xlabel("x-position in pixels")
+            plt.ylabel("Distance along arc")
+            plt.savefig("Images/%4d-Distances-dense%s" % (lenslet_num,self.fmt))
+            
+            LOG.debug("unique_pts %s, dummy_distance[unique_pts] %s" % (unique_pts[1,:-1].shape,np.diff(dummy_distance)[unique_idx[:-1]].shape))
+            
+            np.savetxt("Distances_selected.txt",
+                np.vstack((unique_pts[1,900:950],np.diff(dummy_distance)[unique_idx[:-1]][900:950])).T
+                #header="Y diff"
+                )
+            
+            plt.clf()
+            plt.title("$\Delta$Distance Along Arc at Pixel Positions")
+            plt.xlabel("x-position in pixels")
+            plt.ylabel("$\Delta$Distance along arc")
+            plt.plot(points[:,1],np.diff(dummy_distance)[unique_idx[:-1]][sorted_idx],'b.-')
+            plt.savefig("Images/%4d-Distances-selected%s" % (lenslet_num,self.fmt))
+            
+            plt.clf()
+            plt.title("$\Delta$Distance Along Arc as used")
+            plt.xlabel("x-position in pixels")
+            plt.ylabel("$\Delta$Distance along arc")
+            # plt.plot(points[:-1,1],np.diff(dummy_distance[unique_idx[:-1]][sorted_idx]),'b.-')
+            plt.plot(points[:-1,1],np.diff(distance) * self.convert["mmtopx"],'g.')
+            plt.savefig("Images/%4d-Distances_Diff%s" % (lenslet_num,self.fmt))
+            
+            LOG.debug("Shapes: %s " % (dummy_distance[unique_idx][sorted_idx].shape))
+            plt.clf()
+            plt.title("Distance Along Arc as used")
+            plt.xlabel("x-position in pixels")
+            plt.ylabel("Distance along arc")
+            plt.plot(points[:,1],distance * self.convert["mmtopx"],'g.')
+            plt.savefig("Images/%4d-Distances%s" % (lenslet_num,self.fmt))
+            
+            plt.clf()
+        
+
         
         return points,wl,np.diff(wl)
         
@@ -351,8 +459,29 @@ class Model(ImageObject):
         # Create the spectra, by calling the spectra with wavelength
         # (in meters, note the conversion from wl, which was originally in microns)
         # Then use the deltawl to get the true amount of flux in each pixel
-        radiance = spectrum(wl*1e-6) * self.gain
-        flux = radiance[1,:-1] * deltawl
+        radiance = spectrum(wl[:-1]*1e-6) * self.gain
+        LOG.debug("Generated spectrum with bounds [%1.4e,%1.4e]" % (np.max(radiance),np.min(radiance)))
+        
+        flux = radiance[1,:] * deltawl
+        LOG.debug("Re-scaling Radiance by deltawl with bounds [%1.4e,%1.4e]" % (np.max(deltawl),np.min(deltawl)))
+        
+        LOG.debug("Got Flux with bounds [%1.4e,%1.4e]" % (np.max(flux),np.min(flux)))
+        
+        if LOG.getEffectiveLevel() >= logging.DEBUG:
+            LOG.debug("Generating Plots for Spectra")
+            plt.clf()
+            plt.plot(wl[:-1],flux,"b.")
+            plt.title("Generated, Fluxed Spectra")
+            plt.xlabel("Wavelength ($\mu m$)")
+            plt.ylabel("Flux (Units undefined)")
+            plt.savefig("Images/%4d-SpecFlux%s" % (lenslet,self.fmt))
+            plt.clf()
+            plt.plot(wl[:-1],deltawl,"g.")
+            plt.title("$\Delta\lambda$ for each pixel")
+            plt.xlabel("Wavelength ($\mu m$)")
+            plt.ylabel("$\Delta\lambda$ per pixel")
+            plt.savefig("Images/%4d-SpecDeltaWL%s" % (lenslet,self.fmt))
+            plt.clf()
         
         # Take our points out. Note from the above that we multiply by the density in order to do this
         x,y = (points * self.density)[:-1].T.astype(np.int)
@@ -385,7 +514,9 @@ class Model(ImageObject):
         
         # Place the spectrum into the sub-image
         img[x,y] = flux
+        LOG.debug("Placing flux (shape: %s ) for spectrum %4d into a sub-image (shape: %s)." % (flux.shape,lenslet,img.shape))
         
+        np.savetxt("SubimageValues.txt",np.array([x,y,wl[:-1],deltawl,flux]).T)
         # Find the first (by teh flatten method) corner of the subimage, useful for placing the sub-image into the full image.
         corner = np.array([ xint[np.argmax(x)], yint[np.argmin(y)]]) - np.array([self.padding,self.padding])
         
@@ -396,13 +527,16 @@ class Model(ImageObject):
         """Returns a sub-image for a given lenslet"""
         # This function gets the dense sub-image with the spectrum placed in single dense pixels
         img,corner = self.get_dense_image(lenslet,spectrum)
+        LOG.info("%4d:Retrieved Dense Image for" % lenslet)
         # Convolve this spectrum with an appropriate image of the telescope
         img2 = sp.signal.convolve(img,self.TELIMG,mode='same')
+        LOG.info("%4d:Convolved Dense Image with Telescope" % lenslet)
         # Convolve again with an appropriate PSF
         img3 = sp.signal.convolve(img2,self.PSFIMG,mode='same')
+        LOG.info("%4d:Convolved Dense Image with PSF" % lenslet)
         # Bin the image back down to the final pixel size
-        small = bin(img4,self.density).astype(np.int16)
-        
+        small = bin(img3,self.density).astype(np.int16)
+        LOG.info("%4d:Binned Dense Image" % lenslet)
         return small,corner,(img,img2,img3)
     
     
@@ -419,10 +553,19 @@ class Model(ImageObject):
     
     def cache_sed_subimage(self,lenslet,spectrum):
         """Generates a sub image, and saves that result to this object. Should be thread-safe."""
-        small, corner = self.get_sub_image_fast(lenslet,spectrum)
+        small, corner, steps = self.get_sub_image(lenslet,spectrum)
+        LOG.info("Retrieved SED Subimage for lenslet %d" % lenslet)
         label = "SUBIMG%d" % lenslet
         self.save(small,label)
         self.frame().metadata=dict(Lenslet=lenslet,Corner=corner)
+        
+        for i,step in enumerate(steps):
+            self.save(step,"Intermediate%d" % i)
+            plt.imshow(step)
+            plt.title("Intermediate Image Generation Steps for Lenslet %4d" % lenslet)
+            plt.savefig("Images/%04d-Intermediate-%d%s" % (lenslet,i,self.fmt))
+            plt.clf()
+        
     
     def place_cached_sed(self,lenslet,label,dlabel):
         """Places a cached SED Subimage"""
