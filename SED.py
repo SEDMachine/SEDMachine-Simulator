@@ -28,6 +28,8 @@ from AstroObject.Utilities import *
 
 from Utilities import *
 
+__version__ = "0.1"
+
 LOG = logging.getLogger(__name__)
 
 logfolder = "Logs/"
@@ -37,7 +39,7 @@ shortFormat = '%(levelname)-8s: %(message)s'
 dateFormat = "%Y-%m-%d-%H:%M:%S"
 
 LOG.setLevel(logging.DEBUG)
-
+logging.captureWarnings(True)
 console = logging.StreamHandler()
 console.setLevel(logging.INFO)
 consoleFormatter = logging.Formatter(shortFormat,datefmt=dateFormat)
@@ -52,8 +54,9 @@ if os.access(logfolder,os.F_OK):
     LOG.addHandler(logfile)
     LOG.removeHandler(console)
 
-LOG.info("---------------------")
-LOG.info("Welcome to SEDM model")
+LOG.info("--------------------------------")
+LOG.info("Welcome to the SED Machine model")
+LOG.info(" Version %s" % __version__ )
 
 
 class SEDLimits(Exception):
@@ -225,102 +228,66 @@ class Model(ImageObject):
         superDense_interval = np.sqrt(np.sum(np.power(np.diff(superDense_pts,axis=1),2),axis=0))
         superDense_distance = np.cumsum(superDense_interval)        
         
+        # Adjust the density of our points. This rounds all values to only full pixel values.
         if self.density == 1:
             superDense_pts = superDense_pts.astype(np.int)
         else:
             superDense_pts = np.round(superDense_pts * self.density) / self.density
             superDense_int = (superDense_pts * self.density).astype(np.int) 
             
-        superDense_hash = superDense_int[1,:] + 1e10 * superDense_int[0,:]
-        
-        # unique_hash,unique_idx,unique_inv = np.unique(superDense_hash,return_index=True,return_inverse=True)
-        
+        # We can identify unique points using the points when the integer position ratchets up or down.
         unique_x,unique_y = np.diff(superDense_int).astype(np.bool)
         
+        # We want unique index to include points where either 'y' or 'x' ratchets up or down
         unique_idx = np.logical_or(unique_x,unique_y)
-        
         
         # Remove any duplicate points. This does not do so in order, so we must
         # sort the array of unique points afterwards...
         unique_pts = superDense_pts[:,1:][:,unique_idx]
-        # unique_pts = np.array([np.array(x) for x in set(tuple(x) for x in superDense_pts.T)])
         
         # An array of distances to the origin of this spectrum, can be used to find wavelength
         # of light at each distance
-        # distance = np.array([np.sqrt(np.sum((x * self.convert["pxtomm"])-start)**2) for x in unique_pts])
         distance = superDense_distance[unique_idx] * self.convert["pxtomm"]
         
-        
-        # distance = np.array([np.sq])
-        #FIXME
-        # Ought to fix this to use distance along the trace
-        
+        # Re sort everything by distnace along the trace.
+        # Strictly, this shouldn't be necessary if all of the above functions preserved order.
         sorted_idx = np.argsort(distance)
         
+        # Pull out sorted valuses
         distance = distance[sorted_idx]
         points = unique_pts[:,sorted_idx].T
+        LOG.debug("Points set using original, superDense array, bounds [%1.4f,%1.4f]"
+            % (np.min(points),np.max(points)))
         
-        wl = self.spline(distance)
         
+        # Pull out the original wavelengths
+        wl_orig = superDense_lam[unique_idx][sorted_idx]
+        wl = wl_orig
+        LOG.debug("Wavelengths set using original, superDense array, bounds [%1.4f,%1.4f]"
+            % (np.min(wl),np.max(wl)))
+        # We are getting some odd behavior, where the dispersion function seems to not cover the whole
+        # arc length and instead covers only part of it. This causes much of our arc to leave the desired
+        # and available wavelength boundaries. As such, I'm disabling the more accurate dispersion mode.
+        
+        # Convert to wavelength space along the dispersion spline.
+        # wl = self.spline(distance)
+        
+        # This is a debugging area which will make a lot of graphs and annoying messages.
         if LOG.getEffectiveLevel() <= logging.DEBUG:
-            LOG.debug("Dense Data Shapes: superDense_pts %s | superDense_distance %s" %
-                (superDense_pts[1,:-1].shape,superDense_distance.shape))
             
-            np.savetxt("Distances_Dense.txt",np.vstack((superDense_pts[0,1:],superDense_pts[1,1:],superDense_distance)).T,
-                #header="superDense_pts-x superDense_pts-y superDense_distance"
-                )
-            
-            LOG.debug("Unique Data Shapes: idx %s | pts %s | dist %s | diff %s " %
-                (unique_idx.shape,unique_pts.shape,distance.shape,np.diff(distance).shape))
-            np.savetxt("Distances.txt",np.vstack((unique_pts[0,1:],unique_pts[1,1:],
-                distance[1:] / self.convert["pxtomm"],np.diff(distance))).T,
-                #header="Index Distance_x Distance_y Distance_px Diff Distance"
-                )
-            
+            # This graph shows the change in distance along arc per pixel.
+            # The graph should produce all data points close to each other, except a variety of much lower
+            # data points which are caused by the arc crossing between pixels.
             plt.clf()
-            plt.plot(superDense_pts[1,:-1],superDense_distance,'b.')
-            plt.title("Dense Distance Along Arc")
-            plt.xlabel("x-position in pixels")
-            plt.ylabel("Distance along arc")
-            plt.savefig("Images/%4d-Distances-dense%s" % (lenslet_num,self.fmt))
-            
-            LOG.debug("unique_pts %s, superDense_distance[unique_pts] %s" %
-                (unique_pts[1,:-1].shape,np.diff(superDense_distance)[unique_idx[:-1]].shape))
-            
-            np.savetxt("Distances_selected.txt",
-                np.vstack((unique_pts[1,900:950],np.diff(superDense_distance)[unique_idx[:-1]][900:950])).T
-                #header="Y diff"
-                )
-            
-            plt.clf()
-            plt.title("$\Delta$Distance Along Arc at Pixel Positions")
-            plt.xlabel("x-position in pixels")
-            plt.ylabel("$\Delta$Distance along arc")
-            plt.plot(points[:,1],np.diff(superDense_distance)[unique_idx[:-1]][sorted_idx],'b.-')
-            plt.savefig("Images/%4d-Distances-selected%s" % (lenslet_num,self.fmt))
-            
-            plt.clf()
-            plt.title("$\Delta$Distance Along Arc as used")
-            plt.xlabel("x-position in pixels")
-            plt.ylabel("$\Delta$Distance along arc")
-            # plt.plot(points[:-1,1],np.diff(superDense_distance[unique_idx[:-1]][sorted_idx]),'b.-')
+            plt.title("$\Delta$Distance Along Arc")
+            plt.xlabel("x (px)")
+            plt.ylabel("$\Delta$Distance along arc (px)")
             plt.plot(points[:-1,1],np.diff(distance) * self.convert["mmtopx"],'g.')
-            plt.savefig("Images/%4d-Distances_Diff%s" % (lenslet_num,self.fmt))
-            
-            LOG.debug("Shapes: %s " % (superDense_distance[unique_idx][sorted_idx].shape))
+            plt.savefig("Partials/%4d-Distances_Diff%s" % (lenslet_num,self.fmt))
             plt.clf()
-            plt.title("Distance Along Arc as used")
-            plt.xlabel("x-position in pixels")
-            plt.ylabel("Distance along arc")
-            plt.plot(points[:,1],distance * self.convert["mmtopx"],'g.')
-            plt.savefig("Images/%4d-Distances%s" % (lenslet_num,self.fmt))
-            
-            plt.clf()
-        
-
         
         return points,wl,np.diff(wl)
-        
+    
     def psf_kern(self,filename,size=0):
         """Generates a PSF Kernel from a file with mm-encircled energy conversions"""
         
@@ -469,32 +436,32 @@ class Model(ImageObject):
         LOG.debug("Asking for spectrum with bounds [%1.4e,%1.4e]" % (np.max(wl),np.min(wl)))
         radiance = spectrum(wl[:-1]*1e-6) * self.gain
         LOG.debug("Generated spectrum with bounds [%1.4e,%1.4e]" % (np.max(radiance),np.min(radiance)))
-        
-        flux = radiance[1,:] * deltawl
         LOG.debug("Re-scaling Radiance by deltawl with bounds [%1.4e,%1.4e]" % (np.max(deltawl),np.min(deltawl)))
-        
+        flux = radiance[1,:] * deltawl
         LOG.debug("Got Flux with bounds [%1.4e,%1.4e]" % (np.max(flux),np.min(flux)))
         
+        # This debugging area generates plots for us.
         if LOG.getEffectiveLevel() <= logging.DEBUG:
-            LOG.debug("Generating Plots for Spectra")
+            LOG.debug("Generating Plots for Spectra...")
             plt.clf()
             plt.plot(wl[:-1],flux,"b.")
             plt.title("Generated, Fluxed Spectra")
             plt.xlabel("Wavelength ($\mu m$)")
             plt.ylabel("Flux (Units undefined)")
-            plt.savefig("Images/%4d-SpecFlux%s" % (lenslet,self.fmt))
+            plt.savefig("Partials/%4d-SpecFlux%s" % (lenslet,self.fmt))
             plt.clf()
             plt.plot(wl[:-1],deltawl,"g.")
             plt.title("$\Delta\lambda$ for each pixel")
             plt.xlabel("Wavelength ($\mu m$)")
             plt.ylabel("$\Delta\lambda$ per pixel")
-            plt.savefig("Images/%4d-SpecDeltaWL%s" % (lenslet,self.fmt))
+            plt.savefig("Partials/%4d-SpecDeltaWL%s" % (lenslet,self.fmt))
             plt.clf()
         
         # Take our points out. Note from the above that we multiply by the density in order to do this
         x,y = (points * self.density)[:-1].T.astype(np.int)
         
-        # Get the way in which those points correspond to actual pixels. As such, this array of points should have duplicates
+        # Get the way in which those points correspond to actual pixels. 
+        # As such, this array of points should have duplicates
         xint,yint = points.T.astype(np.int)
         
         # Zero-adjust our x and y points. They will go into a fake subimage anyways, so we don't care
@@ -522,10 +489,12 @@ class Model(ImageObject):
         
         # Place the spectrum into the sub-image
         img[x,y] = flux
-        LOG.debug("Placing flux (shape: %s ) for spectrum %4d into a sub-image (shape: %s)." % (flux.shape,lenslet,img.shape))
+        LOG.debug("Placing flux (shape: %s ) for spectrum %4d into a sub-image (shape: %s)."
+            % (flux.shape,lenslet,img.shape))
         
-        np.savetxt("SubimageValues.txt",np.array([x,y,wl[:-1],deltawl,flux]).T)
-        # Find the first (by teh flatten method) corner of the subimage, useful for placing the sub-image into the full image.
+        np.savetxt("Partials/SubimageValues.txt",np.array([x,y,wl[:-1],deltawl,flux]).T)
+        # Find the first (by the flatten method) corner of the subimage, 
+        # useful for placing the sub-image into the full image.
         corner = np.array([ xint[np.argmax(x)], yint[np.argmin(y)]]) - np.array([self.padding,self.padding])
         
         return img, corner
@@ -557,14 +526,17 @@ class Model(ImageObject):
         """Uses a single convolution, does not return intermediate steps"""
         # This function gets the dense sub-image with the spectrum placed in single dense pixels
         img,corner = self.get_dense_image(lenslet,spectrum)
+        LOG.debug("%4d:Retrieved Dense Image for" % lenslet)
         # Convolve with the PSF and Telescope Image simultaneously
         img2 = sp.signal.convolve(img,self.FINIMG,mode='same')
+        LOG.debug("%4d:Convolved Dense Image with PSF and Telescope" % lenslet)
         # Bin the image back down to the final pixel size
         small = bin(img2,self.density).astype(np.int16)
+        LOG.debug("%4d:Binned Dense Image to Actual Size" % lenslet)
         
         return small,corner
     
-    def cache_sed_subimage(self,lenslet,spectrum):
+    def cache_sed_subimage(self,lenslet,spectrum,write=False,do_return=False):
         """Generates a sub image, and saves that result to this object. Should be thread-safe."""
         if LOG.getEffectiveLevel() <= logging.DEBUG:
             small, corner, steps = self.get_sub_image(lenslet,spectrum)
@@ -574,19 +546,28 @@ class Model(ImageObject):
         LOG.info("Retrieved SED Subimage for lenslet %d" % lenslet)
         
         label = "SUBIMG%d" % lenslet
+        
         self.save(small,label)
-        self.frame().metadata=dict(Lenslet=lenslet,Corner=corner,Spectrum=spectrum.label)
+        self.frame().header=dict(Lenslet=lenslet,Corner=corner,Spectrum=spectrum.label)
         
         Stages = ["Raw Image","Convolved with Telescope","Convolved with Telescope & PSF"]
         if LOG.getEffectiveLevel() <= logging.DEBUG:
             for i,step in enumerate(steps):
                 self.save(step,"%4d-Intermediate-%d: %s" % (lenslet,i,Stages[i]))
-                self.frame().metadata=dict(Lenslet=lenslet,Corner=corner,Spectrum=spectrum.label,Stage=Stages[i])
+                self.frame().header=dict(Lenslet=lenslet,Corner=corner,Spectrum=spectrum.label,Stage=Stages[i])
                 plt.imshow(step)
                 plt.title("Intermediate Image Generation Steps for Lenslet %4d" % lenslet)
-                plt.savefig("Images/%04d-Intermediate-%d%s" % (lenslet,i,self.fmt))
+                plt.savefig("Partials/%04d-Intermediate-%d%s" % (lenslet,i,self.fmt))
                 plt.clf()
         
+        # We only write the sub-image if the function is called to write sub images
+        if write:
+            self.write("Images/Subimage-%4d%s" % (lenslet,".fits"),clobber=True)
+            self.keep(None)
+        
+        if do_return:
+            return small, corner
+        return
     
     def place_cached_sed(self,lenslet,label,dlabel):
         """Places a cached SED Subimage"""
@@ -596,15 +577,15 @@ class Model(ImageObject):
         except KeyError as e:
             raise SEDLimits(str(e))
         subimg = subframe()
-        mlenslet = subframe.metadata['Lenslet']
-        mcorner = subframe.metadata['Corner']
+        mlenslet = subframe.header['Lenslet']
+        mcorner = subframe.header['Corner']
         if mlenslet != lenslet:
             raise ValueError("Lenslet Number Mismatch %d:%d for state %s in %s" % (lenslet,mlenslet,slabel,self))
         self.place(subimg,mcorner,label,dlabel)
     
     def place_sed(self,lenslet,spectrum,label,dlabel):
         """Place an SED based on a lenslet number and a spectrum"""
-        small, corner = self.get_sub_image_fast(lenslet,spectrum)
+        small, corner = self.get_sub_image(lenslet,spectrum,fast=True)
         # Place uses the corner position to insert a sub-image into the master image
         self.place(small,corner,label,dlabel)
         
