@@ -191,13 +191,13 @@ class Model(ImageObject):
         """Load cached kernels"""
         try:
             # Telescope Image Setup
-            self.TELIMG = np.load(self.config["files"]["telescope"])
+            self.TELIMG = np.load(self.config["files"]["telescope"]+".npy")
             # PSF Setup
-            self.PSFIMG = np.load(self.config["files"]["psf"])
+            self.PSFIMG = np.load(self.config["files"]["psf"]+".npy")
             # Preconvolved System
-            self.FINIMG = np.load(self.config["files"]["conv"])
-        except IOError:
-            self.log.warning("Cached files not found, using configuration to generate files")
+            self.FINIMG = np.load(self.config["files"]["conv"]+".npy")
+        except IOError as e:
+            self.log.warning("Cached files not found, using configuration to generate files. Error: %s" % e )
             self.regenerate = True
         else:
             self.log.debug("Loaded Telescope Images for Numpy Files")

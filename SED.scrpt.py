@@ -74,6 +74,7 @@ class Simulator(object):
         self.parser.add_argument('--test',action='store_true',dest='test',help="Enable Test Mode Settings")
         self.parser.add_argument('--config',action='store',dest='config',type=str,default="SED.config.yaml",
             help="Name of the configuration file for the model")
+        self.parser.add_argument('--easy',action='store_true',dest='easy',help="Set easy settings for test runs")
     
     def initSpectra(self):
         """Set up the options for handling single spectra objects"""
@@ -113,32 +114,35 @@ class Simulator(object):
         
         if os.access(logfolder,os.F_OK):
             self.log.addHandler(self.logfile)
-            
+        
         self.log.info("Simulator has initilaized")
+    
     
     def run(self):
         """Runs the simulator"""
         start = time.clock()
-        self.setupOptions()
+        self.parseOptions()
         self.log.info("System Setup")
         self.setup()
         self.log.info("Generating Source")
-        self.log.info("Generating Spectra")
         self.generateAllLenslets()
-        self.log.info("Placing Spectra")
         self.placeAllLenslets()
         self.log.info("Writing Image")
         self.saveFile()
-        self.log.debug("Total Simulation took %2.3gs for %d lenslets with caching %s" % (time.clock() - start,len(self.lenslets),"enabled" if self.options.cache else "disabled"))
+        self.log.debug("Total Simulation took %2.3gs for %d lenslets with caching %s" % (time.clock() - start,
+            len(self.lenslets),"enabled" if self.options.cache else "disabled"))
     
-    def setupOptions(self):
+    
+    def parseOptions(self):
         """Interprests the options system"""
         self.options = self.parser.parse_args()
         if self.options.test:
-            self.options.dev = True
+            self.options.easy = True
             self.options.cache = False
         if self.options.dev:
             self.options.debug = True
+            self.options.easy = True
+        if self.options.easy:
             self.options.s = "b"
             self.options.Temp = 5000
             self.options.o = 2150
@@ -147,12 +151,15 @@ class Simulator(object):
         if self.options.debug:
             self.debug = True
             self.console.setLevel(logging.DEBUG)
-            
+        else:
+            self.logfile.setLevel(logging.INFO)
+        
         
         self.optstring = "\n"
         
         for key,value in vars(self.options).iteritems():
             self.optstring += "%(key)15s : %(value)15s" % { 'key':key , 'value':value }
+    
     
     def setup(self):
         """Performs all setup options"""
@@ -178,7 +185,6 @@ class Simulator(object):
             except IOError as e:
                 self.parser.error("Cannot find Spectrum File: %s" % str(e))
         self.log.debug("Set Spectrum to %s" % self.Spectrum)
-        
     
     def setupModel(self):
         """Sets up the SED Module Model"""
@@ -194,7 +200,6 @@ class Simulator(object):
             dur = end - start
             msg = "Setup took %1.5gs with caches %s." % (dur,"enabled" if self.options.cache else "disabled")
             self.log.debug(msg)
-        
     
     def setupLenslets(self):
         """Establish the list of lenslets for use in the system"""
@@ -204,9 +209,10 @@ class Simulator(object):
             self.lenslets = self.lenslets[self.options.o:]
         if self.options.n:
             self.lenslets = self.lenslets[:self.options.n]
-            
-        self.total = len(self.lenslets)
         
+        self.total = len(self.lenslets)
+    
+    
     def generateLenslet(self,i,spectrum):
         """Generate a single lenslet spectrum"""
         try:
@@ -216,7 +222,7 @@ class Simulator(object):
                 self.Model.show()
                 plt.savefig("Images/%04d-Subimage.pdf" % i)
                 plt.clf()
-            
+        
         except SED.SEDLimits:
             msg = "Skipped Lenslet %d, Limits Out of Bounds" % i
             SED.LOG.info(msg)
@@ -226,7 +232,7 @@ class Simulator(object):
         finally:
             self.prog.value += 1.0
             self.bar.render(int((self.prog.value/self.total) * 100),"L:%4d" % i)
-            
+    
     def generateAllLenslets(self):
         """Generate all lenslet spectra"""
         self.log.info("Generating Spectra in %d Lenslets" % len(self.lenslets))
@@ -236,7 +242,8 @@ class Simulator(object):
         else:
             map_func = map
         map_func(lambda i: self.generateLenslet(i,self.Spectrum),self.lenslets)
-        
+    
+    
     def placeLenslet(self,i):
         """Place a single lenslet into the model"""
         try:
@@ -254,7 +261,7 @@ class Simulator(object):
         finally:
             self.prog.value += 1
             self.bar.render(int((self.prog.value/self.total) * 100),"L:%4d" % i)
-            
+    
     def placeAllLenslets(self):
         """Place all lenslets into the image file"""
         self.log.info("Placing Spectra in %d Lenslets" % len(self.lenslets))
@@ -265,17 +272,19 @@ class Simulator(object):
         else:
             map_func = map
         map_func(lambda i: self.placeLenslet(i),self.lenslets)
-        
+    
+    
     def saveFile(self):
         """Saves the file"""
         self.Filename = "%(label)s-%(date)s.%(fmt)s" % { 'label': self.options.title, 'date': time.strftime("%Y-%m-%d"), 'fmt':'fits' }
         self.Fullname = self.ImageDirectory + self.Filename
         self.Model.write(self.Fullname,clobber=True)
         self.log.info("Wrote %s" % self.Fullname)
+    
+
 
 if __name__ == '__main__':
     Sim = Simulator()
     Sim.run()
-    
 
-    
+
