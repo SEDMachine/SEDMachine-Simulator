@@ -42,7 +42,7 @@ System = SED.Model()
 Spectrum = SN_Spectra
 System.setup()
 
-lenslets = np.arange(2) + 2150
+lenslets = np.arange(3) + 1680
 
 
 # Setup for Multi-Threading
@@ -84,4 +84,4 @@ for i in lenslets:
 # System.keep("Blank")
 # System.select("Blank")
 System.write("Images/Experiment.fits",clobber=True)
-LOG.info("--DONE--")
+SED.LOG.info("--DONE--")

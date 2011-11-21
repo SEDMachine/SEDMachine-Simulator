@@ -7,12 +7,15 @@
 # 
 
 Logs/*
+Caches/*
+Images/*
+Partials/*
 .fits
 *.pyc
 *.log
 TODO/*
-AstroObjects/*
 *.png
 *.fits
 *.TXT
+*config.yaml
 experiment.py
