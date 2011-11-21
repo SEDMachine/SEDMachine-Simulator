@@ -58,27 +58,41 @@ class Simulator(object):
         self.parser = argparse.ArgumentParser(description=ShortHelp,epilog=LongHelp,
             formatter_class=argparse.RawDescriptionHelpFormatter,)
         
-        self.parser.add_argument('title',metavar='label',type=str,help="Include the given string in the filename")
+        self.parser.add_argument('-f',metavar='label',type=str,
+            help="label for output image",default="Experiment")
         # Add the basic controls for the script
         self.parser.add_argument('--version',action='version',version=__version__)
-        self.parser.add_argument('--dev',action='store_true',dest='dev',help="Enable Development Mode Settings")
+        
+        self.basics = self.parser.add_mutually_exclusive_group()
+        self.basics.add_argument('-D','--dev',action='store_true',dest='dev',
+            help="equivalent to --debug --easy")
+        self.basics.add_argument('-T','--test',action='store_true',dest='test',
+            help="equivalent to --no-cache --easy")
+        self.basics.add_argument('-E','--easy',action='store_true',dest='easy',
+            help="uses simple configuration for testing the simulator")
+        self.basics.add_argument('-F','--full',action='store_true',dest='full',
+            help="disables --debug and forces normal deployment operation")
+        
         self.parser.add_argument('--no-cache',action='store_false',dest='cache',
-            help="Re-run all algorithm parts")
+            help="ignore cached data from the simulator")
         self.parser.add_argument('--thread',action='store_true',dest='thread',
-            help="Enable Threading")
+            help="enable multi-process support")
         self.parser.add_argument('-n',action='store',metavar='N',type=int,
-            help="Limit to the first N spectra")
-        self.parser.add_argument('-o',action='store',metavar='N',type=int,
-            help="Offset the starting spectra number by N")
-        self.parser.add_argument('--debug',action='store_true',dest='debug',help="Enable Debugging Mode")
-        self.parser.add_argument('--test',action='store_true',dest='test',help="Enable Test Mode Settings")
+            help="limit the run to N lenslets")
+        self.parser.add_argument('-o',action='store',metavar='I',type=int,
+            help="start filling from lenslet in array position I")
+            
+        self.parser.add_argument('-d','--debug',action='store_true',dest='debug',help="enable debugging messages and plots")
+        
         self.parser.add_argument('--config',action='store',dest='config',type=str,default="SED.config.yaml",
-            help="Name of the configuration file for the model")
-        self.parser.add_argument('--easy',action='store_true',dest='easy',help="Set easy settings for test runs")
+            help="use the specified configuration file",metavar="file.yaml")
+        
+        self.subparsers = self.parser.add_subparsers(help="sub-commands for different simulator modes")
     
     def initSpectra(self):
         """Set up the options for handling single spectra objects"""
-        specgroup = self.parser.add_argument_group('Spectra')
+        ShortHelp = "create images with a uniform source field spectrum"
+        specgroup = self.subparsers.add_parser('uniform',description=ShortHelp,help=ShortHelp)
         specgroup.add_argument('-s',choices='bfs',help="Select Spectrum: b: BlackBody f:Flat s:File")
         specgroup.add_argument('-T',action='store',dest='Temp',type=float,
             default=5000.0,help="BlackBody Temperature to use")
