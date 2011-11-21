@@ -19,7 +19,7 @@ import scipy.signal
 import scipy.interpolate
 import yaml
 
-import os,logging,time,copy
+import os,logging,time,copy,collections
 
 import AstroObject
 from AstroObject.AstroSpectra import SpectraObject
@@ -31,7 +31,14 @@ from Utilities import *
 
 __version__ = "0.1"
 
-
+def update(d, u):
+    for k, v in u.iteritems():
+        if isinstance(v, collections.Mapping):
+            r = update(d.get(k, {}), v)
+            d[k] = r
+        else:
+            d[k] = u[k]
+    return d
 
 
 class SEDLimits(Exception):
@@ -124,6 +131,7 @@ class Model(ImageObject):
         self.config["files"] = {}
         self.config["files"]["lenslets"] = "Data/xy_17nov2011_v57.TXT"
         self.config["files"]["dispersion"] = "Data/dispersion_12-10-2011.txt"
+        self.config["files"]["encircledenergy"] = "Data/encircled_energy_4nov11.TXT"
         # MPL Plotting Save Format
         self.config["plot_format"] = ".pdf"
         
@@ -133,9 +141,10 @@ class Model(ImageObject):
         """Attempt to load the default configuration from the working directory"""
         try:
             stream = file(self.configFile,'r')
-            self.config.update(yaml.load(stream))
         except IOError:
             self.log.warning("Configuration File Not Found: %s" % self.configFile)
+        else:
+            update(self.config,yaml.load(stream))
         finally:
             self.configs["file"] = copy.deepcopy(self.config)
     
@@ -155,7 +164,7 @@ class Model(ImageObject):
         
         try:
             stream = file(self.config["files"]["config"],'r')
-            self.config.update(yaml.load(stream))
+            update(self.config,yaml.load(stream))
         except IOError:
             self.log.info("Cached Configuration File Not Found: %s" % self.config["files"]["config"])
         except TypeError:
@@ -260,8 +269,6 @@ class Model(ImageObject):
         val = v
         
         return val / np.sum(val)
-
-    
     
     def circle_kern(self,radius,size=0,normalize=False):
         """Generate a Circle Kernel"""
@@ -311,11 +318,14 @@ class Model(ImageObject):
     
     def get_psf_kern(self):
         """Returns the PSF Kernel"""
-        USE_EN_ENG = True
-        if USE_EN_ENG:
-            return self.psf_kern("Data/encircled_energy_4nov11.TXT")
+        try:
+            PSFIMG = self.psf_kern(self.config["files"]["encircledenergy"])
+        except IOError as e:
+            self.log.warning("Could not access encircled energy file: %s" % e)
+            PSFIMG = self.gauss_kern( (self.config["psf_stdev"]["px"] * self.config["density"]) )
         else:
-            return self.gauss_kern( (self.config["psf_stdev"]["px"] * self.config["density"]) )
+            self.log.debug("Loaded Encircled Energy from %s" % self.config["files"]["encircledenergy"])
+        return PSFIMG
     
     
     def get_blank_img(self):
@@ -705,6 +715,8 @@ class Model(ImageObject):
         cropped = self.states[self.statename].data[x-xsize:x+xsize,y-ysize:y+ysize]
         self.log.debug("Cropped and Saved Image")
         self.save(cropped,"Cropped")
+    
+
 
 
 

@@ -48,6 +48,7 @@ class Simulator(object):
         self.startLogging()
         self.initOptions()
         self.initSpectra()
+        self.initStartup()
         self.bar = arpytools.progressbar.ProgressBar(color="green")
         self.prog = Value('d',0)
     
@@ -87,13 +88,13 @@ class Simulator(object):
         self.parser.add_argument('--config',action='store',dest='config',type=str,default="SED.config.yaml",
             help="use the specified configuration file",metavar="file.yaml")
         
-        self.subparsers = self.parser.add_subparsers(help="sub-commands for different simulator modes")
+        self.subparsers = self.parser.add_subparsers(help="sub-commands for different simulator modes",dest="command")
     
     def initSpectra(self):
         """Set up the options for handling single spectra objects"""
         ShortHelp = "create images with a uniform source field spectrum"
         specgroup = self.subparsers.add_parser('uniform',description=ShortHelp,help=ShortHelp)
-        specgroup.add_argument('-s',choices='bfs',help="Select Spectrum: b: BlackBody f:Flat s:File")
+        specgroup.add_argument('-s',choices='bfs',default='n',help="Select Spectrum: b: BlackBody f:Flat s:File")
         specgroup.add_argument('-T',action='store',dest='Temp',type=float,
             default=5000.0,help="BlackBody Temperature to use")
         specgroup.add_argument('-V',action='store',dest='Value',type=float,
@@ -102,6 +103,11 @@ class Simulator(object):
             default="",help="Spectrum Data Filename")
         specgroup.add_argument('-A',action='store',dest='PreAmp',type=float,
             default=1.0,help="Pre-amplification for Spectrum")
+            
+    def initStartup(self):
+        """Subcommand for handling only startup functions"""
+        ShortHelp = "run the initalization and caching for the system"
+        startupgroup = self.subparsers.add_parser('startup',description=ShortHelp,help=ShortHelp)
     
     def startLogging(self):
         """Establishes logging for this module"""
@@ -129,22 +135,37 @@ class Simulator(object):
         if os.access(logfolder,os.F_OK):
             self.log.addHandler(self.logfile)
         
-        self.log.info("Simulator has initilaized")
+        self.log.info("Runner has initilaized")
     
     
     def run(self):
         """Runs the simulator"""
         start = time.clock()
+ 
         self.parseOptions()
-        self.log.info("System Setup")
-        self.setup()
-        self.log.info("Generating Source")
-        self.generateAllLenslets()
-        self.placeAllLenslets()
-        self.log.info("Writing Image")
-        self.saveFile()
+        cmd = self.options.command
+        
+        if cmd in ["uniform","startup"]:
+            self.log.info("Simulator Setup")
+            self.setup()
+        
+        if cmd in ["uniform"]:
+            self.setupSource()
+        
+        if cmd in ["uniform"]:
+            self.log.info("Generating Source")
+            self.generateAllLenslets()
+            
+        if cmd in ["uniform"]:
+            self.placeAllLenslets()
+            self.log.info("Writing Image")
+            
+        if cmd in ["uniform"]:
+            self.saveFile()
+        
         self.log.debug("Total Simulation took %2.3gs for %d lenslets with caching %s" % (time.clock() - start,
             len(self.lenslets),"enabled" if self.options.cache else "disabled"))
+        self.log.info("Runner is done")
     
     
     def parseOptions(self):
@@ -169,15 +190,18 @@ class Simulator(object):
             self.logfile.setLevel(logging.INFO)
         
         
-        self.optstring = "\n"
+        self.optstring = "SEDScript: \n"
         
         for key,value in vars(self.options).iteritems():
-            self.optstring += "%(key)15s : %(value)15s" % { 'key':key , 'value':value }
+            self.optstring += "%(key)15s : %(value)15s \n" % { 'key':key , 'value':value }
+        
+        stream = file('Partials/Options.txt','w')
+        stream.write(self.optstring)
+        stream.close()
     
     
     def setup(self):
         """Performs all setup options"""
-        self.setupSource()
         self.setupModel()
         self.setupLenslets()
     
