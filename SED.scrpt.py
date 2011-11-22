@@ -212,10 +212,13 @@ class Simulator(object):
             msg = "Dev Mode"
         if self.options.easy:
             msg += "Easy Settings"
-            self.options.s = "b"
-            self.options.Temp = 5000
-            self.options.o = 2150
-            self.options.n = 5
+            if self.options.s == "n":
+                self.options.s = "b"
+                self.options.Temp = 5000
+            if not self.options.o:
+                self.options.o = 2150
+            if not self.options.n:
+                self.options.n = 5
         
         if msg != "":
             self.log.info("Registering %s" % msg)
@@ -312,7 +315,7 @@ class Simulator(object):
             x,y = points.T
             ncorner = np.array([np.max(x),np.min(y)])
             handle = file("Partials/Positions.dat",'a')
-            np.savetxt(handle,np.array([np.hstack((corner,ncorner))]),fmt='%4.1f')
+            np.savetxt(handle,np.array([np.hstack((corner,ncorner))]),fmt='%6.1f')
         except SED.SEDLimits:
             msg = "Skipped Lenslet %4d" % lenslet
             self.Model.log.info(msg)
