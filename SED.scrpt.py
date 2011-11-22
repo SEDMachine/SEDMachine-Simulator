@@ -26,8 +26,9 @@ import scipy.signal
 __version__ = SED.__version__
 
 LongHelp = """
-This is the Command Line Interface to the SEDMachine Simulator Program.
+This is the Command Line Interface to the SEDMachine Simulator Program."""
 
+""""
 The program works in the following stages:
     1. Instrument Property Setup
     2. Spectrum Generation
@@ -58,7 +59,7 @@ class Simulator(object):
         self.parser = argparse.ArgumentParser(description=ShortHelp,epilog=LongHelp,
             formatter_class=argparse.RawDescriptionHelpFormatter,usage=USAGE)
         
-        self.parser.add_argument('-f',metavar='label',type=str,
+        self.parser.add_argument('-f',metavar='label',type=str,dest='title',
             help="label for output image",default="Experiment")
         # Add the basic controls for the script
         self.parser.add_argument('--version',action='version',version=__version__)
@@ -72,7 +73,8 @@ class Simulator(object):
             help="uses simple configuration for testing the simulator")
         self.basics.add_argument('-F','--full',action='store_true',dest='full',
             help="disables --debug and forces normal deployment operation")
-        
+            
+        self.parser.add_argument('--plot',action='store_true',dest='plot',help="Enable debugging plots")
         self.parser.add_argument('--no-cache',action='store_false',dest='cache',
             help="ignore cached data from the simulator")
         self.parser.add_argument('--thread',action='store_true',dest='thread',
@@ -104,24 +106,31 @@ class Simulator(object):
         self.initSpectra()
         self.initStartup()
         self.initSource()
+        self.initPosTest()
     
     def initSpectra(self):
         """Set up the options for handling single spectra objects"""
         ShortHelp = "create images with a uniform source field spectrum"
-        Description = ""
-        specgroup = self.subparsers.add_parser('uniform',description=ShortHelp,help=ShortHelp,parents=[self.uniform])
-
-            
+        Description = "Runs the simulator with a uniform source, i.e. the same spectrum in each lenslet"
+        specgroup = self.subparsers.add_parser('uniform',description=Description,help=ShortHelp,parents=[self.uniform])
+    
+    def initPosTest(self):
+        """Position Testing Script"""
+        ShortHelp = "position testing mode for spectrum placement"
+        Description = "Produces output to determine if the spectrum placement appears to have been done correctly"
+        postest = self.subparsers.add_parser('postest',description=Description,help=ShortHelp,parents=[self.uniform])
+    
     def initStartup(self):
         """Subcommand for handling only startup functions"""
         ShortHelp = "run the initalization and caching for the system"
-        Description = "Initializes the simulation, then initializes a uniform source spectrum as specified."
+        Description = "Initializes the simulation."
         startupgroup = self.subparsers.add_parser('startup',description=Description,help=ShortHelp)
     
     def initSource(self):
         """Subcommand for handling only startup and source functions"""
         ShortHelp = "run the source creation and resolution routines"
-        sourcegroup = self.subparsers.add_parser('source',description=ShortHelp,help=ShortHelp,parents=[self.uniform])
+        Description = "Initializes the simulation, then initializes the source spectra"
+        sourcegroup = self.subparsers.add_parser('source',description=Description,help=ShortHelp,parents=[self.uniform])
     
     def startLogging(self):
         """Establishes logging for this module"""
@@ -159,13 +168,17 @@ class Simulator(object):
         self.parseOptions()
         cmd = self.options.command
         
-        if cmd in ["uniform","source","startup"]:
+        if cmd in ["uniform","source","startup","postest"]:
             self.log.info("Simulator Setup")
             self.setup()
         
-        if cmd in ["uniform","source"]:
+        if cmd in ["uniform","source","postest"]:
             self.log.info("Source Setup")
             self.setupSource()
+        
+        if cmd in ["postest"]:
+            self.log.info("Testing Source Positioning")
+            self.positionTests()
         
         if cmd in ["uniform"]:
             self.log.info("Generating Source")
@@ -219,7 +232,7 @@ class Simulator(object):
         for key,value in vars(self.options).iteritems():
             self.optstring += "%(key)15s : %(value)15s \n" % { 'key':key , 'value':value }
         
-        stream = file('Partials/Options.txt','w')
+        stream = file('Partials/Options.dat','w')
         stream.write(self.optstring)
         stream.close()
     
@@ -260,7 +273,10 @@ class Simulator(object):
             self.Model = SED.Model(self.options.config,self.CacheDirectory)
         else:
             self.Model = SED.Model(self.options.config)
+        
+        self.Model.plot = self.options.plot
         self.Model.setup()
+        
         if self.debug:
             end = time.clock()
             dur = end - start
@@ -279,6 +295,34 @@ class Simulator(object):
         self.total = len(self.lenslets)
     
     
+    def positionTests(self):
+        """Test the positioning of spectra on the image"""
+        self.bar.render(0,"L:%4d" % 0)
+        handle = file("Partials/Positions.dat",'w')
+        handle.write("# Spectra Positions\n")
+        handle.close()
+        for i in self.lenslets:
+            self.positionTest(i,self.Spectrum)
+    
+    def positionTest(self,lenslet,spectrum):
+        """A single position test"""
+        try:
+            image,corner = self.Model.get_dense_image(lenslet,spectrum)
+            points,wl,deltawl = self.Model.get_wavelengths(lenslet)
+            x,y = points.T
+            ncorner = np.array([np.max(x),np.min(y)])
+            handle = file("Partials/Positions.dat",'a')
+            np.savetxt(handle,np.array([np.hstack((corner,ncorner))]),fmt='%4.1f')
+        except SED.SEDLimits:
+            msg = "Skipped Lenslet %4d" % lenslet
+            self.Model.log.info(msg)
+        else:
+            msg = "Cached Lenslet %4d" % lenslet
+            self.Model.log.info(msg)
+        finally:
+            self.prog.value += 1.0
+            self.bar.render(int((self.prog.value/self.total) * 100),"L:%4d" % lenslet)
+    
     def generateLenslet(self,i,spectrum):
         """Generate a single lenslet spectrum"""
         try:
@@ -290,11 +334,11 @@ class Simulator(object):
                 plt.clf()
         
         except SED.SEDLimits:
-            msg = "Skipped Lenslet %d, Limits Out of Bounds" % i
-            SED.LOG.info(msg)
+            msg = "Skipped Lenslet %4d, Limits Out of Bounds" % i
+            self.Model.log.info(msg)
         else:
-            msg = "Cached Lenslet %d" % i
-            SED.LOG.info(msg)
+            msg = "Cached Lenslet %4d" % i
+            self.Model.log.info(msg)
         finally:
             self.prog.value += 1.0
             self.bar.render(int((self.prog.value/self.total) * 100),"L:%4d" % i)
@@ -302,7 +346,7 @@ class Simulator(object):
     def generateAllLenslets(self):
         """Generate all lenslet spectra"""
         self.log.info("Generating Spectra in %d Lenslets" % len(self.lenslets))
-        self.bar.render(0,"L:%d" % 0)
+        self.bar.render(0,"L:%4d" % 0)
         if self.options.thread:
             map_func = self.pool.async_map
         else:
@@ -313,23 +357,24 @@ class Simulator(object):
     def placeLenslet(self,i):
         """Place a single lenslet into the model"""
         try:
-            self.Model.place_cached_sed(i,"Included Spectrum %d" % i,"Blank")
+            self.Model.place_cached_sed(i,"Included Spectrum %d" % i,"Final")
             if self.debug:
                 self.Model.show()
                 plt.savefig("Images/%04d-Fullimage.pdf" % i)
                 plt.clf()
         except SED.SEDLimits:
             msg = "Encoutered Spectrum outside image boundaries %d" % i
-            SED.LOG.info(msg)
+            self.Model.log.info(msg)
         else:
             msg = "Placed Spectrum %d into image" % i
-            SED.LOG.info(msg)
+            self.Model.log.info(msg)
         finally:
             self.prog.value += 1
             self.bar.render(int((self.prog.value/self.total) * 100),"L:%4d" % i)
     
     def placeAllLenslets(self):
         """Place all lenslets into the image file"""
+        self.Model.save(self.Model.data("Blank"),"Final")
         self.log.info("Placing Spectra in %d Lenslets" % len(self.lenslets))
         self.bar.render(0,"L:%d" % 0)
         self.prog.value = 0
@@ -344,6 +389,7 @@ class Simulator(object):
         """Saves the file"""
         self.Filename = "%(label)s-%(date)s.%(fmt)s" % { 'label': self.options.title, 'date': time.strftime("%Y-%m-%d"), 'fmt':'fits' }
         self.Fullname = self.ImageDirectory + self.Filename
+        self.Model.keep(self.Model.statename)
         self.Model.write(self.Fullname,clobber=True)
         self.log.info("Wrote %s" % self.Fullname)
     

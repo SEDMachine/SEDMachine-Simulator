@@ -53,6 +53,7 @@ class Model(ImageObject):
         self.configFile = configFile
         self.cache = False
         self.regenerate = True
+        self.plot = True
         self.configs = {}
         self.config = {}
         if cachesDirectory != None:
@@ -438,8 +439,8 @@ class Model(ImageObject):
         # wl = self.spline(distance)
         
         # This is a debugging area which will make a lot of graphs and annoying messages.
-        if self.log.getEffectiveLevel() <= logging.DEBUG:
-            
+        if self.log.getEffectiveLevel() <= logging.DEBUG and self.plot:
+            self.log.debug("Plotting Wavelength Information")
             # This graph shows the change in distance along arc per pixel.
             # The graph should produce all data points close to each other, except a variety of much lower
             # data points which are caused by the arc crossing between pixels.
@@ -543,7 +544,7 @@ class Model(ImageObject):
         self.log.debug("Got Flux with bounds [%1.4e,%1.4e]" % (np.max(flux),np.min(flux)))
         
         # This debugging area generates plots for us.
-        if self.log.getEffectiveLevel() <= logging.DEBUG:
+        if self.log.getEffectiveLevel() <= logging.DEBUG and self.plot:
             self.log.debug("Generating Plots for Spectra...")
             plt.clf()
             plt.plot(wl[:-1],flux,"b.")
@@ -560,8 +561,8 @@ class Model(ImageObject):
             plt.clf()
         
         # Take our points out. Note from the above that we multiply by the density in order to do this
+        xorig,yorig = (points * self.config["density"])[:-1].T.astype(np.int)
         x,y = (points * self.config["density"])[:-1].T.astype(np.int)
-        
         # Get the way in which those points correspond to actual pixels.
         # As such, this array of points should have duplicates
         xint,yint = points.T.astype(np.int)
@@ -584,6 +585,23 @@ class Model(ImageObject):
         x += self.config["padding"] * self.config["density"]
         y += self.config["padding"] * self.config["density"]
         
+        # Find the first (by the flatten method) corner of the subimage,
+        # useful for placing the sub-image into the full image.
+        corner = np.array([ xint[np.argmax(x)], yint[np.argmin(y)]]) 
+        self.log.debug("Corner Position in Integer Space: %s" % corner)
+        corner *= self.config["density"]
+        realcorner = np.array([ xorig[np.argmax(x)], yorig[np.argmin(y)]])
+        offset = corner - realcorner
+        corner /= self.config["density"]
+        self.log.debug("Corner Position Offset in Dense Space: %s" % (offset))
+        if self.log.getEffectiveLevel() <= logging.DEBUG:
+            handle = file("Partials/Offsets.dat",'a')
+            np.savetxt(handle,offset.T)
+        corner -= np.array([-self.config["padding"],self.config["padding"]])
+        
+        x += offset[0]
+        y += offset[1]
+        
         # Create our sub-image, using the x and y width of the spectrum, plus 2 padding widths.
         # Padding is specified in full-size pixels to ensure that the final image is an integer
         # number of full-size pixels across.
@@ -594,10 +612,8 @@ class Model(ImageObject):
         self.log.debug("Placing flux (shape: %s ) for spectrum %4d into a sub-image (shape: %s)."
             % (flux.shape,lenslet,img.shape))
         
-        np.savetxt("Partials/SubimageValues.txt",np.array([x,y,wl[:-1],deltawl,flux]).T)
-        # Find the first (by the flatten method) corner of the subimage,
-        # useful for placing the sub-image into the full image.
-        corner = np.array([ xint[np.argmax(x)], yint[np.argmin(y)]]) - np.array([self.config["padding"],self.config["padding"]])
+        if self.log.getEffectiveLevel() <= logging.DEBUG:
+            np.savetxt("Partials/SubimageValues.dat",np.array([x,y,wl[:-1],deltawl,flux]).T)
         
         return img, corner
     
@@ -606,26 +622,26 @@ class Model(ImageObject):
         """Returns a sub-image for a given lenslet"""
         # This function gets the dense sub-image with the spectrum placed in single dense pixels
         img,corner = self.get_dense_image(lenslet,spectrum)
-        self.log.debug("%4d:Retrieved Dense Image for" % lenslet)
+        self.log.debug("Retrieved Dense Image for %4d" % lenslet)
         
         if fast:
             # Convolve with the PSF and Telescope Image simultaneously
             img2 = sp.signal.convolve(img,self.FINIMG,mode='same')
-            self.log.debug("%4d:Convolved Dense Image with PSF and Telescope" % lenslet)
+            self.log.debug("Convolved Dense Image with PSF and Telescope for %4d" % lenslet)
             # Bin the image back down to the final pixel size
             small = bin(img2,self.config["density"]).astype(np.int16)
-            self.log.debug("%4d:Binned Dense Image to Actual Size" % lenslet)
+            self.log.debug("Binned Dense Image to Actual Size for %4d" % lenslet)
             return small,corner
         else:
             # Convolve this spectrum with an appropriate image of the telescope
             img_tel = sp.signal.convolve(img,self.TELIMG,mode='same')
-            self.log.info("%4d:Convolved Dense Image with Telescope" % lenslet)
+            self.log.info("Convolved Dense Image with Telescope for %4d" % lenslet)
             # Convolve again with an appropriate PSF
             img_tel_psf = sp.signal.convolve(img_tel,self.PSFIMG,mode='same')
-            self.log.info("%4d:Convolved Dense Image with PSF" % lenslet)
+            self.log.info("Convolved Dense Image with PSF for %4d" % lenslet)
             # Bin the image back down to the final pixel size
             small = bin(img_tel_psf,self.config["density"]).astype(np.int16)
-            self.log.info("%4d:Binned Dense Image" % lenslet)
+            self.log.info("Binned Dense Image for %4d" % lenslet)
             return small,corner,(img,img_tel,img_tel_psf)
     
     def cache_sed_subimage(self,lenslet,spectrum,write=False,do_return=False):
@@ -640,16 +656,19 @@ class Model(ImageObject):
         label = "SUBIMG%d" % lenslet
         
         self.save(small,label)
-        self.frame().header=dict(Lenslet=lenslet,Corner=corner,Spectrum=spectrum.label)
+        self.frame().header=dict(Lenslet=lenslet,Spectrum=spectrum.label)
+        self.frame().metadata=dict(Corner=corner)
         
-        Stages = ["Raw Image","Convolved with Telescope","Convolved with Telescope & PSF"]
-        if self.log.getEffectiveLevel() <= logging.DEBUG:
+        Stages = ["Raw Image","Convolved with Telescope","Convolved with Telescope and PSF"]
+        StagesF = ["Raw","Tel","PSF"]
+        if self.log.getEffectiveLevel() <= logging.DEBUG and self.plot:
             for i,step in enumerate(steps):
                 self.save(step,"%4d-Intermediate-%d: %s" % (lenslet,i,Stages[i]))
-                self.frame().header=dict(Lenslet=lenslet,Corner=corner,Spectrum=spectrum.label,Stage=Stages[i])
+                self.frame().header=dict(Lenslet=lenslet,Spectrum=spectrum.label,Stage=Stages[i])
+                self.frame().metadata=dict(Corner=corner)
                 plt.imshow(step)
-                plt.title("Intermediate Image Generation Steps for Lenslet %4d" % lenslet)
-                plt.savefig("Partials/%04d-Intermediate-%d%s" % (lenslet,i,self.config["plot_format"]))
+                plt.title("%s Image Generation Steps for Lenslet %4d" % (Stages[i],lenslet))
+                plt.savefig("Partials/%04d-%s%s" % (lenslet,StagesF[i],self.config["plot_format"]))
                 plt.clf()
         
         # We only write the sub-image if the function is called to write sub images
@@ -670,7 +689,7 @@ class Model(ImageObject):
             raise SEDLimits(str(e))
         subimg = subframe()
         mlenslet = subframe.header['Lenslet']
-        mcorner = subframe.header['Corner']
+        mcorner = subframe.metadata['Corner']
         if mlenslet != lenslet:
             raise ValueError("Lenslet Number Mismatch %d:%d for state %s in %s" % (lenslet,mlenslet,slabel,self))
         self.place(subimg,mcorner,label,dlabel)
@@ -702,6 +721,8 @@ class Model(ImageObject):
         data[xstart:xend,ystart:yend] += img
         
         self.save(data,label)
+        self.remove(dlabel)
+        self.save(data,dlabel)
     
     
     def generate_blank(self):
