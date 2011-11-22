@@ -47,17 +47,16 @@ class Simulator(object):
         self.CacheDirectory = "Caches/"
         self.startLogging()
         self.initOptions()
-        self.initSpectra()
-        self.initStartup()
         self.bar = arpytools.progressbar.ProgressBar(color="green")
         self.prog = Value('d',0)
     
     def initOptions(self):
         """Set up the options for the command line interface."""
         
+        USAGE = """SED.scrpt.py [-D | -T | -E | -F] [arguments] subcommand"""
         # Establish an argument parser
         self.parser = argparse.ArgumentParser(description=ShortHelp,epilog=LongHelp,
-            formatter_class=argparse.RawDescriptionHelpFormatter,)
+            formatter_class=argparse.RawDescriptionHelpFormatter,usage=USAGE)
         
         self.parser.add_argument('-f',metavar='label',type=str,
             help="label for output image",default="Experiment")
@@ -88,26 +87,41 @@ class Simulator(object):
         self.parser.add_argument('--config',action='store',dest='config',type=str,default="SED.config.yaml",
             help="use the specified configuration file",metavar="file.yaml")
         
-        self.subparsers = self.parser.add_subparsers(help="sub-commands for different simulator modes",dest="command")
+        self.uniform = argparse.ArgumentParser(add_help=False)
+        
+        self.uniform.add_argument('-s',choices='bfs',default='n',help="Select Spectrum: b: BlackBody f:Flat s:File")
+        self.uniform.add_argument('-T',action='store',dest='Temp',type=float,
+            default=5000.0,help="BlackBody Temperature to use")
+        self.uniform.add_argument('-V',action='store',dest='Value',type=float,
+            default=1000.0,help="Flat Spectrum Value")
+        self.uniform.add_argument('-F',action='store',dest='Filename',type=str,
+            default="",help="Spectrum Data Filename")
+        self.uniform.add_argument('-A',action='store',dest='PreAmp',type=float,
+            default=1.0,help="Pre-amplification for Spectrum")
+        
+        self.subparsers = self.parser.add_subparsers(title="sub-commands",dest="command",metavar="subcommand")
+        
+        self.initSpectra()
+        self.initStartup()
+        self.initSource()
     
     def initSpectra(self):
         """Set up the options for handling single spectra objects"""
         ShortHelp = "create images with a uniform source field spectrum"
-        specgroup = self.subparsers.add_parser('uniform',description=ShortHelp,help=ShortHelp)
-        specgroup.add_argument('-s',choices='bfs',default='n',help="Select Spectrum: b: BlackBody f:Flat s:File")
-        specgroup.add_argument('-T',action='store',dest='Temp',type=float,
-            default=5000.0,help="BlackBody Temperature to use")
-        specgroup.add_argument('-V',action='store',dest='Value',type=float,
-            default=1000.0,help="Flat Spectrum Value")
-        specgroup.add_argument('-F',action='store',dest='Filename',type=str,
-            default="",help="Spectrum Data Filename")
-        specgroup.add_argument('-A',action='store',dest='PreAmp',type=float,
-            default=1.0,help="Pre-amplification for Spectrum")
+        Description = ""
+        specgroup = self.subparsers.add_parser('uniform',description=ShortHelp,help=ShortHelp,parents=[self.uniform])
+
             
     def initStartup(self):
         """Subcommand for handling only startup functions"""
         ShortHelp = "run the initalization and caching for the system"
-        startupgroup = self.subparsers.add_parser('startup',description=ShortHelp,help=ShortHelp)
+        Description = "Initializes the simulation, then initializes a uniform source spectrum as specified."
+        startupgroup = self.subparsers.add_parser('startup',description=Description,help=ShortHelp)
+    
+    def initSource(self):
+        """Subcommand for handling only startup and source functions"""
+        ShortHelp = "run the source creation and resolution routines"
+        sourcegroup = self.subparsers.add_parser('source',description=ShortHelp,help=ShortHelp,parents=[self.uniform])
     
     def startLogging(self):
         """Establishes logging for this module"""
@@ -145,11 +159,12 @@ class Simulator(object):
         self.parseOptions()
         cmd = self.options.command
         
-        if cmd in ["uniform","startup"]:
+        if cmd in ["uniform","source","startup"]:
             self.log.info("Simulator Setup")
             self.setup()
         
-        if cmd in ["uniform"]:
+        if cmd in ["uniform","source"]:
+            self.log.info("Source Setup")
             self.setupSource()
         
         if cmd in ["uniform"]:
@@ -171,17 +186,26 @@ class Simulator(object):
     def parseOptions(self):
         """Interprests the options system"""
         self.options = self.parser.parse_args()
+        
+        msg = ""
+        
         if self.options.test:
             self.options.easy = True
             self.options.cache = False
+            msg = "Test Mode"
         if self.options.dev:
             self.options.debug = True
             self.options.easy = True
+            msg = "Dev Mode"
         if self.options.easy:
+            msg += "Easy Settings"
             self.options.s = "b"
             self.options.Temp = 5000
             self.options.o = 2150
             self.options.n = 5
+        
+        if msg != "":
+            self.log.info("Registering %s" % msg)
         
         if self.options.debug:
             self.debug = True
@@ -207,22 +231,26 @@ class Simulator(object):
     
     def setupSource(self):
         """Sets up the source"""
-        if self.options.s == "b":
+        if self.options.s == "n":
+            self.parser.error("Source Spec Required! See -s")
+        elif self.options.s == "b":
             self.Spectrum = BlackBodySpectrum(self.options.Temp)
-            # self.Spectrum *= self.options.PreAmp
+            self.Spectrum *= self.options.PreAmp
         elif self.options.s == "f":
             self.Spectrum = FlatSpectrum(self.options.Value)
-            # self.Spectrum *= self.options.PreAmp
+            self.Spectrum *= self.options.PreAmp
         elif self.options.spec == "s":
             try:
                 WL,Flux = np.genfromtxt(self.options.Filename).T
-                WL *= 1e-10
-                Flux *= 1e18 * 1e6
-                self.Spectrum = AS(np.array([WL,Flux]),self.options.Filename)
-                # self.Spectrum *= self.options.PreAmp
             except IOError as e:
                 self.parser.error("Cannot find Spectrum File: %s" % str(e))
+            WL *= 1e-10
+            Flux *= 1e18 * 1e6
+            self.Spectrum = AS(np.array([WL,Flux]),self.options.Filename)
+            self.Spectrum *= self.options.PreAmp
         self.log.debug("Set Spectrum to %s" % self.Spectrum)
+        
+        
     
     def setupModel(self):
         """Sets up the SED Module Model"""
