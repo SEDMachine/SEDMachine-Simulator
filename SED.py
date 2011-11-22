@@ -48,7 +48,7 @@ class SEDLimits(Exception):
 
 class Model(ImageObject):
     """This object is model"""
-    def __init__(self,configFile,cachesDirectory=None):
+    def __init__(self,configFile,scriptConfig):
         super(Model, self).__init__()
         self.configFile = configFile
         self.cache = False
@@ -56,9 +56,9 @@ class Model(ImageObject):
         self.plot = True
         self.configs = {}
         self.config = {}
-        if cachesDirectory != None:
-            self.cache = True
-            self.cachesDirectory = cachesDirectory
+        if scriptConfig != None:
+            self.scriptConfig = scriptConfig
+            self.cache = scriptConfig["Cache"]
         self.initLog()
         self.configure()
     
@@ -156,18 +156,19 @@ class Model(ImageObject):
         
         self.log.debug("Enabling Caching")
         
-        self.config["files"]["telescope"] = self.cachesDirectory + self.configFile.rstrip(".yaml") + ".tel"
-        self.config["files"]["psf"] = self.cachesDirectory + self.configFile.rstrip(".yaml") + ".psf"
-        self.config["files"]["conv"] = self.cachesDirectory + self.configFile.rstrip(".yaml") + ".conv"
-        self.config["files"]["config"] = self.cachesDirectory + self.configFile
+        self.scriptConfig["Cache-Files"] = {}
+        self.scriptConfig["Cache-Files"]["telescope"] = self.scriptConfig["Dirs"]["Caches"] + self.configFile.rstrip(".yaml") + ".tel"
+        self.scriptConfig["Cache-Files"]["psf"] = self.scriptConfig["Dirs"]["Caches"] + self.configFile.rstrip(".yaml") + ".psf"
+        self.scriptConfig["Cache-Files"]["conv"] = self.scriptConfig["Dirs"]["Caches"] + self.configFile.rstrip(".yaml") + ".conv"
+        self.scriptConfig["Cache-Files"]["config"] = self.scriptConfig["Dirs"]["Caches"] + self.configFile
         
         self.configs["precached"] = copy.deepcopy(self.config)
         
         try:
-            stream = file(self.config["files"]["config"],'r')
+            stream = file(self.scriptConfig["Cache-Files"]["config"],'r')
             update(self.config,yaml.load(stream))
         except IOError:
-            self.log.info("Cached Configuration File Not Found: %s" % self.config["files"]["config"])
+            self.log.info("Cached Configuration File Not Found: %s" % self.scriptConfig["Cache-Files"]["config"])
         except TypeError:
             self.log.critical("Cached Configuration File has a Problem... skipping.")
         
@@ -191,21 +192,21 @@ class Model(ImageObject):
     # Cacheing Functions
     def regenerateCache(self):
         """Cache the system setup"""
-        stream = file(self.config["files"]["config"],'w')
+        stream = file(self.scriptConfig["Cache-Files"]["config"],'w')
         yaml.dump(self.configs["NoDynamic"],stream,default_flow_style=False)
-        np.save(self.config["files"]["telescope"],self.TELIMG)
-        np.save(self.config["files"]["psf"],self.PSFIMG)
-        np.save(self.config["files"]["conv"],self.FINIMG)
+        np.save(self.scriptConfig["Cache-Files"]["telescope"],self.TELIMG)
+        np.save(self.scriptConfig["Cache-Files"]["psf"],self.PSFIMG)
+        np.save(self.scriptConfig["Cache-Files"]["conv"],self.FINIMG)
     
     def cachedKernel(self):
         """Load cached kernels"""
         try:
             # Telescope Image Setup
-            self.TELIMG = np.load(self.config["files"]["telescope"]+".npy")
+            self.TELIMG = np.load(self.scriptConfig["Cache-Files"]["telescope"]+".npy")
             # PSF Setup
-            self.PSFIMG = np.load(self.config["files"]["psf"]+".npy")
+            self.PSFIMG = np.load(self.scriptConfig["Cache-Files"]["psf"]+".npy")
             # Preconvolved System
-            self.FINIMG = np.load(self.config["files"]["conv"]+".npy")
+            self.FINIMG = np.load(self.scriptConfig["Cache-Files"]["conv"]+".npy")
         except IOError as e:
             self.log.warning("Cached files not found, using configuration to generate files. Error: %s" % e )
             self.regenerate = True
@@ -215,6 +216,11 @@ class Model(ImageObject):
             
         
     
+    def dumpConfig(self):
+        """Dumps a valid configuration file on top of any old configuration files"""
+        stream = file(self.configFile,'w')
+        yaml.dump(self.configs["NoDynamic"],stream,default_flow_style=False)
+        
     def setup(self):
         """Function handles the setup of simulation information"""
         

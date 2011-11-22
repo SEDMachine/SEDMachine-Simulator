@@ -7,7 +7,7 @@
 #  Copyright 2011 Alexander Rudy. All rights reserved.
 #
 
-import math, copy, sys, time, logging, os, argparse
+import math, copy, sys, time, logging, os, argparse, yaml
 
 import numpy as np
 import pyfits as pf
@@ -44,8 +44,6 @@ class Simulator(object):
     def __init__(self):
         super(Simulator, self).__init__()
         self.debug = False
-        self.ImageDirectory = "Images/"
-        self.CacheDirectory = "Caches/"
         self.startLogging()
         self.initOptions()
         self.bar = arpytools.progressbar.ProgressBar(color="green")
@@ -86,8 +84,12 @@ class Simulator(object):
             
         self.parser.add_argument('-d','--debug',action='store_true',dest='debug',help="enable debugging messages and plots")
         
-        self.parser.add_argument('--config',action='store',dest='config',type=str,default="SED.config.yaml",
+        self.parser.add_argument('--config',action='store',dest='config',type=str,default="SED.script.config.yaml",
             help="use the specified configuration file",metavar="file.yaml")
+        self.parser.add_argument('--iconfig',action='store',dest='iconfig',type=str,default="SED.instrument.config.yaml",
+            help="use the specified configuration file",metavar="file.yaml")
+        self.parser.add_argument('--dump-config',action='store_true',dest='dump',help=argparse.SUPPRESS)
+        
         
         self.uniform = argparse.ArgumentParser(add_help=False)
         
@@ -168,6 +170,12 @@ class Simulator(object):
         self.parseOptions()
         cmd = self.options.command
         
+        if self.options.dump:
+            self.log.info("Dumping Configuration Variables...")
+            self.dumpConfig()
+            self.log.info("Cancelling all subcommands")
+            cmd = ""
+        
         if cmd in ["uniform","source","startup","postest"]:
             self.log.info("Simulator Setup")
             self.setup()
@@ -191,8 +199,9 @@ class Simulator(object):
         if cmd in ["uniform"]:
             self.saveFile()
         
-        self.log.debug("Total Simulation took %2.3gs for %d lenslets with caching %s" % (time.clock() - start,
-            len(self.lenslets),"enabled" if self.options.cache else "disabled"))
+        if cmd in ["uniform","source","postest"]:
+            self.log.debug("Total Simulation took %2.3gs for %d lenslets with caching %s" % (time.clock() - start,
+                len(self.lenslets),"enabled" if self.options.cache else "disabled"))
         self.log.info("Runner is done")
     
     
@@ -212,7 +221,7 @@ class Simulator(object):
             msg = "Dev Mode"
         if self.options.easy:
             msg += "Easy Settings"
-            if self.options.s == "n":
+            if not hasattr(self.options,'s') or self.options.s == "n":
                 self.options.s = "b"
                 self.options.Temp = 5000
             if not self.options.o:
@@ -229,17 +238,39 @@ class Simulator(object):
         else:
             self.logfile.setLevel(logging.INFO)
         
+        self.loadConfig()
         
         self.optstring = "SEDScript: \n"
         
         for key,value in vars(self.options).iteritems():
             self.optstring += "%(key)15s : %(value)15s \n" % { 'key':key , 'value':value }
         
-        stream = file('Partials/Options.dat','w')
+        stream = file(self.config["Dirs"]["Partials"]+"/Options.dat",'w')
         stream.write(self.optstring)
         stream.close()
     
-    
+    def loadConfig(self):
+        """Loads the config file"""
+        self.config = {"Dirs":{"Caches":"Caches/","Images":"Images/","Partials":"Partials/","Logs":"Logs/"},"Cache":self.options.cache}
+        try:
+            self.config = SED.update(self.config,yaml.load(file(self.options.config)))
+        except IOError:
+            self.log.warning("Couldn't Read configuration file %s, using defaults" % self.options.config)
+        self.dirCheck()
+        
+    def dirCheck(self):
+        """Checks that all of the configured directories exist, and creates the ones that don't."""
+        for DIR in self.config["Dirs"].values():
+            if not os.access(DIR,os.F_OK):
+                os.mkdir(DIR)
+                self.log.info("Created Directory %s" % DIR)
+        
+    def dumpConfig(self):
+        """Dumps a config back out"""
+        yaml.dump(self.config,file(self.options.config,'w'),default_flow_style=False)
+        Model = SED.Model(self.options.iconfig,self.config)
+        Model.dumpConfig()
+        
     def setup(self):
         """Performs all setup options"""
         self.setupModel()
@@ -272,10 +303,8 @@ class Simulator(object):
         """Sets up the SED Module Model"""
         if self.debug:
             start = time.clock()
-        if self.options.cache:
-            self.Model = SED.Model(self.options.config,self.CacheDirectory)
-        else:
-            self.Model = SED.Model(self.options.config)
+        
+        self.Model = SED.Model(self.options.iconfig,self.config)
         
         self.Model.plot = self.options.plot
         self.Model.setup()
@@ -301,7 +330,7 @@ class Simulator(object):
     def positionTests(self):
         """Test the positioning of spectra on the image"""
         self.bar.render(0,"L:%4d" % 0)
-        handle = file("Partials/Positions.dat",'w')
+        handle = file(self.config["Dirs"]["Partials"] + "Positions.dat",'w')
         handle.write("# Spectra Positions\n")
         handle.close()
         for i in self.lenslets:
@@ -314,7 +343,7 @@ class Simulator(object):
             points,wl,deltawl = self.Model.get_wavelengths(lenslet)
             x,y = points.T
             ncorner = np.array([np.max(x),np.min(y)])
-            handle = file("Partials/Positions.dat",'a')
+            handle = file(self.config["Dirs"]["Partials"] + "Positions.dat",'a')
             np.savetxt(handle,np.array([np.hstack((corner,ncorner))]),fmt='%6.1f')
         except SED.SEDLimits:
             msg = "Skipped Lenslet %4d" % lenslet
@@ -333,7 +362,7 @@ class Simulator(object):
             
             if self.debug:
                 self.Model.show()
-                plt.savefig("Images/%04d-Subimage.pdf" % i)
+                plt.savefig(self.config["Dirs"]["Partials"] + "%04d-Subimage.pdf" % i)
                 plt.clf()
         
         except SED.SEDLimits:
@@ -363,7 +392,7 @@ class Simulator(object):
             self.Model.place_cached_sed(i,"Included Spectrum %d" % i,"Final")
             if self.debug:
                 self.Model.show()
-                plt.savefig("Images/%04d-Fullimage.pdf" % i)
+                plt.savefig(self.config["Dirs"]["Partials"] + "%04d-Fullimage.pdf" % i)
                 plt.clf()
         except SED.SEDLimits:
             msg = "Encoutered Spectrum outside image boundaries %d" % i
@@ -378,8 +407,8 @@ class Simulator(object):
     def placeAllLenslets(self):
         """Place all lenslets into the image file"""
         self.Model.save(self.Model.data("Blank"),"Final")
-        self.log.info("Placing Spectra in %d Lenslets" % len(self.lenslets))
-        self.bar.render(0,"L:%d" % 0)
+        self.log.info("Placing Spectra in %4d Lenslets" % len(self.lenslets))
+        self.bar.render(0,"L:%4d" % 0)
         self.prog.value = 0
         if self.options.thread:
             map_func = self.pool.async_map
@@ -391,7 +420,7 @@ class Simulator(object):
     def saveFile(self):
         """Saves the file"""
         self.Filename = "%(label)s-%(date)s.%(fmt)s" % { 'label': self.options.title, 'date': time.strftime("%Y-%m-%d"), 'fmt':'fits' }
-        self.Fullname = self.ImageDirectory + self.Filename
+        self.Fullname = self.config["Dirs"]["Images"] + self.Filename
         self.Model.keep(self.Model.statename)
         self.Model.write(self.Fullname,clobber=True)
         self.log.info("Wrote %s" % self.Fullname)
