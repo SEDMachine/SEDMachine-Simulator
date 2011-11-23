@@ -30,8 +30,11 @@ from AstroObject.Utilities import *
 from Utilities import *
 
 __version__ = "0.1"
+__all__ = ["update","SEDLimits","Model"]
 
 def update(d, u):
+    """A deep update command for dictionaries.
+    This is because the normal dictionary.update() command does not handle nested dictionaries."""
     for k, v in u.iteritems():
         if isinstance(v, collections.Mapping):
             r = update(d.get(k, {}), v)
@@ -42,28 +45,39 @@ def update(d, u):
 
 
 class SEDLimits(Exception):
-    """A Basic Error-Differentiation Class"""
+    """A Basic Error-Differentiation Class.
+    This error is used to express the fact that the SEDModel has encountered a spectrum which can't be placed as some part of it falls outside of the limits of the SED system."""
     pass
 
 
 class Model(ImageObject):
-    """This object is model"""
+    """This is a model container for the SEDMachine data simulator. This class is based on `AstroObject.ImageObject`, which it uses to provide some awareness of the way images are stored and retrieved. As such, this object has .save(), .select() and .show() etc. methods which can be used to examine the underlying data. It also means that this ImageObject subclass will contain the final, simulated image when the system is done.
+    
+    Note:: This object is not yet thread-safe, but coming versions of AstroObject will allow objects like this one to be locking and thread safe. Unfortunately, this limitation means that the simulator can generally not be run in multi-thread mode yet."""
     def __init__(self,configFile,scriptConfig):
         super(Model, self).__init__()
         self.configFile = configFile
         self.cache = False
-        self.regenerate = True
+        self.regenerate = False
         self.plot = True
         self.configs = {}
         self.config = {}
         if scriptConfig != None:
             self.scriptConfig = scriptConfig
             self.cache = scriptConfig["Cache"]
+        if self.cache:
+            self.regenerate = True
         self.initLog()
         self.configure()
     
     def initLog(self):
-        """Setup Logging Functions"""
+        """Setup Logging Functions for the SEDMachine Model.
+        The logging system uses a Logs/ folder to store logs. If this folder is not present, it will not store logs.
+        
+        Once the logger is done initializing and configuring, it will print a starting message to the log file to differentiate between different simulation runs.
+        
+        Note:: There is a configuration file directive for the Log folder, but it is not respected at this point, as that would require pre-loading the configuration, without the ability to log that the configuration loading failed.
+        """
         self.log = logging.getLogger(__name__)
         
         logfolder = "Logs/"
@@ -95,14 +109,22 @@ class Model(ImageObject):
     
     # CONFIGURATION
     def configure(self):
-        """Handles all aspects of the configure value"""
+        """This is a wrapper function for a variety of private configuration steps. The configuration generall happnes in stages:
+        - Default Values are initalized
+        - System loads the configuration file, updating the default values with the user-selected values. If no configuration file exists, the system will move on.
+        - System loads the configuration from the Caches directory if caching is enabled.
+        - System adds dynamic variables to the configuration. This is the feature which handles variable units etc.
+        
+        To see what the default configuration file looks like, run the runner script with the --dump argument. The runner script will requrie a subcommand, but dump will cause the program to exit before recieving any subcommands for action.
+        
+        You can force the script to ignore cached files in the runner script using the option `--no-cache`. To regenrate the cache manually, simply delete the contents of the Caches directory"""
         self._configureDefaults()
         self._configureFile()
         self._configureCaches()
         self._configureDynamic()
     
     def _configureDefaults(self):
-        """Set up the default configure variable."""
+        """Set up the default configure variable. If you change the default configuration variables in this function (instead of using a configuration file), the script will generally not detect the change, and so will not regenerate Cached files. You can force the script to ignore cached files in the runner script using the option `--no-cache`. To regenrate the cache manually, simply delete the contents of the Caches directory"""
         
         # Configuration Variables for The System
         self.config["convert"] = {}
@@ -191,7 +213,7 @@ class Model(ImageObject):
     
     # Cacheing Functions
     def regenerateCache(self):
-        """Cache the system setup"""
+        """Cache calculated components of the system, including the telescope image and encircled energy image. Caches are stored to speed up system initalization. This function regenerates all cached files, including the configuration file. You can force the script to ignore cached files in the runner script using the option `--no-cache`. To regenrate the cache manually, simply delete the contents of the Caches directory"""
         stream = file(self.scriptConfig["Cache-Files"]["config"],'w')
         yaml.dump(self.configs["NoDynamic"],stream,default_flow_style=False)
         np.save(self.scriptConfig["Cache-Files"]["telescope"],self.TELIMG)
@@ -199,7 +221,8 @@ class Model(ImageObject):
         np.save(self.scriptConfig["Cache-Files"]["conv"],self.FINIMG)
     
     def cachedKernel(self):
-        """Load cached kernels"""
+        """Load cached kernels from the Caches directory. If any file is missing, it will attempt to trigger regeneration of the cache.
+        You can force the script to ignore cached files in the runner script using the option `--no-cache`. To regenrate the cache manually, simply delete the contents of the Caches directory"""
         try:
             # Telescope Image Setup
             self.TELIMG = np.load(self.scriptConfig["Cache-Files"]["telescope"]+".npy")
@@ -217,12 +240,20 @@ class Model(ImageObject):
         
     
     def dumpConfig(self):
-        """Dumps a valid configuration file on top of any old configuration files"""
+        """Dumps a valid configuration file on top of any old configuration files. This is useful for examining the default configuration fo the system, and providing modifications through this interface."""
         stream = file(self.configFile,'w')
         yaml.dump(self.configs["NoDynamic"],stream,default_flow_style=False)
         
     def setup(self):
-        """Function handles the setup of simulation information"""
+        """After the object has been initialized, it must be setup. Setup relies on an established configuration to determine what fixed parts of the system should be generated. Actions taken in the setup phase are:
+        
+        - Load data from the Cache (if enabled)
+        - Regenerate Kernel Functions (if required)
+        - Regenerate Cache Files (if required, and if enabled)
+        - Load optical system data (not cached right now)
+        - Generate a blank image (no need to cache... np.zeros is fast!)
+        
+        """
         
         if self.cache:
             self.cachedKernel()

@@ -52,7 +52,7 @@ class Simulator(object):
     def initOptions(self):
         """Set up the options for the command line interface."""
         
-        USAGE = """SED.scrpt.py [-D | -T | -E | -F] [arguments] subcommand"""
+        USAGE = """SEDrun.py [-D | -T | -E | -F] [arguments] subcommand"""
         # Establish an argument parser
         self.parser = argparse.ArgumentParser(description=ShortHelp,epilog=LongHelp,
             formatter_class=argparse.RawDescriptionHelpFormatter,usage=USAGE)
