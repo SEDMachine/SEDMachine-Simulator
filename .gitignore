@@ -7,5 +7,16 @@
 # 
 
 Logs/*
+Caches/*
+Images/*
+Partials/*
+Docs/_build/*
 .fits
 *.pyc
+*.log
+TODO/*
+*.png
+*.fits
+*.TXT
+*config.yaml
+experiment.py

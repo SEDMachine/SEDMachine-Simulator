@@ -1,0 +1,3 @@
+[submodule "AstroObject"]
+	path = AstroObject
+	url = git://github.com/alexrudy/AstroObject.git
