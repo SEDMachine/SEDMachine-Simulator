@@ -5,6 +5,7 @@
 #
 #  Created by Alexander Rudy on 2011-11-09.
 #  Copyright 2011 Alexander Rudy. All rights reserved.
+#  Version 0.1.0
 #
 
 import math, copy, sys, time, logging, os, argparse, yaml
@@ -48,17 +49,18 @@ class Simulator(object):
         self.initOptions()
         self.bar = arpytools.progressbar.ProgressBar(color="green")
         self.prog = Value('d',0)
+        self.defaultTitle = "Generated"
     
     def initOptions(self):
         """Set up the options for the command line interface."""
         
-        USAGE = """SED.scrpt.py [-D | -T | -E | -F] [arguments] subcommand"""
+        USAGE = """SEDrun.py [-D | -T | -E | -F] [arguments] subcommand"""
         # Establish an argument parser
         self.parser = argparse.ArgumentParser(description=ShortHelp,epilog=LongHelp,
             formatter_class=argparse.RawDescriptionHelpFormatter,usage=USAGE)
         
         self.parser.add_argument('-f',metavar='label',type=str,dest='title',
-            help="label for output image",default="Experiment")
+            help="label for output image",default=self.defaultTitle)
         # Add the basic controls for the script
         self.parser.add_argument('--version',action='version',version=__version__)
         
@@ -221,6 +223,8 @@ class Simulator(object):
             msg = "Dev Mode"
         if self.options.easy:
             msg += "Easy Settings"
+            if self.options.title == self.defaultTitle
+            self.options.title = "EasyMode"
             if not hasattr(self.options,'s') or self.options.s == "n":
                 self.options.s = "b"
                 self.options.Temp = 5000
