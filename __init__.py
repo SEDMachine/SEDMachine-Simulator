@@ -4,7 +4,7 @@
 #  
 #  Created by Alexander Rudy on 2011-11-09.
 #  Copyright 2011 Alexander Rudy. All rights reserved.
-#  Version 0.1.0
+#  Version 0.1.1
 # 
 
 print "Testing Module Behavior"

@@ -5,10 +5,14 @@
 #
 #  Created by Alexander Rudy on 2011-11-09.
 #  Copyright 2011 Alexander Rudy. All rights reserved.
-#  Version 0.1.0
+#  Version 0.1.1
 #
 
 import math, copy, sys, time, logging, os, argparse, yaml
+
+import arpytools.progressbar
+
+from multiprocessing import Pool, Value
 
 import numpy as np
 import pyfits as pf
@@ -16,15 +20,29 @@ import scipy as sp
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
-from multiprocessing import Pool, Value
-
 import SED
-from AstroObject.AnalyticSpectra import BlackBodySpectrum,FlatSpectrum,InterpolatedSpectrum
-from AstroObject.AstroSpectra import SpectraObject
-import arpytools.progressbar
+
+try:
+    from AstroObject.AnalyticSpectra import BlackBodySpectrum,FlatSpectrum,InterpolatedSpectrum
+    from AstroObject.AstroSpectra import SpectraObject
+except ImportError:
+    print "Ensure you have AstroObject installed: please run get-AstroObject.sh"
+    raise
+
 import scipy.signal
 
-__version__ = SED.__version__
+def update(d, u):
+    """A deep update command for dictionaries.
+    This is because the normal dictionary.update() command does not handle nested dictionaries."""
+    for k, v in u.iteritems():
+        if isinstance(v, collections.Mapping):
+            r = update(d.get(k, {}), v)
+            d[k] = r
+        else:
+            d[k] = u[k]
+    return d
+
+__version__ = file("VERSION",'r').read()
 
 LongHelp = """
 This is the Command Line Interface to the SEDMachine Simulator Program."""
@@ -45,19 +63,20 @@ class Simulator(object):
     def __init__(self):
         super(Simulator, self).__init__()
         self.debug = False
-        self.startLogging()
-        self.initOptions()
+        self.defaultTitle = "Generated"
         self.bar = arpytools.progressbar.ProgressBar(color="green")
         self.prog = Value('d',0)
-        self.defaultTitle = "Generated"
+        self.startLogging()
+        self.initOptions()
+        
     
     def initOptions(self):
         """Set up the options for the command line interface."""
         
-        USAGE = """SEDrun.py [-D | -T | -E | -F] [arguments] subcommand"""
+        self.USAGE = """SEDrun.py [-D | -T | -E | -F] [arguments] %s"""
         # Establish an argument parser
         self.parser = argparse.ArgumentParser(description=ShortHelp,epilog=LongHelp,
-            formatter_class=argparse.RawDescriptionHelpFormatter,usage=USAGE)
+            formatter_class=argparse.RawDescriptionHelpFormatter,usage=self.USAGE % "subcommand")
         
         self.parser.add_argument('-f',metavar='label',type=str,dest='title',
             help="label for output image",default=self.defaultTitle)
@@ -105,7 +124,7 @@ class Simulator(object):
         self.uniform.add_argument('-A',action='store',dest='PreAmp',type=float,
             default=1.0,help="Pre-amplification for Spectrum")
         
-        self.subparsers = self.parser.add_subparsers(title="sub-commands",dest="command",metavar="subcommand")
+        self.subparsers = self.parser.add_subparsers(title="sub-commands",dest="command")
         
         self.initSpectra()
         self.initStartup()
@@ -114,27 +133,37 @@ class Simulator(object):
     
     def initSpectra(self):
         """Set up the options for handling single spectra objects"""
+        Command = "uniform"
+        Usage = self.USAGE % "%s -s{b,f,s} [ -T temp | -V value | -F filename ] [-A n]" % (Command)
         ShortHelp = "create images with a uniform source field spectrum"
         Description = "Runs the simulator with a uniform source, i.e. the same spectrum in each lenslet"
-        specgroup = self.subparsers.add_parser('uniform',description=Description,help=ShortHelp,parents=[self.uniform])
+        specgroup = self.subparsers.add_parser(Command,description=Description,help=ShortHelp,
+            parents=[self.uniform],usage=Usage)
     
     def initPosTest(self):
         """Position Testing Script"""
+        Command = "postest"
+        Usage = self.USAGE % "%s -s{b,f,s} [ -T temp | -V value | -F filename ] [-A n]" % (Command)
         ShortHelp = "position testing mode for spectrum placement"
         Description = "Produces output to determine if the spectrum placement appears to have been done correctly"
-        postest = self.subparsers.add_parser('postest',description=Description,help=ShortHelp,parents=[self.uniform])
+        postest = self.subparsers.add_parser(Command,description=Description,help=ShortHelp,
+            parents=[self.uniform],usage=Usage)
     
     def initStartup(self):
         """Subcommand for handling only startup functions"""
+        Command = "startup"
+        Usage = self.USAGE % "%s" % (Command)
         ShortHelp = "run the initalization and caching for the system"
         Description = "Initializes the simulation."
-        startupgroup = self.subparsers.add_parser('startup',description=Description,help=ShortHelp)
+        startupgroup = self.subparsers.add_parser(Command,description=Description,help=ShortHelp,usage=Usage)
     
     def initSource(self):
         """Subcommand for handling only startup and source functions"""
+        Command = "source"
+        Usage = self.USAGE % "%s" % (Command)
         ShortHelp = "run the source creation and resolution routines"
         Description = "Initializes the simulation, then initializes the source spectra"
-        sourcegroup = self.subparsers.add_parser('source',description=Description,help=ShortHelp,parents=[self.uniform])
+        sourcegroup = self.subparsers.add_parser(Command,description=Description,help=ShortHelp,parents=[self.uniform])
     
     def startLogging(self):
         """Establishes logging for this module"""
@@ -164,6 +193,9 @@ class Simulator(object):
         
         self.log.info("Runner has initilaized")
     
+    def do_imports(self):
+        """A function which allows us to delay many imports until well after intialization"""
+        pass
     
     def run(self):
         """Runs the simulator"""
@@ -171,6 +203,8 @@ class Simulator(object):
  
         self.parseOptions()
         cmd = self.options.command
+        
+        self.do_imports()
         
         if self.options.dump:
             self.log.info("Dumping Configuration Variables...")
@@ -223,8 +257,8 @@ class Simulator(object):
             msg = "Dev Mode"
         if self.options.easy:
             msg += "Easy Settings"
-            if self.options.title == self.defaultTitle
-            self.options.title = "EasyMode"
+            if self.options.title == self.defaultTitle:
+                self.options.title = "EasyMode"
             if not hasattr(self.options,'s') or self.options.s == "n":
                 self.options.s = "b"
                 self.options.Temp = 5000
@@ -258,7 +292,7 @@ class Simulator(object):
         """Loads the config file"""
         self.config = {"Dirs":{"Caches":"Caches/","Images":"Images/","Partials":"Partials/","Logs":"Logs/"},"Cache":self.options.cache}
         try:
-            self.config = SED.update(self.config,yaml.load(file(self.options.config)))
+            self.config = update(self.config,yaml.load(file(self.options.config)))
         except IOError:
             self.log.warning("Couldn't Read configuration file %s, using defaults" % self.options.config)
         self.dirCheck()
