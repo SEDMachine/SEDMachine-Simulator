@@ -10,7 +10,7 @@ Logs/*
 Caches/*
 Images/*
 Partials/*
-Documentation/_build/*
+Docs/_build/*
 .fits
 *.pyc
 *.log
