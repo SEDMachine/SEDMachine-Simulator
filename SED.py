@@ -455,7 +455,7 @@ class Model(ImageObject):
             plt.xlabel("x (px)")
             plt.ylabel("$\Delta$Distance along arc (px)")
             plt.plot(points[:-1,1],np.diff(distance) * self.config["convert"]["mmtopx"],'g.')
-            plt.savefig("Partials/%4d-Distances_Diff%s" % (lenslet_num,self.config["plot_format"]))
+            plt.savefig("Partials/%04d-Distances_Diff%s" % (lenslet_num,self.config["plot_format"]))
             plt.clf()
         
         return points,wl,np.diff(wl)
@@ -557,13 +557,13 @@ class Model(ImageObject):
             plt.title("Generated, Fluxed Spectra")
             plt.xlabel("Wavelength ($\mu m$)")
             plt.ylabel("Flux (Units undefined)")
-            plt.savefig("Partials/%4d-SpecFlux%s" % (lenslet,self.config["plot_format"]))
+            plt.savefig("Partials/%04d-SpecFlux%s" % (lenslet,self.config["plot_format"]))
             plt.clf()
             plt.plot(wl[:-1],deltawl,"g.")
             plt.title("$\Delta\lambda$ for each pixel")
             plt.xlabel("Wavelength ($\mu m$)")
             plt.ylabel("$\Delta\lambda$ per pixel")
-            plt.savefig("Partials/%4d-SpecDeltaWL%s" % (lenslet,self.config["plot_format"]))
+            plt.savefig("Partials/%04d-SpecDeltaWL%s" % (lenslet,self.config["plot_format"]))
             plt.clf()
         
         # Take our points out. Note from the above that we multiply by the density in order to do this
@@ -669,7 +669,7 @@ class Model(ImageObject):
         StagesF = ["Raw","Tel","PSF"]
         if self.log.getEffectiveLevel() <= logging.DEBUG and self.plot:
             for i,step in enumerate(steps):
-                self.save(step,"%4d-Intermediate-%d: %s" % (lenslet,i,Stages[i]))
+                self.save(step,"%04d-Intermediate-%d: %s" % (lenslet,i,Stages[i]))
                 self.frame().header=dict(Lenslet=lenslet,Spectrum=spectrum.label,Stage=Stages[i])
                 self.frame().metadata=dict(Corner=corner)
                 plt.imshow(step)

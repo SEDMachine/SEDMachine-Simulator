@@ -235,8 +235,9 @@ class Simulator(object):
         if self.options.debug:
             self.debug = True
             self.console.setLevel(logging.DEBUG)
-        else:
-            self.logfile.setLevel(logging.INFO)
+        
+        if self.options.thread:
+            self.parser.error("Threading is not yet implemented: AstroObjects are not Thread-Safe")
         
         self.loadConfig()
         
@@ -335,6 +336,7 @@ class Simulator(object):
         handle.close()
         for i in self.lenslets:
             self.positionTest(i,self.Spectrum)
+        self.bar.lines = 0
     
     def positionTest(self,lenslet,spectrum):
         """A single position test"""
@@ -384,6 +386,7 @@ class Simulator(object):
         else:
             map_func = map
         map_func(lambda i: self.generateLenslet(i,self.Spectrum),self.lenslets)
+        self.bar.lines = 0
     
     
     def placeLenslet(self,i):
@@ -407,7 +410,7 @@ class Simulator(object):
     def placeAllLenslets(self):
         """Place all lenslets into the image file"""
         self.Model.save(self.Model.data("Blank"),"Final")
-        self.log.info("Placing Spectra in %4d Lenslets" % len(self.lenslets))
+        self.log.info("Placing Spectra in %d Lenslets" % len(self.lenslets))
         self.bar.render(0,"L:%4d" % 0)
         self.prog.value = 0
         if self.options.thread:
@@ -415,7 +418,7 @@ class Simulator(object):
         else:
             map_func = map
         map_func(lambda i: self.placeLenslet(i),self.lenslets)
-    
+        self.bar.lines = 0
     
     def saveFile(self):
         """Saves the file"""
