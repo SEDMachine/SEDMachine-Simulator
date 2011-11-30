@@ -775,6 +775,14 @@ class Model(ImageObject):
         self.log.debug("Cropped and Saved Image")
         self.save(cropped,"Cropped")
     
+    def generateGaussNoise(self,label=None,mean=10,std=2.0):
+        """Generates a gaussian noise mask, saving to this object"""
+        distribution = np.random.normal
+        shape = (self.config["ccd_size"]["px"],self.config["ccd_size"]["px"])
+        arguments = (mean,stdev,shape)
+        noise = distribution(*arguments)
+        
+        self.save(noise,"Gaussian Noise Mask")
 
 
 
