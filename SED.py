@@ -55,19 +55,19 @@ class Model(ImageObject):
     """This is a model container for the SEDMachine data simulator. This class is based on `AstroObject.ImageObject`, which it uses to provide some awareness of the way images are stored and retrieved. As such, this object has .save(), .select() and .show() etc. methods which can be used to examine the underlying data. It also means that this ImageObject subclass will contain the final, simulated image when the system is done.
     
     Note:: This object is not yet thread-safe, but coming versions of AstroObject will allow objects like this one to be locking and thread safe. Unfortunately, this limitation means that the simulator can generally not be run in multi-thread mode yet."""
-    def __init__(self,configFile,scriptConfig):
+    def __init__(self,configFile,scriptConfig,pbar=None):
         super(Model, self).__init__()
+        self.progressBar = pbar
         self.configFile = configFile
         self.cache = False
-        self.regenerate = False
         self.plot = True
         self.configs = {}
         self.config = {}
         if scriptConfig != None:
             self.scriptConfig = scriptConfig
             self.cache = scriptConfig["Cache"]
-        if self.cache:
-            self.regenerate = True
+        self.regenerate = not self.cache
+        self.WLS = {}
         self.initLog()
         self.configure()
     
@@ -134,9 +134,9 @@ class Model(ImageObject):
         self.config["tel_radii"] = {}
         self.config["tel_obsc"] = {}
         self.config["psf_stdev"] = {}
+        self.config["psf_size"] = {}
         # Unit Conversion Defaults
         self.config["convert"]["pxtomm"] = 0.0135
-        self.config["convert"]["mmtopx"] = 1.0 / 0.0135
         # CCD / Image Plane Information
         self.config["ccd_size"]["px"] = 2048 #pixels
         self.config["image_size"]["mm"] = 40.0 #mm
@@ -144,6 +144,7 @@ class Model(ImageObject):
         self.config["tel_radii"]["px"] = 2.4 / 2.0
         self.config["tel_obsc"]["px"] = 0.4 / 2.0
         # PSF Information
+        self.config["psf_size"]["px"] = 0
         # For a gaussian PSF
         self.config["psf_stdev"]["px"] = 1.0
         # Image Generation Density
@@ -184,6 +185,7 @@ class Model(ImageObject):
         self.scriptConfig["Cache-Files"]["psf"] = self.scriptConfig["Dirs"]["Caches"] + self.configFile.rstrip(".yaml") + ".psf"
         self.scriptConfig["Cache-Files"]["conv"] = self.scriptConfig["Dirs"]["Caches"] + self.configFile.rstrip(".yaml") + ".conv"
         self.scriptConfig["Cache-Files"]["config"] = self.scriptConfig["Dirs"]["Caches"] + self.configFile
+        self.scriptConfig["Cache-Files"]["wls"] = self.scriptConfig["Dirs"]["Caches"] + self.configFile.rstrip(".yaml") + ".wls"
         
         self.configs["precached"] = copy.deepcopy(self.config)
         
@@ -207,10 +209,41 @@ class Model(ImageObject):
     def _configureDynamic(self):
         """docstring for configureDynamicValues"""
         self.configs["NoDynamic"] = copy.deepcopy(self.config)
-        self.config["image_size"]["px"] = np.round( self.config["image_size"]["mm"] * self.config["convert"]["mmtopx"] , 0 )
-        self.config["ccd_size"]["mm"] = self.config["ccd_size"]["px"] * self.config["convert"]["pxtomm"]
-        self.config["tel_radii"]["mm"] = self.config["tel_radii"]["px"] * self.config["convert"]["pxtomm"]
-        self.config["tel_obsc"]["mm"] = self.config["tel_obsc"]["px"] * self.config["convert"]["pxtomm"]
+        
+        if "calc" not in self.config["convert"]:
+            if "mmtopx" not in self.config["convert"] and "pxtomm" in self.config["convert"]:
+                self.config["convert"]["mmtopx"] = 1.0 / self.config["convert"]["pxtomm"]
+                self.config["convert"]["calc"] = True
+            else:
+                self.config["convert"]["pxtomm"] = 1.0 / self.config["convert"]["mmtopx"]
+                self.config["convert"]["calc"] = True
+        self.config = self._setUnits(self.config,None)
+        
+        self.config["image_size"]["px"] = np.round( self.config["image_size"]["px"] , 0 )
+    
+    def _setUnits(self,config,parent):
+        """docstring for _setUnits"""
+        r = copy.deepcopy(config)
+        for k, v in config.iteritems():
+            if isinstance(v, collections.Mapping):
+                r[k] = self._setUnits(r[k],k)
+            elif k == "mm":
+                if ("calc" in r) and ("px" in r):
+                    pass
+                elif ("calc" not in config):
+                    r["px"] = v * self.config["convert"]["mmtopx"]
+                    r["calc"] = True
+                else:
+                    self.log.warning("Value for %s set in both px and mm." % parent)
+            elif k == "px":
+                if ("calc" in r) and ("mm" in r):
+                    pass
+                elif ("calc" not in r):
+                    r["mm"] = v * self.config["convert"]["pxtomm"]
+                    r["calc"] = True
+                else:
+                    self.log.warning("Value for %s set in both px and mm." % parent)
+        return r
     
     # Cacheing Functions
     def regenerateCache(self):
@@ -237,8 +270,24 @@ class Model(ImageObject):
         else:
             self.log.debug("Loaded Telescope Images for Numpy Files")
             
-            
         
+    def cachedWL(self):
+        """Load cached wavelengths from the Caches directory. If any file is missing, it will attempt to trigger regeneration of the cache.
+        You can force the script to ignore cached files in the runner script using the option `--no-cache`. To regenrate the cache manually, simply delete the contents of the Caches directory"""
+        try:
+            # Cached Wavelengths
+            cachedWL = np.load(self.scriptConfig["Cache-Files"]["wls"]+".npy")
+            self.WLS = dict(cachedWL)
+        except IOError as e:
+            self.log.warning("Cached files not found, using configuration to generate files. Error: %s" % e )
+            self.regenerate = True
+        else:
+            self.log.debug("Loaded Wavelengths from Numpy Files")
+    
+    def resetWLCache(self):
+        """Resets the Wavelength Cache, which will force it to regenerate during the simulation"""
+        self.log.debug("Forcing Wavelenghts to Regenerate")
+        self.WLS = {}
     
     def dumpConfig(self):
         """Dumps a valid configuration file on top of any old configuration files. This is useful for examining the default configuration fo the system, and providing modifications through this interface."""
@@ -258,13 +307,18 @@ class Model(ImageObject):
         
         if self.cache:
             self.cachedKernel()
+            self.cachedWL()
         if self.regenerate:
             self.regenerateKernel()
+            self.resetWLCache()
         if self.cache and self.regenerate:
             self.regenerateCache()
         
         # Get layout data from files
         self.loadOpticsData(self.config["files"]["lenslets"],self.config["files"]["dispersion"])
+        
+        
+       
         
         self.generate_blank()
         
@@ -281,17 +335,17 @@ class Model(ImageObject):
         # Preconvolved System
         self.FINIMG = sp.signal.convolve(self.PSFIMG,self.TELIMG,mode='same')
     
-    def psf_kern(self,filename,size=0):
+    def psf_kern(self,filename,size=0,truncate=False):
         """Generates a PSF Kernel from a file with mm-encircled energy conversions"""
         
         uM,FR = np.genfromtxt(filename,skip_header=18).T
         
         PX = uM * 1e-3 * self.config["convert"]["mmtopx"] * self.config["density"]
         
-        if np.max(PX) > size:
-            size = np.int(np.max(PX))
-        else:
+        if np.max(PX) <= size or truncate:
             size = np.int(size)
+        else:
+            size = np.int(np.max(PX))
         
         fit_vars = sp.interpolate.splrep(PX,FR)
         
@@ -307,6 +361,7 @@ class Model(ImageObject):
         
         val = v
         
+        self.log.debug("Generated a PSF Kernel for the encircled energy file %s with shape %s" % (filename,str(v.shape)))
         return val / np.sum(val)
     
     def circle_kern(self,radius,size=0,normalize=False):
@@ -352,13 +407,20 @@ class Model(ImageObject):
             self.config["tel_radii"]["px"] * self.config["density"] , False )
         TELIMG -= center
         TELIMG = TELIMG / np.sum(TELIMG)
-        
+        self.log.debug("Generated a Telescpe Kernel with shape %s" % (str(TELIMG.shape)))
         return TELIMG
     
     def get_psf_kern(self):
         """Returns the PSF Kernel"""
         try:
-            PSFIMG = self.psf_kern(self.config["files"]["encircledenergy"])
+            if self.config["psf_size"]["px"] != 0:
+                size = self.config["psf_size"]["px"] * self.config["density"]
+                truncate = True
+            else:
+                size = 0
+                truncate = False
+                
+            PSFIMG = self.psf_kern(self.config["files"]["encircledenergy"],size,truncate)
         except IOError as e:
             self.log.warning("Could not access encircled energy file: %s" % e)
             PSFIMG = self.gauss_kern( (self.config["psf_stdev"]["px"] * self.config["density"]) )
@@ -373,6 +435,25 @@ class Model(ImageObject):
     
     
     def get_wavelengths(self,lenslet_num):
+        """docstring for get_wavelengths"""
+        if lenslet_num in self.WLS:
+            self.log.debug("Using Cached WLs for %d" % lenslet_num)
+            results = self.WLS[lenslet_num]
+        else:
+            self.log.debug("Regenerating WLs for %d" % lenslet_num)
+            results = self._get_wavelengths(lenslet_num)
+            self.WLS[lenslet_num] = np.array(results)
+            self.regenerate = True
+        return results
+    
+    
+    def positionCaching(self):
+        """docstring for positionCaching"""
+        if self.cache and self.regenerate:
+            toCache = np.array(zip(self.WLS.keys(),self.WLS.values()))
+            np.save(self.scriptConfig["Cache-Files"]["wls"],toCache)
+    
+    def _get_wavelengths(self,lenslet_num):
         """Returns an array of wavelengths for a given lenslet number"""
         # This method will be the critical slow point for the whole system...
         # It should be re-written to do the conversions in a better way, but
@@ -767,22 +848,62 @@ class Model(ImageObject):
         """Generates a blank SEDMachine Image"""
         self.save(np.zeros((self.config["image_size"]["px"],self.config["image_size"]["px"])).astype(np.int16),"Blank")
     
-    def crop(self,x,y,xsize,ysize=None):
+    def crop(self,x,y,xsize,ysize=None,label=None):
         """Crops the provided image to twice the specified size, centered around the x and y coordinates provided."""
         if not ysize:
             ysize = xsize
         cropped = self.states[self.statename].data[x-xsize:x+xsize,y-ysize:y+ysize]
         self.log.debug("Cropped and Saved Image")
-        self.save(cropped,"Cropped")
+        if label == None:
+            label = "Cropped"
+        self.remove(label)
+        self.save(cropped,label)
     
     def generateGaussNoise(self,label=None,mean=10,std=2.0):
         """Generates a gaussian noise mask, saving to this object"""
         distribution = np.random.normal
         shape = (self.config["ccd_size"]["px"],self.config["ccd_size"]["px"])
-        arguments = (mean,stdev,shape)
+        if label == None:
+            label = "Gaussian Noise Mask (%2g,%2g)" % (mean,std)
+        arguments = (mean,std,shape)
         noise = distribution(*arguments)
         
-        self.save(noise,"Gaussian Noise Mask")
+        self.save(noise,label)
+    
+    def generatePoissNoise(self,label=None,lam=2.0):
+        """Generates a poisson noise mask, saving to this object"""
+        distribution = np.random.poisson
+        shape = (self.config["ccd_size"]["px"],self.config["ccd_size"]["px"])
+        if label == None:
+            label = "Poisson Noise Mask (%2g)" % (lam)
+        arguments = (lam,shape)
+        noise = distribution(*arguments)
+        
+        self.save(noise,label)
+    
+    def ccdCrop(self):
+        """Crops the image to the appropriate ccd size"""
+        x,y = self.center
+        size = self.config["ccd_size"]["px"] / 2.0
+        self.crop(x,y,size,label=self.statename)
+    
+    def setupNoise(self):
+        """Makes noise masks"""
+        self.generateGaussNoise("GaussianNoise")
+        self.generatePoissNoise("PoissNoise")
+        
+    def applyNoise(self,target):
+        """Apply the noise masks to the target image label"""
+        
+        poiss = self.data("PoissNoise")
+        gauss = self.data("GaussianNoise")
+        
+        data = self.data(target)
+        
+        data += poiss + gauss
+        
+        self.remove(target)
+        self.save(data,target)
 
 
 
