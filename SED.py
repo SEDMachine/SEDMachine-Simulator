@@ -201,6 +201,7 @@ class Model(ImageObject):
             self.regenearte = False
             self.log.debug("Configuration has not changed, will not regenerate kernels.")
         else:
+            self.regenearte = True
             self.log.info("Configuration appears to have changed, will regenerate kernels.")
             
         
@@ -314,11 +315,30 @@ class Model(ImageObject):
         if self.cache and self.regenerate:
             self.regenerateCache()
         
+        if self.log.getEffectiveLevel() <= logging.DEBUG and self.plot:
+            self.log.debug("Generating Kernel Images")
+            plt.clf()
+            plt.imshow(self.TELIMG)
+            plt.title("Telescope Image")
+            plt.colorbar()
+            plt.savefig("Partials/TelImage%s" % (self.config["plot_format"]))
+            plt.clf()
+            plt.imshow(self.PSFIMG)
+            plt.title("PSF Image")
+            plt.colorbar()
+            plt.savefig("Partials/PSFImage%s" % (self.config["plot_format"]))
+            plt.clf()
+            plt.imshow(self.FINIMG)
+            plt.title("Convolved Tel + PSF Image")
+            plt.colorbar()
+            plt.savefig("Partials/FINImage%s" % (self.config["plot_format"]))
+            plt.clf()
+        
         # Get layout data from files
         self.loadOpticsData(self.config["files"]["lenslets"],self.config["files"]["dispersion"])
         
         
-       
+        
         
         self.generate_blank()
         
