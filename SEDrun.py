@@ -183,12 +183,11 @@ class Simulator(object):
         self.console.setFormatter(consoleFormatter)
         self.log.addHandler(self.console)
         
-        self.logfile = logging.FileHandler(filename=logfolder+filename+".log",mode="a")
-        self.logfile.setLevel(logging.DEBUG)
-        fileformatter = logging.Formatter(longFormat,datefmt=dateFormat)
-        self.logfile.setFormatter(fileformatter)
-        
         if os.access(logfolder,os.F_OK):
+            self.logfile = logging.FileHandler(filename=logfolder+filename+".log",mode="a")
+            self.logfile.setLevel(logging.DEBUG)
+            fileformatter = logging.Formatter(longFormat,datefmt=dateFormat)
+            self.logfile.setFormatter(fileformatter)
             self.log.addHandler(self.logfile)
         
         self.log.info("Runner has initilaized")
@@ -250,11 +249,11 @@ class Simulator(object):
         if self.options.test:
             self.options.easy = True
             self.options.cache = False
-            msg = "Test Mode"
+            msg += "Test Mode"
         if self.options.dev:
             self.options.debug = True
             self.options.easy = True
-            msg = "Dev Mode"
+            msg += "Dev Mode"
         if self.options.easy:
             msg += "Easy Settings"
             if self.options.title == self.defaultTitle:
