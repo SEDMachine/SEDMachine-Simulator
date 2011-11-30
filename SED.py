@@ -30,7 +30,7 @@ from AstroObject.Utilities import *
 
 from Utilities import *
 
-__version__ = "0.1"
+__version__ = file("VERSION",'r').read()
 __all__ = ["update","SEDLimits","Model"]
 
 def update(d, u):
@@ -55,9 +55,9 @@ class Model(ImageObject):
     """This is a model container for the SEDMachine data simulator. This class is based on `AstroObject.ImageObject`, which it uses to provide some awareness of the way images are stored and retrieved. As such, this object has .save(), .select() and .show() etc. methods which can be used to examine the underlying data. It also means that this ImageObject subclass will contain the final, simulated image when the system is done.
     
     Note:: This object is not yet thread-safe, but coming versions of AstroObject will allow objects like this one to be locking and thread safe. Unfortunately, this limitation means that the simulator can generally not be run in multi-thread mode yet."""
-    def __init__(self,configFile,scriptConfig,pbar=None):
+    
+    def __init__(self,configFile,scriptConfig):
         super(Model, self).__init__()
-        self.progressBar = pbar
         self.configFile = configFile
         self.cache = False
         self.plot = True
@@ -79,6 +79,7 @@ class Model(ImageObject):
         
         Note:: There is a configuration file directive for the Log folder, but it is not respected at this point, as that would require pre-loading the configuration, without the ability to log that the configuration loading failed.
         """
+        
         self.log = logging.getLogger(__name__)
         
         logfolder = "Logs/"
@@ -176,6 +177,7 @@ class Model(ImageObject):
     def _configureCaches(self):
         """If we are using the caching system, set up the configuration cache"""
         if not self.cache:
+            self.log.debug("Skipping Caches")
             return
         
         self.log.debug("Enabling Caching")
@@ -203,7 +205,7 @@ class Model(ImageObject):
         else:
             self.regenearte = True
             self.log.info("Configuration appears to have changed, will regenerate kernels.")
-            
+        
         
         return
     
@@ -218,6 +220,7 @@ class Model(ImageObject):
             else:
                 self.config["convert"]["pxtomm"] = 1.0 / self.config["convert"]["mmtopx"]
                 self.config["convert"]["calc"] = True
+        
         self.config = self._setUnits(self.config,None)
         
         self.config["image_size"]["px"] = np.round( self.config["image_size"]["px"] , 0 )
@@ -246,6 +249,7 @@ class Model(ImageObject):
                     self.log.warning("Value for %s set in both px and mm." % parent)
         return r
     
+    
     # Cacheing Functions
     def regenerateCache(self):
         """Cache calculated components of the system, including the telescope image and encircled energy image. Caches are stored to speed up system initalization. This function regenerates all cached files, including the configuration file. You can force the script to ignore cached files in the runner script using the option `--no-cache`. To regenrate the cache manually, simply delete the contents of the Caches directory"""
@@ -270,8 +274,8 @@ class Model(ImageObject):
             self.regenerate = True
         else:
             self.log.debug("Loaded Telescope Images for Numpy Files")
-            
         
+    
     def cachedWL(self):
         """Load cached wavelengths from the Caches directory. If any file is missing, it will attempt to trigger regeneration of the cache.
         You can force the script to ignore cached files in the runner script using the option `--no-cache`. To regenrate the cache manually, simply delete the contents of the Caches directory"""
@@ -294,7 +298,7 @@ class Model(ImageObject):
         """Dumps a valid configuration file on top of any old configuration files. This is useful for examining the default configuration fo the system, and providing modifications through this interface."""
         stream = file(self.configFile,'w')
         yaml.dump(self.configs["NoDynamic"],stream,default_flow_style=False)
-        
+    
     def setup(self):
         """After the object has been initialized, it must be setup. Setup relies on an established configuration to determine what fixed parts of the system should be generated. Actions taken in the setup phase are:
         
@@ -343,6 +347,7 @@ class Model(ImageObject):
         self.generate_blank()
         
         self.log.info("Done with SEDM setup")
+    
     
     # Kernel Creation for Image Manipulation
     def regenerateKernel(self):
@@ -439,7 +444,7 @@ class Model(ImageObject):
             else:
                 size = 0
                 truncate = False
-                
+            
             PSFIMG = self.psf_kern(self.config["files"]["encircledenergy"],size,truncate)
         except IOError as e:
             self.log.warning("Could not access encircled energy file: %s" % e)
@@ -454,6 +459,7 @@ class Model(ImageObject):
         return np.zeros((self.config["image_size"]["px"],self.config["image_size"]["px"]))
     
     
+    # Wavelength Functions
     def get_wavelengths(self,lenslet_num):
         """docstring for get_wavelengths"""
         if lenslet_num in self.WLS:
@@ -465,7 +471,6 @@ class Model(ImageObject):
             self.WLS[lenslet_num] = np.array(results)
             self.regenerate = True
         return results
-    
     
     def positionCaching(self):
         """docstring for positionCaching"""
@@ -594,6 +599,7 @@ class Model(ImageObject):
         return points,wl,np.diff(wl)
     
     
+    # Data Loading Functions
     def loadDispersionData(self,dispspec):
         """This loads the dispersion data. Dispersion data is provided in mm along the spectrum and wavelength. This method saves both the raw data (in :attr:`self.MM` and :attr:`self.WL`) as well as functions which can be used to convert across the dispersion. Functions by default take a mm position and return the wavelength at this position."""
         WLtoMM = np.genfromtxt(dispspec).T
@@ -663,6 +669,7 @@ class Model(ImageObject):
         self.loadLensletData(laspec)
     
     
+    # Image Tracing Function
     def get_dense_image(self,lenslet,spectrum):
         """This function returns a dense image array, with flux placed into single pixels."""
         points, wl, deltawl = self.get_wavelengths(lenslet)
@@ -726,7 +733,7 @@ class Model(ImageObject):
         
         # Find the first (by the flatten method) corner of the subimage,
         # useful for placing the sub-image into the full image.
-        corner = np.array([ xint[np.argmax(x)], yint[np.argmin(y)]]) 
+        corner = np.array([ xint[np.argmax(x)], yint[np.argmin(y)]])
         self.log.debug("Corner Position in Integer Space: %s" % corner)
         corner *= self.config["density"]
         realcorner = np.array([ xorig[np.argmax(x)], yorig[np.argmin(y)]])
@@ -757,6 +764,7 @@ class Model(ImageObject):
         return img, corner
     
     
+    # Image Convolution
     def get_sub_image(self,lenslet,spectrum,fast=False):
         """Returns a sub-image for a given lenslet"""
         # This function gets the dense sub-image with the spectrum placed in single dense pixels
@@ -783,6 +791,8 @@ class Model(ImageObject):
             self.log.info("Binned Dense Image for %4d" % lenslet)
             return small,corner,(img,img_tel,img_tel_psf)
     
+    
+    # Image Caching
     def cache_sed_subimage(self,lenslet,spectrum,write=False,do_return=False):
         """Generates a sub image, and saves that result to this object. Should be thread-safe."""
         if self.log.getEffectiveLevel() <= logging.DEBUG:
@@ -819,6 +829,8 @@ class Model(ImageObject):
             return small, corner
         return
     
+    
+    # Placement Functions
     def place_cached_sed(self,lenslet,label,dlabel):
         """Places a cached SED Subimage"""
         slabel = "SUBIMG%d" % lenslet
@@ -864,6 +876,7 @@ class Model(ImageObject):
         self.save(data,dlabel)
     
     
+    # Basic Manipulation Functions
     def generate_blank(self):
         """Generates a blank SEDMachine Image"""
         self.save(np.zeros((self.config["image_size"]["px"],self.config["image_size"]["px"])).astype(np.int16),"Blank")
@@ -911,7 +924,7 @@ class Model(ImageObject):
         """Makes noise masks"""
         self.generateGaussNoise("GaussianNoise")
         self.generatePoissNoise("PoissNoise")
-        
+    
     def applyNoise(self,target):
         """Apply the noise masks to the target image label"""
         
@@ -924,7 +937,7 @@ class Model(ImageObject):
         
         self.remove(target)
         self.save(data,target)
-
+    
 
 
 

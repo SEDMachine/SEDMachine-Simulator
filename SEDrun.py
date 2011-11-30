@@ -8,19 +8,11 @@
 #  Version 0.1.1
 #
 
-import math, copy, sys, time, logging, os, argparse, yaml
+import math, copy, sys, time, logging, os, argparse, yaml, collections
 
 import arpytools.progressbar
 
 from multiprocessing import Pool, Value
-
-import numpy as np
-import pyfits as pf
-import scipy as sp
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-
-import SED
 
 try:
     from AstroObject.AnalyticSpectra import BlackBodySpectrum,FlatSpectrum,InterpolatedSpectrum
@@ -124,6 +116,9 @@ class Simulator(object):
         self.uniform.add_argument('-A',action='store',dest='PreAmp',type=float,
             default=1.0,help="Pre-amplification for Spectrum")
         
+        self.all = argparse.ArgumentParser(add_help=False)
+        self.all.add_argument('-c',action='store',dest='sourceconfig',type=str,default="SED.source.conifg.yaml")
+        
         self.subparsers = self.parser.add_subparsers(title="sub-commands",dest="command")
         
         self.initSpectra()
@@ -140,6 +135,15 @@ class Simulator(object):
         Description = "Runs the simulator with a uniform source, i.e. the same spectrum in each lenslet"
         specgroup = self.subparsers.add_parser(Command,description=Description,help=ShortHelp,
             parents=[self.uniform],usage=Usage)
+    
+    def initBasic(self):
+        """Set up the options for handling a basic command"""
+        Command = "all"
+        Usage = self.USAGE % (Command)
+        ShortHelp = "create images with from the source configuration provided"
+        Description = "Runs the simulator with source configuration provided"
+        specgroup = self.subparsers.add_parser(Command,description=Description,help=ShortHelp,
+            parents=[self.all],usage=Usage)
     
     def initPosCache(self):
         """Position Caching Subcommand"""
@@ -277,13 +281,13 @@ class Simulator(object):
         if self.options.test:
             self.options.easy = True
             self.options.cache = False
-            msg += "Test Mode"
+            msg += "Test Mode "
         if self.options.dev:
             self.options.debug = True
             self.options.easy = True
-            msg += "Dev Mode"
+            msg += "Dev Mode "
         if self.options.easy:
-            msg += "Easy Settings"
+            msg += "Easy Settings "
             if self.options.title == self.defaultTitle:
                 self.options.title = "EasyMode"
             if not hasattr(self.options,'s') or self.options.s == "n":
@@ -309,7 +313,7 @@ class Simulator(object):
         self.optstring = "SEDScript: \n"
         
         for key,value in vars(self.options).iteritems():
-            self.optstring += "%(key)15s : %(value)15s \n" % { 'key':key , 'value':value }
+            self.optstring += "%(key)15s : %(value)-40s \n" % { 'key':key , 'value':value }
         
         stream = file(self.config["Dirs"]["Partials"]+"/Options.dat",'w')
         stream.write(self.optstring)
@@ -333,6 +337,7 @@ class Simulator(object):
         
     def dumpConfig(self):
         """Dumps a config back out"""
+        import SED
         yaml.dump(self.config,file(self.options.config,'w'),default_flow_style=False)
         Model = SED.Model(self.options.iconfig,self.config)
         Model.dumpConfig()
@@ -370,12 +375,16 @@ class Simulator(object):
         if self.debug:
             start = time.clock()
         
+        import SED
+        self.Limits = SED.SEDLimits
         self.Model = SED.Model(self.options.iconfig,self.config)
         
         self.Model.plot = self.options.plot
         self.Model.setup()
         
         if self.debug:
+            import matplotlib.pyplot as plt
+            self.plt = plt
             end = time.clock()
             dur = end - start
             msg = "Setup took %1.5gs with caches %s." % (dur,"enabled" if self.options.cache else "disabled")
@@ -420,7 +429,7 @@ class Simulator(object):
             ncorner = np.array([np.max(x),np.min(y)])
             handle = file(self.config["Dirs"]["Partials"] + "Positions.dat",'a')
             np.savetxt(handle,np.array([np.hstack((corner,ncorner))]),fmt='%6.1f')
-        except SED.SEDLimits:
+        except self.Limits:
             msg = "Skipped Lenslet %4d" % lenslet
             self.Model.log.info(msg)
         else:
@@ -437,10 +446,10 @@ class Simulator(object):
             
             if self.debug:
                 self.Model.show()
-                plt.savefig(self.config["Dirs"]["Partials"] + "%04d-Subimage.pdf" % i)
-                plt.clf()
+                self.plt.savefig(self.config["Dirs"]["Partials"] + "%04d-Subimage.pdf" % i)
+                self.plt.clf()
         
-        except SED.SEDLimits:
+        except self.Limits:
             msg = "Skipped Lenslet %4d, Limits Out of Bounds" % i
             self.Model.log.info(msg)
         else:
@@ -468,9 +477,9 @@ class Simulator(object):
             self.Model.place_cached_sed(i,"Included Spectrum %d" % i,"Final")
             if self.debug:
                 self.Model.show()
-                plt.savefig(self.config["Dirs"]["Partials"] + "%04d-Fullimage.pdf" % i)
-                plt.clf()
-        except SED.SEDLimits:
+                self.plt.savefig(self.config["Dirs"]["Partials"] + "%04d-Fullimage.pdf" % i)
+                self.plt.clf()
+        except self.Limits:
             msg = "Encoutered Spectrum outside image boundaries %d" % i
             self.Model.log.info(msg)
         else:
