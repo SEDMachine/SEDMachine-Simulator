@@ -152,6 +152,10 @@ class Model(ImageObject):
         self.config["padding"] = 5
         # Default Gain Value
         self.config["gain"] = 1e-6
+        # Noise Information
+        self.config["dark"] = 20 # counts per pixel per second at some fixed degree c
+        self.config["bias"] = 20 # counts per pixel at some fixed degree c
+        self.config["exposure"] = 120 #Seconds
         # File Information for data and Caches
         self.config["files"] = {}
         self.config["files"]["lenslets"] = "Data/xy_17nov2011_v57.TXT"
@@ -909,18 +913,18 @@ class Model(ImageObject):
     
     def setupNoise(self):
         """Makes noise masks"""
-        self.generateGaussNoise("GaussianNoise")
-        self.generatePoissNoise("PoissNoise")
+        self.generatePoissNoise("Dark",self.config["dark"]*self.config["exposure"])
+        self.generatePoissNoise("Bias",self.config["bias"])
         
     def applyNoise(self,target):
         """Apply the noise masks to the target image label"""
         
-        poiss = self.data("PoissNoise")
-        gauss = self.data("GaussianNoise")
+        dark = self.data("Dark")
+        bias = self.data("Bias")
         
         data = self.data(target)
         
-        data += poiss + gauss
+        data += dark + bias
         
         self.remove(target)
         self.save(data,target)
