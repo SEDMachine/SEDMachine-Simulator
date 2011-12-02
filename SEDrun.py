@@ -10,6 +10,8 @@
 
 import math, copy, sys, time, logging, os, argparse, yaml, collections
 
+import logging.handlers
+
 import arpytools.progressbar
 
 from multiprocessing import Pool, Value
@@ -26,6 +28,8 @@ import scipy.signal
 def update(d, u):
     """A deep update command for dictionaries.
     This is because the normal dictionary.update() command does not handle nested dictionaries."""
+    if len(u)==0:
+        return d
     for k, v in u.iteritems():
         if isinstance(v, collections.Mapping):
             r = update(d.get(k, {}), v)
@@ -34,7 +38,7 @@ def update(d, u):
             d[k] = u[k]
     return d
 
-__version__ = file("VERSION",'r').read()
+__version__ = open(os.path.abspath(os.path.join(os.path.dirname(__file__),"VERSION")),'r').read()
 
 LongHelp = """
 This is the Command Line Interface to the SEDMachine Simulator Program."""
@@ -55,10 +59,13 @@ class Simulator(object):
     def __init__(self):
         super(Simulator, self).__init__()
         self.debug = False
-        self.defaultTitle = "Generated"
+        self.lenslets = []
+        self.initLog()
+        self.defaults = []
+        self.defaultConfig()
+        self.debug = False
         self.bar = arpytools.progressbar.ProgressBar(color="green")
         self.prog = Value('d',0)
-        self.startLogging()
         self.initOptions()
         
     
@@ -71,25 +78,23 @@ class Simulator(object):
             formatter_class=argparse.RawDescriptionHelpFormatter,usage=self.USAGE % "subcommand")
         
         self.parser.add_argument('-f',metavar='label',type=str,dest='title',
-            help="label for output image",default=self.defaultTitle)
+            help="label for output image",default=self.config["System"]["Output"]["Label"])
         # Add the basic controls for the script
         self.parser.add_argument('--version',action='version',version=__version__)
         
         self.basics = self.parser.add_mutually_exclusive_group()
-        self.basics.add_argument('-D','--dev',action='store_true',dest='dev',
+        self.basics.add_argument('-D','--dev',action='store_const',dest='mode',const='dev',
             help="equivalent to --debug --easy")
-        self.basics.add_argument('-T','--test',action='store_true',dest='test',
+        self.basics.add_argument('-T','--test',action='store_const',dest='mode',const='test',
             help="equivalent to --no-cache --easy")
-        self.basics.add_argument('-E','--easy',action='store_true',dest='easy',
+        self.basics.add_argument('-E','--easy',action='store_const',dest='mode',const='easy',
             help="uses simple configuration for testing the simulator")
-        self.basics.add_argument('-F','--full',action='store_true',dest='full',
+        self.basics.add_argument('-F','--full',action='store_const',dest='mode',const='full',
             help="disables --debug and forces normal deployment operation")
             
         self.parser.add_argument('--plot',action='store_true',dest='plot',help="Enable debugging plots")
         self.parser.add_argument('--no-cache',action='store_false',dest='cache',
             help="ignore cached data from the simulator")
-        self.parser.add_argument('--thread',action='store_true',dest='thread',
-            help="enable multi-process support")
         self.parser.add_argument('-n',action='store',metavar='N',type=int,
             help="limit the run to N lenslets")
         self.parser.add_argument('-o',action='store',metavar='I',type=int,
@@ -97,46 +102,24 @@ class Simulator(object):
             
         self.parser.add_argument('-d','--debug',action='store_true',dest='debug',help="enable debugging messages and plots")
         
-        self.parser.add_argument('--config',action='store',dest='config',type=str,default="SED.script.config.yaml",
-            help="use the specified configuration file",metavar="file.yaml")
-        self.parser.add_argument('--iconfig',action='store',dest='iconfig',type=str,default="SED.instrument.config.yaml",
+        self.parser.add_argument('--config',action='store',dest='config',type=str,default=self.config["System"]["Configs"]["This"],
             help="use the specified configuration file",metavar="file.yaml")
         self.parser.add_argument('--dump-config',action='store_true',dest='dump',help=argparse.SUPPRESS)
         
-        
-        self.uniform = argparse.ArgumentParser(add_help=False)
-        
-        self.uniform.add_argument('-s',choices='bfs',default='n',help="Select Spectrum: b: BlackBody f:Flat s:File")
-        self.uniform.add_argument('-T',action='store',dest='Temp',type=float,
-            default=5000.0,help="BlackBody Temperature to use")
-        self.uniform.add_argument('-V',action='store',dest='Value',type=float,
-            default=1000.0,help="Flat Spectrum Value")
-        self.uniform.add_argument('-F',action='store',dest='Filename',type=str,
-            default="",help="Spectrum Data Filename")
-        self.uniform.add_argument('-A',action='store',dest='PreAmp',type=float,
-            default=1.0,help="Pre-amplification for Spectrum")
-        
         self.all = argparse.ArgumentParser(add_help=False)
-        self.all.add_argument('-c',action='store',dest='sourceconfig',type=str,default="SED.source.conifg.yaml")
+        self.all.add_argument('-c',action='store',dest='sourceconfig',type=str,default=self.config["System"]["Configs"]["Source"])
         
         self.subparsers = self.parser.add_subparsers(title="sub-commands",dest="command")
         
-        self.initSpectra()
-        self.initStartup()
-        self.initSource()
-        self.initPosTest()
+        self.initAll()
         self.initPosCache()
+        self.initStartup()
+        self.initPosTest()
+        self.initSource()
+        
+        self.log.debug("Set up Command Line Control Options")
     
-    def initSpectra(self):
-        """Set up the options for handling single spectra objects"""
-        Command = "uniform"
-        Usage = self.USAGE % "%s -s{b,f,s} [ -T temp | -V value | -F filename ] [-A n]" % (Command)
-        ShortHelp = "create images with a uniform source field spectrum"
-        Description = "Runs the simulator with a uniform source, i.e. the same spectrum in each lenslet"
-        specgroup = self.subparsers.add_parser(Command,description=Description,help=ShortHelp,
-            parents=[self.uniform],usage=Usage)
-    
-    def initBasic(self):
+    def initAll(self):
         """Set up the options for handling a basic command"""
         Command = "all"
         Usage = self.USAGE % (Command)
@@ -152,17 +135,16 @@ class Simulator(object):
         ShortHelp = "position caching mode for spectrum placement"
         Description = "Caches results of the model._get_wavelenghts results for faster lookup later"
         postest = self.subparsers.add_parser(Command,description=Description,help=ShortHelp,
-            parents=[self.uniform],usage=Usage)
+            usage=Usage)
         
     
     def initPosTest(self):
         """Position Testing Script"""
         Command = "postest"
-        Usage = self.USAGE % "%s -s{b,f,s} [ -T temp | -V value | -F filename ] [-A n]" % (Command)
+        Usage = self.USAGE % "%s" % (Command)
         ShortHelp = "position testing mode for spectrum placement"
         Description = "Produces output to determine if the spectrum placement appears to have been done correctly"
-        postest = self.subparsers.add_parser(Command,description=Description,help=ShortHelp,
-            parents=[self.uniform],usage=Usage)
+        postest = self.subparsers.add_parser(Command,description=Description,help=ShortHelp,usage=Usage)
     
     def initStartup(self):
         """Subcommand for handling only startup functions"""
@@ -178,194 +160,303 @@ class Simulator(object):
         Usage = self.USAGE % "%s" % (Command)
         ShortHelp = "run the source creation and resolution routines"
         Description = "Initializes the simulation, then initializes the source spectra"
-        sourcegroup = self.subparsers.add_parser(Command,description=Description,help=ShortHelp,parents=[self.uniform])
+        sourcegroup = self.subparsers.add_parser(Command,description=Description,help=ShortHelp,parents=[self.all])
     
-    def startLogging(self):
-        """Establishes logging for this module"""
-        
-        self.log = logging.getLogger(sys.argv[0])
-        logfolder = "Logs/"
-        filename = sys.argv[0]+"-"+time.strftime("%Y-%m-%d")
-        longFormat = "%(asctime)s : %(levelname)-8s : %(funcName)-20s : %(message)s"
-        shortFormat = '... %(message)s'
-        dateFormat = "%Y-%m-%d-%H:%M:%S"
+    def initLog(self):
+        """Initializes the system logger. This logger starts with only a buffer, no actual logging output. The buffer is used to hold log messages before a logging output location has been specified."""
+        self.log = logging.getLogger(__name__)
         
         self.log.setLevel(logging.DEBUG)
         logging.captureWarnings(True)
+        self.filebuffer = logging.handlers.MemoryHandler(1e6) #Our handler will only handle 1-million messages... lets not go that far
+        self.consolebuffer = logging.handlers.MemoryHandler(1e6)
+        self.consolebuffer.setLevel(logging.INFO)
+        self.log.addHandler(self.filebuffer)
+        self.log.addHandler(self.consolebuffer)
+
+        self.log.info("Runner has Initialized")
+
+    def setupLog(self):
+        """Setup Logging Functions for the SEDMachine Model.
+
+        This configures the logging system, including a possible console and file log. It then reads the logging buffer into the logfile.
+        """
+
+        if self.debug:
+            self.logLevel = logging.DEBUG
+        else:
+            self.logLevel = logging.INFO
+        self.log.setLevel(self.logLevel)
+
+        # Setup the Console Log Handler
         self.console = logging.StreamHandler()
-        self.console.setLevel(logging.INFO)
-        consoleFormatter = logging.Formatter(shortFormat,datefmt=dateFormat)
+        consoleFormat = self.config["System"]["logging"]["console"]["format"]
+        if self.config["System"]["logging"]["console"]["level"]:
+            self.console.setLevel(self.config["System"]["logging"]["console"]["level"])
+        else:
+            self.console.setLevel(logging.INFO)
+        consoleFormatter = logging.Formatter(consoleFormat)
         self.console.setFormatter(consoleFormatter)
-        self.log.addHandler(self.console)
-        
-        if os.access(logfolder,os.F_OK):
-            self.logfile = logging.FileHandler(filename=logfolder+filename+".log",mode="a")
+        if self.config["System"]["logging"]["console"]["enable"]:
+            self.log.addHandler(self.console)
+            self.consolebuffer.setTarget(self.console)
+            self.consolebuffer.close()
+            self.log.removeHandler(self.consolebuffer)
+            
+
+
+
+        dateFormat = "%Y-%m-%d-%H:%M:%S"
+        self.logfile = None
+        # Only set up the file log handler if we can actually access the folder
+        if os.access(self.config["System"]["Dirs"]["Logs"],os.F_OK) and self.config["System"]["logging"]["file"]["enable"]:
+            filename = self.config["System"]["Dirs"]["Logs"] + self.config["System"]["logging"]["file"]["filename"]+".log"
+            self.logfile = logging.FileHandler(filename=filename,mode="a")
             self.logfile.setLevel(logging.DEBUG)
-            fileformatter = logging.Formatter(longFormat,datefmt=dateFormat)
+            fileformatter = logging.Formatter(self.config["System"]["logging"]["file"]["format"],datefmt=dateFormat)
             self.logfile.setFormatter(fileformatter)
             self.log.addHandler(self.logfile)
+            # Finally, we should flush the old buffers
+            self.filebuffer.setTarget(self.logfile)
+            self.filebuffer.close()
+            self.log.removeHandler(self.filebuffer)
+        self.log.debug("Configured Logging")
         
-        self.log.info("Runner has initilaized")
     
-    def do_imports(self):
-        """A function which allows us to delay many imports until well after intialization"""
-        pass
-    
-    def run(self):
-        """Runs the simulator"""
-        start = time.clock()
- 
-        self.parseOptions()
-        cmd = self.options.command
+    def defaultConfig(self):
+        """Default configuration values from the program"""
+        self.config = {}
         
-        self.do_imports()
+        self.config["System"] = {}
         
-        if self.options.dump:
-            self.log.info("Dumping Configuration Variables...")
-            self.dumpConfig()
-            self.log.info("Cancelling all subcommands")
-            cmd = ""
+        # Caching and Logging
+        self.config["System"]["Cache"] = True
+        self.config["System"]["Debug"] = False
+        self.config["System"]["Plot"]  = False
         
-        if cmd in ["uniform","source","startup","postest","poscache"]:
-            self.log.info("Simulator Setup")
-            self.setup()
+        self.config["System"]["Output"] = {}
+        self.config["System"]["Output"]["Label"] = "Generated"
+        self.config["System"]["Output"]["Format"] = "fits"
         
-        if cmd in ["uniform"]:
-            self.log.info("Generating Noise Masks")
-            self.setupNoise()
+        self.config["System"]["CacheFiles"] = {}
+        self.config["System"]["CacheFiles"]["Instrument"] = "SED.instrument"
+        self.config["System"]["CacheFiles"]["Source"] = "SED.source"
         
-        if cmd in ["uniform","source","postest","poscache"]:
-            self.log.info("Source Setup")
-            self.setupSource()
+        # Configuration Files
+        self.config["System"]["Configs"] = {}
+        self.config["System"]["Configs"]["Instrument"] = "SED.instrument.config.yaml"
+        self.config["System"]["Configs"]["Source"] = "SED.source.config.yaml"
+        self.config["System"]["Configs"]["This"] = "SED.script.config.yaml"
         
-        if cmd in ["postest"]:
-            self.log.info("Testing Source Positioning")
-            self.positionTests()
+        # Directory Configuration
+        self.config["System"]["Dirs"] = {}
+        self.config["System"]["Dirs"]["Logs"] = "Logs/"
         
-        if cmd in ["uniform","poscache"]:
-            # Log Message generated by subfunction which understands how many lenslets
-            self.generateAllLenslets()
-            
-        if cmd in ["uniform","poscache"]:
-            self.log.info("Caching Wavelength Data")
-            self.positionCaches()
+        # Lenslet Configuration
+        self.config["System"]["Lenslets"] = {}
         
-        if cmd in ["uniform"]:
-            # Log Message generated by subfunction which understands how many lenslets
-            self.placeAllLenslets()
-            
-        if cmd in ["uniform"]:
-            self.log.info("Cropping Image")
-            self.cropImage()
-            
-        if cmd in ["uniform"]:
-            self.log.info("Applying Noise Masks")
-            self.applyNoise()
-            
-        if cmd in ["uniform"]:
-            self.log.info("Writing Image")
-            self.saveFile()
+        # Source Configuration
+        self.config["System"]["Source"] = {}
         
-        if cmd in ["uniform","source","postest","poscache"]:
-            self.log.debug("Total Simulation took %2.3gs for %d lenslets with caching %s" % (time.clock() - start,
-                len(self.lenslets),"enabled" if self.options.cache else "disabled"))
-        self.log.info("Runner is done")
-    
+        # Logging Configuration
+        self.config["System"]["logging"] = {}
+        self.config["System"]["logging"]["console"] = {}
+        self.config["System"]["logging"]["console"]["enable"] = True
+        self.config["System"]["logging"]["console"]["format"] = "...%(message)s"
+        self.config["System"]["logging"]["console"]["level"] = False
+        self.config["System"]["logging"]["file"] = {}
+        self.config["System"]["logging"]["file"]["enable"] = True
+        self.config["System"]["logging"]["file"]["filename"] = "SEDrun"+"-"+time.strftime("%Y-%m-%d")
+        self.config["System"]["logging"]["file"]["format"] = "%(asctime)s : %(levelname)-8s : %(funcName)-20s : %(message)s"
+        
+        self.defaults += [copy.deepcopy(self.config)]
+        
+        self.log.debug("Set up default configutaion")
     
     def parseOptions(self):
         """Interprests the options system"""
         self.options = self.parser.parse_args()
-        
-        msg = ""
-        
-        if self.options.test:
-            self.options.easy = True
-            self.options.cache = False
-            msg += "Test Mode "
-        if self.options.dev:
-            self.options.debug = True
-            self.options.easy = True
-            msg += "Dev Mode "
-        if self.options.easy:
-            msg += "Easy Settings "
-            if self.options.title == self.defaultTitle:
-                self.options.title = "EasyMode"
-            if not hasattr(self.options,'s') or self.options.s == "n":
-                self.options.s = "b"
-                self.options.Temp = 5000
-            if not self.options.o:
-                self.options.o = 2150
-            if not self.options.n:
-                self.options.n = 5
-        
-        if msg != "":
-            self.log.info("Registering %s" % msg)
-        
-        if self.options.debug:
-            self.debug = True
+
+        self.config["System"]["Configs"]["This"] = self.options.config
+
+        mode = self.options.mode
+
+        if mode != "full":
+            self.config["System"]["Lenslets"]["start"] = 2150
+            self.config["System"]["Lenslets"]["number"] = 5
+            self.config["System"]["Source"]["Type"] = "BlackBody"
+            self.config["System"]["Source"]["Temp"] = 5000
+        if mode == "dev":
+            self.config["System"]["Debug"] = True
+            self.config["System"]["Cache"] = True
+        elif mode == "test":
+            self.config["System"]["Debug"] = False
+            self.config["System"]["Cache"] = False
+        elif mode == "easy":
+            self.config["System"]["Debug"] = False
+            self.config["System"]["Cache"] = True
+
+        self.loadConfig(self.config["System"]["Configs"]["This"],self.config["System"])
+
+        if self.options.n:
+            self.config["System"]["Lenslets"]["number"] = self.options.n
+
+        if self.options.o:
+            self.config["System"]["Lenslets"]["start"] = self.options.o
+
+        self.config["System"]["Cache"] |= self.options.cache
+
+        self.config["System"]["Debug"] |= self.options.debug
+
+        self.config["System"]["Plot"] |= self.options.plot
+
+        if self.config["System"]["Debug"]:
             self.console.setLevel(logging.DEBUG)
         
-        if self.options.thread:
-            self.parser.error("Threading is not yet implemented: AstroObjects are not Thread-Safe")
-        
-        self.loadConfig()
+        self.setupLog()
+        self.dirCheck()
         
         self.optstring = "SEDScript: \n"
-        
+
         for key,value in vars(self.options).iteritems():
             self.optstring += "%(key)15s : %(value)-40s \n" % { 'key':key , 'value':value }
-        
-        stream = file(self.config["Dirs"]["Partials"]+"/Options.dat",'w')
-        stream.write(self.optstring)
-        stream.close()
+
+        with open(self.config["System"]["Dirs"]["Partials"]+"/Options.dat",'w') as stream:
+            stream.write(self.optstring)
     
-    def loadConfig(self):
+    def run(self):
+        """Runs the simulator"""
+        self.start = time.clock()
+        
+        self.parseOptions()
+        cmd = self.options.command
+        
+        if self.options.dump:
+            self.log.info("Dumping Configuration Variables...")
+            self.dumpConfig()
+            self.exit()
+        
+        self.log.info("Simulator Setup")
+        self.setup()
+        
+        if cmd in ["startup"]:
+            self.exit()
+            return
+        
+        self.log.info("Generating Noise Masks")
+        self.setupNoise()
+        
+        self.log.info("Source Setup")
+        self.setupSource()
+        
+        if cmd in ["source"]:
+            self.exit()
+            return
+        
+        if cmd in ["postest"]:
+            self.log.info("Testing Source Positioning")
+            self.positionTests()
+            self.exit()
+            return
+        
+        # Log Message generated by subfunction which understands how many lenslets
+        self.generateAllLenslets()
+        
+        self.log.info("Caching Wavelength Data")
+        self.positionCaches()
+        
+        if cmd in ["poscache"]:
+            self.exit()
+            return
+        
+        # Log Message generated by subfunction which understands how many lenslets
+        self.placeAllLenslets()
+        
+        self.log.info("Cropping Image")
+        self.cropImage()
+        
+        self.log.info("Applying Noise Masks")
+        self.applyNoise()
+        
+        self.log.info("Writing Image")
+        self.saveFile()
+        
+        self.exit()
+        return
+    
+    def exit(self):
+        """Functions to run while shutting down the runner"""
+        self.log.debug("Total Simulation took %2.3gs for %d lenslets with caching %s" % (time.clock() - self.start,
+                len(self.lenslets),"enabled" if self.options.cache else "disabled"))
+        self.log.info("Runner is done")
+    
+    def loadConfig(self,filename,dest):
         """Loads the config file"""
-        self.config = {"Dirs":{"Caches":"Caches/","Images":"Images/","Partials":"Partials/","Logs":"Logs/"},"Cache":self.options.cache}
         try:
-            self.config = update(self.config,yaml.load(file(self.options.config)))
+            with open(filename) as stream:
+                cfg = update(dest,yaml.load(stream))
         except IOError:
-            self.log.warning("Couldn't Read configuration file %s, using defaults" % self.options.config)
-        self.dirCheck()
+            self.log.warning("Couldn't Read configuration file %s, using defaults" % filename)
+            cfg = dest
+        else:
+            self.log.debug("Loaded configuration from file %s" % filename)
+        
+        return cfg
         
     def dirCheck(self):
         """Checks that all of the configured directories exist, and creates the ones that don't."""
-        for DIR in self.config["Dirs"].values():
+        for DIR in self.config["System"]["Dirs"].values():
             if not os.access(DIR,os.F_OK):
                 os.mkdir(DIR)
                 self.log.info("Created Directory %s" % DIR)
         
     def dumpConfig(self):
         """Dumps a config back out"""
-        import SED
-        yaml.dump(self.config,file(self.options.config,'w'),default_flow_style=False)
-        Model = SED.Model(self.options.iconfig,self.config)
+        import SED, SEDSource
+        with open(self.config["System"]["Configs"]["This"].rstrip(".yaml")+".dump.yaml",'w') as stream:
+            yaml.dump(self.config["System"],stream,default_flow_style=False)
+        
+        Model = SED.Instrument(self.config)
         Model.dumpConfig()
+        
+        Source = SEDSource.Source(self.config)
+        Source.setup()
+        Source.dumpConfig()
+        
         
     def setup(self):
         """Performs all setup options"""
         self.setupModel()
         self.setupLenslets()
     
+    
     def setupSource(self):
         """Sets up the source"""
-        if self.options.s == "n":
-            self.parser.error("Source Spec Required! See -s")
-        elif self.options.s == "b":
-            self.Spectrum = BlackBodySpectrum(self.options.Temp)
-            self.Spectrum *= self.options.PreAmp
-        elif self.options.s == "f":
-            self.Spectrum = FlatSpectrum(self.options.Value)
-            self.Spectrum *= self.options.PreAmp
-        elif self.options.spec == "s":
-            try:
-                WL,Flux = np.genfromtxt(self.options.Filename).T
-            except IOError as e:
-                self.parser.error("Cannot find Spectrum File: %s" % str(e))
-            WL *= 1e-10
-            Flux *= 1e18 * 1e6
-            self.Spectrum = AS(np.array([WL,Flux]),self.options.Filename)
-            self.Spectrum *= self.options.PreAmp
+        sourceCfg = {}
+        if hasattr(self.options,'s'):
+            sourceCfg["PreAmp"] = self.options.PreAmp
+            if self.options.s == "n":
+                self.parser.error("Source Spec Required! See -s")
+            elif self.options.s == "b":
+                sourceCfg["Type"] = "BlackBody"
+                sourceCfg["Temp"] = self.options.temp
+            elif self.options.s == "f":
+                sourceCfg["Type"] = "Flat"
+                sourceCfg["Value"] = self.options.Value
+            elif self.options.spec == "s":
+                sourceCfg["Type"] = "File"
+                sourceCfg["Filename"] = self.options.Filename
+        
+        
+        update(self.config["System"]["Source"],sourceCfg)
+        import SEDSource
+        
+        self.Source = SEDSource.Source(self.config)
+        
+        self.Source.setup()
+        
+        self.Spectrum = self.Source.GetSpectrum()
+        
         self.log.debug("Set Spectrum to %s" % self.Spectrum)
         
         
@@ -377,7 +468,7 @@ class Simulator(object):
         
         import SED
         self.Limits = SED.SEDLimits
-        self.Model = SED.Model(self.options.iconfig,self.config)
+        self.Model = SED.Instrument(self.config)
         
         self.Model.plot = self.options.plot
         self.Model.setup()

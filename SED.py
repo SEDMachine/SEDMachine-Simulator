@@ -22,6 +22,8 @@ import yaml
 
 import os,logging,time,copy,collections
 
+import logging.handlers
+
 import AstroObject
 from AstroObject.AstroSpectra import SpectraObject
 from AstroObject.AstroImage import ImageObject,ImageFrame
@@ -30,19 +32,8 @@ from AstroObject.Utilities import *
 
 from Utilities import *
 
-__version__ = file("VERSION",'r').read()
-__all__ = ["update","SEDLimits","Model"]
-
-def update(d, u):
-    """A deep update command for dictionaries.
-    This is because the normal dictionary.update() command does not handle nested dictionaries."""
-    for k, v in u.iteritems():
-        if isinstance(v, collections.Mapping):
-            r = update(d.get(k, {}), v)
-            d[k] = r
-        else:
-            d[k] = u[k]
-    return d
+__version__ = open(os.path.abspath(os.path.join(os.path.dirname(__file__),"VERSION")),'r').read()
+__all__ = ["SEDLimits","Instrument"]
 
 
 class SEDLimits(Exception):
@@ -51,68 +42,108 @@ class SEDLimits(Exception):
     pass
 
 
-class Model(ImageObject):
+class Instrument(ImageObject):
     """This is a model container for the SEDMachine data simulator. This class is based on `AstroObject.ImageObject`, which it uses to provide some awareness of the way images are stored and retrieved. As such, this object has .save(), .select() and .show() etc. methods which can be used to examine the underlying data. It also means that this ImageObject subclass will contain the final, simulated image when the system is done.
     
-    Note:: This object is not yet thread-safe, but coming versions of AstroObject will allow objects like this one to be locking and thread safe. Unfortunately, this limitation means that the simulator can generally not be run in multi-thread mode yet."""
+    .. Note:: This object is not yet thread-safe, but coming versions of AstroObject will allow objects like this one to be locking and thread safe. Unfortunately, this limitation means that the simulator can generally not be run in multi-thread mode yet.
     
-    def __init__(self,configFile,scriptConfig):
-        super(Model, self).__init__()
-        self.configFile = configFile
+    """
+    
+    def __init__(self,config):
+        super(Instrument, self).__init__()
         self.cache = False
         self.plot = True
-        self.configs = {}
-        self.config = {}
-        if scriptConfig != None:
-            self.scriptConfig = scriptConfig
-            self.cache = scriptConfig["Cache"]
+        self.debug = False
+        self.config = config
+        self.defaults = []
         self.regenerate = not self.cache
         self.WLS = {}
         self.initLog()
         self.configure()
+        self.setupLog()
+    
+    def update(self, d, u):
+        """A deep update command for dictionaries.
+        This is because the normal dictionary.update() command does not handle nested dictionaries."""
+        for k, v in u.iteritems():
+            if isinstance(v, collections.Mapping):
+                r = self.update(d.get(k, {}), v)
+                d[k] = r
+            else:
+                d[k] = u[k]
+        return d
     
     def initLog(self):
-        """Setup Logging Functions for the SEDMachine Model.
-        The logging system uses a Logs/ folder to store logs. If this folder is not present, it will not store logs.
-        
-        Once the logger is done initializing and configuring, it will print a starting message to the log file to differentiate between different simulation runs.
-        
-        Note:: There is a configuration file directive for the Log folder, but it is not respected at this point, as that would require pre-loading the configuration, without the ability to log that the configuration loading failed.
-        """
-        
+        """Initializes the system logger. This logger starts with only a buffer, no actual logging output. The buffer is used to hold log messages before a logging output location has been specified."""
         self.log = logging.getLogger(__name__)
         
-        logfolder = "Logs/"
-        filename = __name__+"-"+time.strftime("%Y-%m-%d")
-        longFormat = "%(asctime)s : %(levelname)-8s : %(funcName)-20s : %(message)s"
-        shortFormat = '%(levelname)-8s: %(message)s'
-        dateFormat = "%Y-%m-%d-%H:%M:%S"
-        
-        self.log.setLevel(logging.DEBUG)
+        if self.debug:
+            self.logLevel = logging.DEBUG
+        else:
+            self.logLevel = logging.INFO
+            
+        self.log.setLevel(self.logLevel)
         logging.captureWarnings(True)
-        self.console = logging.StreamHandler()
-        self.console.setLevel(logging.INFO)
-        self.consoleFormatter = logging.Formatter(shortFormat,datefmt=dateFormat)
-        self.console.setFormatter(self.consoleFormatter)
-        self.log.addHandler(self.console)
-        
-        if os.access(logfolder,os.F_OK):
-            self.logfile = logging.FileHandler(filename=logfolder+filename+".log",mode="a")
-            self.logfile.setLevel(logging.DEBUG)
-            fileformatter = logging.Formatter(longFormat,datefmt=dateFormat)
-            self.logfile.setFormatter(fileformatter)
-            self.log.addHandler(self.logfile)
-            self.log.removeHandler(self.console)
+        self.filebuffer = logging.handlers.MemoryHandler(1e6) #Our handler will only handle 1-million messages... lets not go that far
+        self.log.addHandler(self.filebuffer)
+        self.consolebuffer = logging.handlers.MemoryHandler(1e6) #Our handler will only handle 1-million messages... lets not go that far
+        self.log.addHandler(self.consolebuffer)
         
         self.log.info("--------------------------------")
         self.log.info("Welcome to the SED Machine model")
-        self.log.info(" Version %s" % __version__ )
+        self.log.debug(" Version %s" % __version__ )
+    
+    def setupLog(self):
+        """Setup Logging Functions for the SEDMachine Model.
+        
+        This configures the logging system, including a possible console and file log. It then reads the logging buffer into the logfile.
+        """
+        
+        if self.debug:
+            self.logLevel = logging.DEBUG
+        self.log.setLevel(self.logLevel)
+        
+        # Setup the Console Log Handler
+        self.console = logging.StreamHandler()
+        consoleFormat = self.config["Instrument"]["logging"]["console"]["format"]
+        if self.config["Instrument"]["logging"]["console"]["level"]:
+            self.console.setLevel(self.config["Instrument"]["logging"]["console"]["level"])
+        else:
+            self.console.setLevel(logging.INFO)
+        consoleFormatter = logging.Formatter(consoleFormat)
+        self.console.setFormatter(consoleFormatter)
+        if self.config["Instrument"]["logging"]["console"]["enable"]:
+            self.log.addHandler(self.console)
+            self.consolebuffer.setTarget(self.console)
+            self.consolebuffer.close()
+            self.log.removeHandler(self.consolebuffer)
+        
+        
+        
+        dateFormat = "%Y-%m-%d-%H:%M:%S"
+        self.logfile = None
+        # Only set up the file log handler if we can actually access the folder
+        if os.access(self.config["System"]["Dirs"]["Logs"],os.F_OK) and self.config["Instrument"]["logging"]["file"]["enable"]:
+            filename = self.config["System"]["Dirs"]["Logs"] + self.config["Instrument"]["logging"]["file"]["filename"]+".log"
+            self.logfile = logging.FileHandler(filename=filename,mode="a")
+            self.logfile.setLevel(logging.DEBUG)
+            fileformatter = logging.Formatter(self.config["Instrument"]["logging"]["file"]["format"],datefmt=dateFormat)
+            self.logfile.setFormatter(fileformatter)
+            self.log.addHandler(self.logfile)
+            # Finally, we should flush the old buffers
+            self.filebuffer.setTarget(self.logfile)
+            self.filebuffer.close()
+            self.log.removeHandler(self.filebuffer)
+        
+        
+        self.log.debug("Configured Logging")
     
     
     # CONFIGURATION
     def configure(self):
         """This is a wrapper function for a variety of private configuration steps. The configuration generall happnes in stages:
-        - Default Values are initalized
+        
+        - Default Values are initalized for the instrument configuration
         - System loads the configuration file, updating the default values with the user-selected values. If no configuration file exists, the system will move on.
         - System loads the configuration from the Caches directory if caching is enabled.
         - System adds dynamic variables to the configuration. This is the feature which handles variable units etc.
@@ -129,105 +160,148 @@ class Model(ImageObject):
         """Set up the default configure variable. If you change the default configuration variables in this function (instead of using a configuration file), the script will generally not detect the change, and so will not regenerate Cached files. You can force the script to ignore cached files in the runner script using the option `--no-cache`. To regenrate the cache manually, simply delete the contents of the Caches directory"""
         
         # Configuration Variables for The System
-        self.config["convert"] = {}
-        self.config["ccd_size"] = {}
-        self.config["image_size"] = {}
-        self.config["tel_radii"] = {}
-        self.config["tel_obsc"] = {}
-        self.config["psf_stdev"] = {}
-        self.config["psf_size"] = {}
+        self.config["Instrument"] = {}
         # Unit Conversion Defaults
-        self.config["convert"]["pxtomm"] = 0.0135
+        self.config["Instrument"]["convert"] = {}
+        self.config["Instrument"]["convert"]["pxtomm"] = 0.0135
         # CCD / Image Plane Information
-        self.config["ccd_size"]["px"] = 2048 #pixels
-        self.config["image_size"]["mm"] = 40.0 #mm
+        self.config["Instrument"]["ccd_size"] = {}
+        self.config["Instrument"]["ccd_size"]["px"] = 2048 #pixels
+        self.config["Instrument"]["image_size"] = {}
+        self.config["Instrument"]["image_size"]["mm"] = 40.0 #mm
         # Telescope Information
-        self.config["tel_radii"]["px"] = 2.4 / 2.0
-        self.config["tel_obsc"]["px"] = 0.4 / 2.0
+        self.config["Instrument"]["tel_radii"] = {}
+        self.config["Instrument"]["tel_radii"]["px"] = 2.4 / 2.0
+        self.config["Instrument"]["tel_obsc"] = {}
+        self.config["Instrument"]["tel_obsc"]["px"] = 0.4 / 2.0
         # PSF Information
-        self.config["psf_size"]["px"] = 0
+        self.config["Instrument"]["psf_size"] = {}
+        self.config["Instrument"]["psf_size"]["px"] = 0
         # For a gaussian PSF
-        self.config["psf_stdev"]["px"] = 1.0
+        self.config["Instrument"]["psf_stdev"] = {}
+        self.config["Instrument"]["psf_stdev"]["px"] = 1.0
         # Image Generation Density
-        self.config["density"] = 5
-        self.config["padding"] = 5
+        self.config["Instrument"]["density"] = 5
+        self.config["Instrument"]["padding"] = 5
         # Default Gain Value
-        self.config["gain"] = 1e-6
+        self.config["Instrument"]["gain"] = 1e-6
         # Noise Information
-        self.config["dark"] = 20 # counts per pixel per second at some fixed degree c
-        self.config["bias"] = 20 # counts per pixel at some fixed degree c
-        self.config["exposure"] = 120 #Seconds
+        self.config["Instrument"]["dark"] = 20 # counts per pixel per second at some fixed degree c
+        self.config["Instrument"]["bias"] = 20 # counts per pixel at some fixed degree c
+        self.config["Instrument"]["exposure"] = 120 #Seconds
         # File Information for data and Caches
-        self.config["files"] = {}
-        self.config["files"]["lenslets"] = "Data/xy_17nov2011_v57.TXT"
-        self.config["files"]["dispersion"] = "Data/dispersion_12-10-2011.txt"
-        self.config["files"]["encircledenergy"] = "Data/encircled_energy_4nov11.TXT"
+        self.config["Instrument"]["files"] = {}
+        self.config["Instrument"]["files"]["lenslets"] = "Data/xy_17nov2011_v57.TXT"
+        self.config["Instrument"]["files"]["dispersion"] = "Data/dispersion_12-10-2011.txt"
+        self.config["Instrument"]["files"]["encircledenergy"] = "Data/encircled_energy_4nov11.TXT"
         # MPL Plotting Save Format
-        self.config["plot_format"] = ".pdf"
+        self.config["Instrument"]["plot_format"] = ".pdf"
         
-        self.configs["defaults"] = copy.deepcopy(self.config)
+        # Logging Configuration
+        self.config["Instrument"]["logging"] = {}
+        self.config["Instrument"]["logging"]["console"] = {}
+        self.config["Instrument"]["logging"]["console"]["enable"] = False
+        self.config["Instrument"]["logging"]["console"]["format"] = "... ...%(message)s"
+        self.config["Instrument"]["logging"]["console"]["level"] = False
+        self.config["Instrument"]["logging"]["file"] = {}
+        self.config["Instrument"]["logging"]["file"]["enable"] = True
+        self.config["Instrument"]["logging"]["file"]["filename"] = "SED"+"-"+time.strftime("%Y-%m-%d")
+        self.config["Instrument"]["logging"]["file"]["format"] = "%(asctime)s : %(levelname)-8s : %(funcName)-20s : %(message)s"
+        
+        self.defaults += [copy.deepcopy(self.config)]
+        
+        self.log.debug("Set Instrument Configuration Defaults")
     
     def _configureFile(self):
         """Attempt to load the default configuration from the working directory"""
+        FileName = self.config["System"]["Configs"]["Instrument"]
         try:
-            stream = file(self.configFile,'r')
+            stream = open(FileName,'r')
         except IOError:
-            self.log.warning("Configuration File Not Found: %s" % self.configFile)
+            self.log.warning("Configuration File Not Found: %s" % FileName)
         else:
-            update(self.config,yaml.load(stream))
+            self.update(self.config["Instrument"],yaml.load(stream))
+            stream.close()
+            self.log.debug("Loaded Configuration from %s" % FileName)
         finally:
-            self.configs["file"] = copy.deepcopy(self.config)
+            self.defaults += [copy.deepcopy(self.config)]
     
     def _configureCaches(self):
-        """If we are using the caching system, set up the configuration cache"""
+        """If we are using the caching system, set up the configuration cache.
+        
+        First, we set default Caching variables. Next, load these same variables (and overwrite) from the system configuration. Next, we load the cached configuration. If the cached configuration updates the generated configuration in any way, """
         if not self.cache:
-            self.log.debug("Skipping Caches")
+            self.log.debug("Skipping Cache Configuration")
             return
         
-        self.log.debug("Enabling Caching")
+        # Default Cache Variables
+        CacheFiles = {}
+        CacheFileBase = "SED.Instrument"
+        CacheFiles["telescope"] = self.config["System"]["Dirs"]["Caches"] + CacheFileBase + ".tel"    + ".npy"
+        CacheFiles["psf"]       = self.config["System"]["Dirs"]["Caches"] + CacheFileBase + ".psf"    + ".npy"
+        CacheFiles["conv"]      = self.config["System"]["Dirs"]["Caches"] + CacheFileBase + ".conv"   + ".npy"
+        CacheFiles["config"]    = self.config["System"]["Dirs"]["Caches"] + CacheFileBase + ".config" + ".yaml"
+        CacheFiles["wls"]       = self.config["System"]["Dirs"]["Caches"] + CacheFileBase + ".wls"    + ".npy"
         
-        self.scriptConfig["Cache-Files"] = {}
-        self.scriptConfig["Cache-Files"]["telescope"] = self.scriptConfig["Dirs"]["Caches"] + self.configFile.rstrip(".yaml") + ".tel"
-        self.scriptConfig["Cache-Files"]["psf"] = self.scriptConfig["Dirs"]["Caches"] + self.configFile.rstrip(".yaml") + ".psf"
-        self.scriptConfig["Cache-Files"]["conv"] = self.scriptConfig["Dirs"]["Caches"] + self.configFile.rstrip(".yaml") + ".conv"
-        self.scriptConfig["Cache-Files"]["config"] = self.scriptConfig["Dirs"]["Caches"] + self.configFile
-        self.scriptConfig["Cache-Files"]["wls"] = self.scriptConfig["Dirs"]["Caches"] + self.configFile.rstrip(".yaml") + ".wls"
+        CacheFiles = self.update(CacheFiles,self.config["System"]["CacheFiles"])
+        self.config["System"]["CacheFiles"] = CacheFiles
         
-        self.configs["precached"] = copy.deepcopy(self.config)
+        self.log.debug("Configured Cache Variables")
+        self.defaults += [copy.deepcopy(self.config)]
         
+        # Load the Cached Configuration
+        FileName = self.config["System"]["CacheFiles"]["config"]
         try:
-            stream = file(self.scriptConfig["Cache-Files"]["config"],'r')
-            update(self.config,yaml.load(stream))
+            stream = file(FileName,'r')
+            self.update(self.config["Instrument"],yaml.load(stream))
         except IOError:
-            self.log.info("Cached Configuration File Not Found: %s" % self.scriptConfig["Cache-Files"]["config"])
+            self.log.info("Cached Configuration File Not Found: %s" % FileName)
         except TypeError:
             self.log.critical("Cached Configuration File has a Problem... skipping.")
+            stream.close()
+        else:
+            stream.close()
         
-        if self.configs["precached"] == self.config:
+        # If the cache is different from the generated configuration, then don't trust any caches
+        if self.defaults[-1]["Instrument"] == self.config["Instrument"]:
             self.regenearte = False
-            self.log.debug("Configuration has not changed, will not regenerate kernels.")
+            self.log.debug("Configuration has not changed, will not regenerate data.")
         else:
             self.regenearte = True
-            self.log.info("Configuration appears to have changed, will regenerate kernels.")
-        
+            self.config["Instrument"] = self.defaults[-1]["Instrument"]
+            self.log.info("Configuration appears to have changed, will regenerate data.")
         
         return
     
     def _configureDynamic(self):
-        """docstring for configureDynamicValues"""
-        self.configs["NoDynamic"] = copy.deepcopy(self.config)
+        """Generate dynamic configuration values.
         
-        if "calc" not in self.config["convert"]:
-            if "mmtopx" not in self.config["convert"] and "pxtomm" in self.config["convert"]:
-                self.config["convert"]["mmtopx"] = 1.0 / self.config["convert"]["pxtomm"]
-                self.config["convert"]["calc"] = True
+        Currently, the configuration variables that use \"px\" or \"mm\" keys automatically have their counter-part filled in. As well, the conversion has its counterpart filled in. To disable this dynamic value setting, include a \"calc:False\" variable in the configuration.
+        
+        Example Configuration::
+        
+            image_size:
+                mm: 40 # system will calculate pixels
+            ccd_size:
+                px: 2048
+                calc: False # Conversion will not be performed by system
+                mm: 30
+        
+        
+        """
+        self.defaults += [copy.deepcopy(self.config)]
+        
+        if "calc" not in self.config["Instrument"]["convert"]:
+            if "mmtopx" not in self.config["Instrument"]["convert"] and "pxtomm" in self.config["Instrument"]["convert"]:
+                self.config["Instrument"]["convert"]["mmtopx"] = 1.0 / self.config["Instrument"]["convert"]["pxtomm"]
+                self.config["Instrument"]["convert"]["calc"] = True
             else:
-                self.config["convert"]["pxtomm"] = 1.0 / self.config["convert"]["mmtopx"]
-                self.config["convert"]["calc"] = True
+                self.config["Instrument"]["convert"]["pxtomm"] = 1.0 / self.config["Instrument"]["convert"]["mmtopx"]
+                self.config["Instrument"]["convert"]["calc"] = True
         
-        self.config = self._setUnits(self.config,None)
+        self.config["Instrument"] = self._setUnits(self.config["Instrument"],None)
         
-        self.config["image_size"]["px"] = np.round( self.config["image_size"]["px"] , 0 )
+        self.config["Instrument"]["image_size"]["px"] = np.round( self.config["Instrument"]["image_size"]["px"] , 0 )
     
     def _setUnits(self,config,parent):
         """docstring for _setUnits"""
@@ -239,7 +313,7 @@ class Model(ImageObject):
                 if ("calc" in r) and ("px" in r):
                     pass
                 elif ("calc" not in config):
-                    r["px"] = v * self.config["convert"]["mmtopx"]
+                    r["px"] = v * self.config["Instrument"]["convert"]["mmtopx"]
                     r["calc"] = True
                 else:
                     self.log.warning("Value for %s set in both px and mm." % parent)
@@ -247,7 +321,7 @@ class Model(ImageObject):
                 if ("calc" in r) and ("mm" in r):
                     pass
                 elif ("calc" not in r):
-                    r["mm"] = v * self.config["convert"]["pxtomm"]
+                    r["mm"] = v * self.config["Instrument"]["convert"]["pxtomm"]
                     r["calc"] = True
                 else:
                     self.log.warning("Value for %s set in both px and mm." % parent)
@@ -257,22 +331,23 @@ class Model(ImageObject):
     # Cacheing Functions
     def regenerateCache(self):
         """Cache calculated components of the system, including the telescope image and encircled energy image. Caches are stored to speed up system initalization. This function regenerates all cached files, including the configuration file. You can force the script to ignore cached files in the runner script using the option `--no-cache`. To regenrate the cache manually, simply delete the contents of the Caches directory"""
-        stream = file(self.scriptConfig["Cache-Files"]["config"],'w')
-        yaml.dump(self.configs["NoDynamic"],stream,default_flow_style=False)
-        np.save(self.scriptConfig["Cache-Files"]["telescope"],self.TELIMG)
-        np.save(self.scriptConfig["Cache-Files"]["psf"],self.PSFIMG)
-        np.save(self.scriptConfig["Cache-Files"]["conv"],self.FINIMG)
+        with open(self.config["System"]["CacheFiles"]["config"],'w') as stream:
+            yaml.dump(self.defaults[-1]["Instrument"],stream,default_flow_style=False)
+        
+        np.save(self.config["System"]["CacheFiles"]["telescope"],self.TELIMG)
+        np.save(self.config["System"]["CacheFiles"]["psf"],self.PSFIMG)
+        np.save(self.config["System"]["CacheFiles"]["conv"],self.FINIMG)
     
     def cachedKernel(self):
         """Load cached kernels from the Caches directory. If any file is missing, it will attempt to trigger regeneration of the cache.
         You can force the script to ignore cached files in the runner script using the option `--no-cache`. To regenrate the cache manually, simply delete the contents of the Caches directory"""
         try:
             # Telescope Image Setup
-            self.TELIMG = np.load(self.scriptConfig["Cache-Files"]["telescope"]+".npy")
+            self.TELIMG = np.load(self.config["System"]["CacheFiles"]["telescope"])
             # PSF Setup
-            self.PSFIMG = np.load(self.scriptConfig["Cache-Files"]["psf"]+".npy")
+            self.PSFIMG = np.load(self.config["System"]["CacheFiles"]["psf"])
             # Preconvolved System
-            self.FINIMG = np.load(self.scriptConfig["Cache-Files"]["conv"]+".npy")
+            self.FINIMG = np.load(self.config["System"]["CacheFiles"]["conv"])
         except IOError as e:
             self.log.warning("Cached files not found, using configuration to generate files. Error: %s" % e )
             self.regenerate = True
@@ -285,7 +360,7 @@ class Model(ImageObject):
         You can force the script to ignore cached files in the runner script using the option `--no-cache`. To regenrate the cache manually, simply delete the contents of the Caches directory"""
         try:
             # Cached Wavelengths
-            cachedWL = np.load(self.scriptConfig["Cache-Files"]["wls"]+".npy")
+            cachedWL = np.load(self.config["System"]["CacheFiles"]["wls"]+".npy")
             self.WLS = dict(cachedWL)
         except IOError as e:
             self.log.warning("Cached files not found, using configuration to generate files. Error: %s" % e )
@@ -300,8 +375,8 @@ class Model(ImageObject):
     
     def dumpConfig(self):
         """Dumps a valid configuration file on top of any old configuration files. This is useful for examining the default configuration fo the system, and providing modifications through this interface."""
-        stream = file(self.configFile,'w')
-        yaml.dump(self.configs["NoDynamic"],stream,default_flow_style=False)
+        with open(self.config["System"]["Configs"]["Instrument"].rstrip(".yaml")+".dump.yaml",'w') as stream:
+            yaml.dump(self.defaults[1]["Instrument"],stream,default_flow_style=False)
     
     def setup(self):
         """After the object has been initialized, it must be setup. Setup relies on an established configuration to determine what fixed parts of the system should be generated. Actions taken in the setup phase are:
@@ -324,38 +399,40 @@ class Model(ImageObject):
             self.regenerateCache()
         
         if self.log.getEffectiveLevel() <= logging.DEBUG and self.plot:
-            self.log.debug("Generating Kernel Images")
-            plt.clf()
-            plt.imshow(self.TELIMG)
-            plt.title("Telescope Image")
-            plt.colorbar()
-            plt.savefig("Partials/TelImage%s" % (self.config["plot_format"]))
-            plt.clf()
-            plt.imshow(self.PSFIMG)
-            plt.title("PSF Image")
-            plt.colorbar()
-            plt.savefig("Partials/PSFImage%s" % (self.config["plot_format"]))
-            plt.clf()
-            plt.imshow(self.FINIMG)
-            plt.title("Convolved Tel + PSF Image")
-            plt.colorbar()
-            plt.savefig("Partials/FINImage%s" % (self.config["plot_format"]))
-            plt.clf()
+            self.plotKernelPartials()
         
         # Get layout data from files
-        self.loadOpticsData(self.config["files"]["lenslets"],self.config["files"]["dispersion"])
-        
-        
-        
+        self.loadOpticsData(self.config["Instrument"]["files"]["lenslets"],self.config["Instrument"]["files"]["dispersion"])
+        # TODO: We could cache this...
         
         self.generate_blank()
         
         self.log.info("Done with SEDM setup")
     
     
+    def plotKernalPartials(self):
+        """Plots the kernel data partials"""
+        self.log.debug("Generating Kernel Images")
+        plt.clf()
+        plt.imshow(self.TELIMG)
+        plt.title("Telescope Image")
+        plt.colorbar()
+        plt.savefig("%sTelImage%s" % (self.config["System"]["Dirs"]["Partials"],self.config["Instrument"]["plot_format"]))
+        plt.clf()
+        plt.imshow(self.PSFIMG)
+        plt.title("PSF Image")
+        plt.colorbar()
+        plt.savefig("%sPSFImage%s" % (self.config["System"]["Dirs"]["Partials"],self.config["Instrument"]["plot_format"]))
+        plt.clf()
+        plt.imshow(self.FINIMG)
+        plt.title("Convolved Tel + PSF Image")
+        plt.colorbar()
+        plt.savefig("%sFINImage%s" % (self.config["System"]["Dirs"]["Partials"],self.config["Instrument"]["plot_format"]))
+        plt.clf()
+    
     # Kernel Creation for Image Manipulation
     def regenerateKernel(self):
-        """Regenerate a kernel from the configuration valuse"""
+        """Regenerate a kernel from the configuration values."""
         self.log.info("Generating Kernels for Image System")
         # Telescope Image Setup
         self.TELIMG = self.get_tel_kern()
@@ -364,38 +441,42 @@ class Model(ImageObject):
         # Preconvolved System
         self.FINIMG = sp.signal.convolve(self.PSFIMG,self.TELIMG,mode='same')
     
-    def psf_kern(self,filename,size=0,truncate=False):
-        """Generates a PSF Kernel from a file with mm-encircled energy conversions"""
+    def psf_kern(self,filename,size=0,truncate=False,header_lines=18):
+        """Generates a PSF Kernel from a file with micron-encircled energy conversions. The file should have two columns, first, microns from the center of the PSF, and second, the fraction of encircled energy at that distance from the PSF.
         
-        uM,FR = np.genfromtxt(filename,skip_header=18).T
+        The calculation is then carried out using a spline fit to this data. From the spline fit, the function returns the first derivative of the encircled energy at each point. This in effect is the amount of energy at each point. These values are then normalized, to create a PSF mask for the instrument.
         
-        PX = uM * 1e-3 * self.config["convert"]["mmtopx"] * self.config["density"]
+        The `size` parameter specifies the size of the kernel to use. If the size is greater than the encircled energy data, then a larger figure will be returned. If `size` is smaller than the encircled energy data, it will return an image the size of the encircled energy data, unless the `truncate` parameter is set to `true`.
         
+        The `header_lines` parameter defaults to 18, which works with Zemax encircled energy output."""
+        
+        uM,FR = np.genfromtxt(filename,skip_header=header_lines).T
+        # Convert microns to milimeters, then pixels, then dense pixels
+        PX = uM * 1e-3 * self.config["Instrument"]["convert"]["mmtopx"] * self.config["Instrument"]["density"]
+        # Set the frame size for the PSF
         if np.max(PX) <= size or truncate:
             size = np.int(size)
         else:
             size = np.int(np.max(PX))
-        
+        # Create the Interpolation Function
         fit_vars = sp.interpolate.splrep(PX,FR)
-        
         fit = lambda x : sp.interpolate.splev(x,fit_vars,der=1)
-        
         vfit = np.vectorize(fit)
-        
+        # Create the 2-D function application grid
         x , y = np.mgrid[-size:size+1,-size:size+1]
-        
+        # Convert this grid into the distance from the center of the PSF at each point
         r = np.sqrt(x**2 + y**2)
-        
         v = vfit(r)
-        
         val = v
-        
         self.log.debug("Generated a PSF Kernel for the encircled energy file %s with shape %s" % (filename,str(v.shape)))
         return val / np.sum(val)
     
     def circle_kern(self,radius,size=0,normalize=False):
-        """Generate a Circle Kernel"""
-        # This allows us to set the size of the kernel arbitrarily
+        """Generate a Circle Kernel for modeling the \"Image of the Telescope\". The radius should be set in array units.
+        
+        `size` will determine the size of the array image, unless `size` is less than `radius`, in which case the image will be automatically increased to fit the entire circle.
+        
+        `normalize` controls whether the data is normalized or not. If it is not normalized, the data will have only 1.0 and 0.0 values, where 1.0 is within the radius, and 0.0 is outside the raidus."""
         if size < radius:
             size = int(radius)
         else:
@@ -410,7 +491,14 @@ class Model(ImageObject):
             return v
     
     def gauss_kern(self,stdev,size=0,stdevy=None,sizey=0):
-        """ Returns a normalized 2D gauss kernel array for convolutions """
+        """ Returns a normalized 2D gaussian kernel array for convolutions.
+        
+        `stdev` is the standard deviation in the x-direction. If the `stdevy` keyword is not set, then it will be used as the standard deviation in the y-direction as well.
+        
+        `size` will determine the size of the returned image unless `size` is less than `stdev**2`.
+        
+        Results from this function are always normalized.
+        """
         if size < (stdev**2.0):
             size = np.int(stdev**2.0)
         else:
@@ -430,42 +518,46 @@ class Model(ImageObject):
     
     
     def get_tel_kern(self):
-        """Returns the telescope kernel"""
-        TELIMG = self.circle_kern( self.config["tel_radii"]["px"] * self.config["density"] )
-        center = self.circle_kern( self.config["tel_obsc"]["px"] * self.config["density"] ,
-            self.config["tel_radii"]["px"] * self.config["density"] , False )
+        """Returns the telescope kernel. This kernel is built by creating a circle mask for the size of the telescope mirror, and then subtracting a telescope obscuration from the center of the mirror image. The values for all of these items are set in the configuration file."""
+        TELIMG = self.circle_kern( self.config["Instrument"]["tel_radii"]["px"] * self.config["Instrument"]["density"] )
+        center = self.circle_kern( self.config["Instrument"]["tel_obsc"]["px"] * self.config["Instrument"]["density"] ,
+            self.config["Instrument"]["tel_radii"]["px"] * self.config["Instrument"]["density"] , False )
         TELIMG -= center
         TELIMG = TELIMG / np.sum(TELIMG)
         self.log.debug("Generated a Telescpe Kernel with shape %s" % (str(TELIMG.shape)))
         return TELIMG
     
     def get_psf_kern(self):
-        """Returns the PSF Kernel"""
+        """Returns the PSF Kernel. The function first tries to read the encircled energy file. In this case, if a `psf_size` is set in the instrument configuration, this value will be used to truncate the size of the encircled energy function. If the encircled energy function cannot be loaded, the system will fall back on to a gaussian psf as configured by the instrument."""
+        if self.config["Instrument"]["psf_size"]["px"] != 0:
+            size = self.config["Instrument"]["psf_size"]["px"] * self.config["Instrument"]["density"]
+            truncate = True
+        else:
+            size = 0
+            truncate = False
         try:
-            if self.config["psf_size"]["px"] != 0:
-                size = self.config["psf_size"]["px"] * self.config["density"]
-                truncate = True
-            else:
-                size = 0
-                truncate = False
-            
-            PSFIMG = self.psf_kern(self.config["files"]["encircledenergy"],size,truncate)
+            PSFIMG = self.psf_kern( self.config["Instrument"]["files"]["encircledenergy"],size,truncate)
         except IOError as e:
             self.log.warning("Could not access encircled energy file: %s" % e)
-            PSFIMG = self.gauss_kern( (self.config["psf_stdev"]["px"] * self.config["density"]) )
+            PSFIMG = self.gauss_kern( (self.config["Instrument"]["psf_stdev"]["px"] * self.config["Instrument"]["density"]) )
         else:
-            self.log.debug("Loaded Encircled Energy from %s" % self.config["files"]["encircledenergy"])
+            self.log.debug("Loaded Encircled Energy from %s" % self.config["Instrument"]["files"]["encircledenergy"])
         return PSFIMG
     
     
     def get_blank_img(self):
-        """Returns an image of the correct size to use for spectrum placement"""
-        return np.zeros((self.config["image_size"]["px"],self.config["image_size"]["px"]))
+        """Returns an image of the correct size to use for spectrum placement. Set by the `image_size` value."""
+        return np.zeros((self.config["Instrument"]["image_size"]["px"],self.config["Instrument"]["image_size"]["px"]))
     
     
     # Wavelength Functions
     def get_wavelengths(self,lenslet_num):
-        """docstring for get_wavelengths"""
+        """Returns a tuple of ([x,y],wavelength,delta wavelength). Thus, this function calculates the x,y pixel positions of the spectra, the wavelength at each pixel, and the delta wavelength for each pixel.
+        
+        .. Note:: This function can use cached calculations, which do not seem to necessarily speed up calculation.
+        
+        .. Note:: The logic of this collection is in `_get_wavelengths()`, which is heavily documented in source code.
+        """
         if lenslet_num in self.WLS:
             self.log.debug("Using Cached WLs for %d" % lenslet_num)
             results = self.WLS[lenslet_num]
@@ -477,13 +569,17 @@ class Model(ImageObject):
         return results
     
     def positionCaching(self):
-        """docstring for positionCaching"""
+        """Save the wavelength and position cache. This must be done after all wavelengths have been collected."""
         if self.cache and self.regenerate:
             toCache = np.array(zip(self.WLS.keys(),self.WLS.values()))
-            np.save(self.scriptConfig["Cache-Files"]["wls"],toCache)
+            np.save(self.config["System"]["CacheFiles"]["wls"],toCache)
+        
     
     def _get_wavelengths(self,lenslet_num):
-        """Returns an array of wavelengths for a given lenslet number"""
+        """Returns an array of wavelengths for a given lenslet number. See `get_wavelenghts()`.
+        
+        .. Note:: This function is heavily documented in the source code.
+        """
         # This method will be the critical slow point for the whole system...
         # It should be re-written to do the conversions in a better way, but
         # I'm not sure how to do that right now.
@@ -528,7 +624,7 @@ class Model(ImageObject):
             raise SEDLimits
         
         # Find the length in units of (int) pixels
-        npix = (distance * self.config["convert"]["mmtopx"]).astype(np.int) * self.config["density"]
+        npix = (distance * self.config["Instrument"]["convert"]["mmtopx"]).astype(np.int) * self.config["Instrument"]["density"]
         
         # Create a data array one hundred times as dense as the number of pixels
         #   This is the super dense array which will use the above interpolation
@@ -543,11 +639,11 @@ class Model(ImageObject):
         superDense_distance = np.cumsum(superDense_interval)
         
         # Adjust the density of our points. This rounds all values to only full pixel values.
-        if self.config["density"] == 1:
+        if self.config["Instrument"]["density"] == 1:
             superDense_pts = superDense_pts.astype(np.int)
         else:
-            superDense_pts = np.round(superDense_pts * self.config["density"]) / self.config["density"]
-            superDense_int = (superDense_pts * self.config["density"]).astype(np.int)
+            superDense_pts = np.round(superDense_pts * self.config["Instrument"]["density"]) / self.config["Instrument"]["density"]
+            superDense_int = (superDense_pts * self.config["Instrument"]["density"]).astype(np.int)
         
         # We can identify unique points using the points when the integer position ratchets up or down.
         unique_x,unique_y = np.diff(superDense_int).astype(np.bool)
@@ -561,7 +657,7 @@ class Model(ImageObject):
         
         # An array of distances to the origin of this spectrum, can be used to find wavelength
         # of light at each distance
-        distance = superDense_distance[unique_idx] * self.config["convert"]["pxtomm"]
+        distance = superDense_distance[unique_idx] * self.config["Instrument"]["convert"]["pxtomm"]
         
         # Re sort everything by distnace along the trace.
         # Strictly, this shouldn't be necessary if all of the above functions preserved order.
@@ -596,8 +692,8 @@ class Model(ImageObject):
             plt.title("$\Delta$Distance Along Arc")
             plt.xlabel("x (px)")
             plt.ylabel("$\Delta$Distance along arc (px)")
-            plt.plot(points[:-1,1],np.diff(distance) * self.config["convert"]["mmtopx"],'g.')
-            plt.savefig("Partials/%04d-Distances_Diff%s" % (lenslet_num,self.config["plot_format"]))
+            plt.plot(points[:-1,1],np.diff(distance) * self.config["Instrument"]["convert"]["mmtopx"],'g.')
+            plt.savefig("%s%04d-Distances_Diff%s" % (self.config["System"]["Dirs"]["Partials"],lenslet_num,self.config["Instrument"]["plot_format"]))
             plt.clf()
         
         return points,wl,np.diff(wl)
@@ -629,7 +725,12 @@ class Model(ImageObject):
         self.spline = lambda x: self.speval(x,self.spvars)
     
     def loadLensletData(self,laspec):
-        """docstring for Load Lenselt Data"""
+        """This function loads data about lenslet positions, and thier dispersion through the prism. The data are original produced by Zeemax. This function reads the Zeemax data directly and then cleans the data in certain ways, preparing it for use later in the system.
+        
+        ..Note:: The source of this function is well documented.
+        
+        ..Note:: This function does not store variables neatly. As such, it has no built-in caching system.
+        """
         # Load Lenslet Specification File
         ix, p1, p2, lams, xs, ys = np.genfromtxt(laspec,skip_header=1).T
         # This data describes the following:
@@ -644,11 +745,11 @@ class Model(ImageObject):
         ix = ix.astype(np.int) #Indicies should always be integers
         
         # Center xs and ys on detector with a corner at 0,0
-        xs += (self.config["image_size"]["mm"]/2)
-        ys += (self.config["image_size"]["mm"]/2)
+        xs += (self.config["Instrument"]["image_size"]["mm"]/2)
+        ys += (self.config["Instrument"]["image_size"]["mm"]/2)
         
         # Find the xs and ys that are not within 0.1 mm of the edge of the detector...
-        ok = (xs > 0.1) & (xs < self.config["image_size"]["mm"]-0.1) & (ys > 0.1) & (ys < self.config["image_size"]["mm"]-0.1)
+        ok = (xs > 0.1) & (xs < self.config["Instrument"]["image_size"]["mm"]-0.1) & (ys > 0.1) & (ys < self.config["Instrument"]["image_size"]["mm"]-0.1)
         ix, p1, p2, lams, xs, ys = ix[ok], p1[ok], p2[ok], lams[ok], xs[ok], ys[ok]
         # We remove these positions because we don't want to generate spectra for them.
         
@@ -656,26 +757,27 @@ class Model(ImageObject):
         self.lenslets = np.unique(ix)
         
         # Convert the xs and ys to pixel positions
-        xpix = np.round(xs * self.config["convert"]["mmtopx"],0).astype(np.int)
-        ypix = np.round(ys * self.config["convert"]["mmtopx"],0).astype(np.int)
+        xpix = np.round(xs * self.config["Instrument"]["convert"]["mmtopx"],0).astype(np.int)
+        ypix = np.round(ys * self.config["Instrument"]["convert"]["mmtopx"],0).astype(np.int)
         
         # Determine the center of the whole system by finding the x position that is closest to 0,0 in pupil position
         cntix = np.argmin(p1**2 + p2**2)
-        self.center = (xs[cntix] * self.config["convert"]["mmtopx"], ys[cntix] * self.config["convert"]["mmtopx"])
+        self.center = (xs[cntix] * self.config["Instrument"]["convert"]["mmtopx"], ys[cntix] * self.config["Instrument"]["convert"]["mmtopx"])
         
         self.ix, self.p1, self.p2, self.lams, self.xs, self.ys = ix, p1, p2, lams, xs, ys
         self.xpix, self.ypix = xpix, ypix
     
     def loadOpticsData(self,laspec,dispspec):
-        """Loads an optical conversion based on the lenslet array spec and dispersion spec files provided"""
-        
+        """Loads an optical conversion based on the lenslet array spec and dispersion spec files provided. This wrapper function handles both file loading functions. See `loadDispersionData` and `loadLensletData`."""
         self.loadDispersionData(dispspec)
         self.loadLensletData(laspec)
     
     
     # Image Tracing Function
     def get_dense_image(self,lenslet,spectrum):
-        """This function returns a dense image array, with flux placed into single pixels."""
+        """This function returns a dense image array, with flux placed into single pixels. The image returned is too dense for use on the final CCD, and must be also be convolved with the telescope image and spectral PSF. The image, and the numpy array first corner is returned by this function.
+        
+        .. Note:: The source code of this function is heavily documented."""
         points, wl, deltawl = self.get_wavelengths(lenslet)
         # Some notes about this function:
         #  points:  These points are in normal CCD Pixel units, but are not integers,
@@ -687,7 +789,7 @@ class Model(ImageObject):
         # (in meters, note the conversion from wl, which was originally in microns)
         # Then use the deltawl to get the true amount of flux in each pixel
         self.log.debug("Asking for spectrum with bounds [%1.4e,%1.4e]" % (np.max(wl),np.min(wl)))
-        radiance = spectrum(wl[:-1]*1e-6) * self.config["gain"]
+        radiance = spectrum(wl[:-1]*1e-6) * self.config["Instrument"]["gain"]
         self.log.debug("Generated spectrum with bounds [%1.4e,%1.4e]" % (np.max(radiance),np.min(radiance)))
         self.log.debug("Re-scaling Radiance by deltawl with bounds [%1.4e,%1.4e]" % (np.max(deltawl),np.min(deltawl)))
         flux = radiance[1,:] * deltawl
@@ -701,18 +803,18 @@ class Model(ImageObject):
             plt.title("Generated, Fluxed Spectra")
             plt.xlabel("Wavelength ($\mu m$)")
             plt.ylabel("Flux (Units undefined)")
-            plt.savefig("Partials/%04d-SpecFlux%s" % (lenslet,self.config["plot_format"]))
+            plt.savefig("%s%04d-SpecFlux%s" % (self.config["System"]["Dirs"]["Partials"],lenslet,self.config["Instrument"]["plot_format"]))
             plt.clf()
             plt.plot(wl[:-1],deltawl,"g.")
             plt.title("$\Delta\lambda$ for each pixel")
             plt.xlabel("Wavelength ($\mu m$)")
             plt.ylabel("$\Delta\lambda$ per pixel")
-            plt.savefig("Partials/%04d-SpecDeltaWL%s" % (lenslet,self.config["plot_format"]))
+            plt.savefig("%s%04d-SpecDeltaWL%s" % (self.config["System"]["Dirs"]["Partials"],lenslet,self.config["Instrument"]["plot_format"]))
             plt.clf()
         
         # Take our points out. Note from the above that we multiply by the density in order to do this
-        xorig,yorig = (points * self.config["density"])[:-1].T.astype(np.int)
-        x,y = (points * self.config["density"])[:-1].T.astype(np.int)
+        xorig,yorig = (points * self.config["Instrument"]["density"])[:-1].T.astype(np.int)
+        x,y = (points * self.config["Instrument"]["density"])[:-1].T.astype(np.int)
         # Get the way in which those points correspond to actual pixels.
         # As such, this array of points should have duplicates
         xint,yint = points.T.astype(np.int)
@@ -728,26 +830,26 @@ class Model(ImageObject):
         
         # Convert this size into an integer number of pixels for our subimage. This makes it
         # *much* easier to register our sub-image to the master, larger pixel image
-        xdist += (self.config["density"] - xdist % self.config["density"])
-        ydist += (self.config["density"] - ydist % self.config["density"])
+        xdist += (self.config["Instrument"]["density"] - xdist % self.config["Instrument"]["density"])
+        ydist += (self.config["Instrument"]["density"] - ydist % self.config["Instrument"]["density"])
         
         # Move our x and y coordinates to the middle of our sub image by applying padding below each one.
-        x += self.config["padding"] * self.config["density"]
-        y += self.config["padding"] * self.config["density"]
+        x += self.config["Instrument"]["padding"] * self.config["Instrument"]["density"]
+        y += self.config["Instrument"]["padding"] * self.config["Instrument"]["density"]
         
         # Find the first (by the flatten method) corner of the subimage,
         # useful for placing the sub-image into the full image.
         corner = np.array([ xint[np.argmax(x)], yint[np.argmin(y)]])
         self.log.debug("Corner Position in Integer Space: %s" % corner)
-        corner *= self.config["density"]
+        corner *= self.config["Instrument"]["density"]
         realcorner = np.array([ xorig[np.argmax(x)], yorig[np.argmin(y)]])
         offset = corner - realcorner
-        corner /= self.config["density"]
+        corner /= self.config["Instrument"]["density"]
         self.log.debug("Corner Position Offset in Dense Space: %s" % (offset))
         if self.log.getEffectiveLevel() <= logging.DEBUG:
-            handle = file("Partials/Offsets.dat",'a')
-            np.savetxt(handle,offset.T)
-        corner -= np.array([-self.config["padding"],self.config["padding"]])
+            with open("Partials/Offsets.dat",'a') as handle:
+                np.savetxt(handle,offset.T)
+        corner -= np.array([-self.config["Instrument"]["padding"],self.config["Instrument"]["padding"]])
         
         x += offset[0]
         y += offset[1]
@@ -755,7 +857,9 @@ class Model(ImageObject):
         # Create our sub-image, using the x and y width of the spectrum, plus 2 padding widths.
         # Padding is specified in full-size pixels to ensure that the final image is an integer
         # number of full-size pixels across.
-        img = np.zeros((xdist+2*self.config["padding"]*self.config["density"],ydist+2*self.config["padding"]*self.config["density"]))
+        xsize = xdist+2*self.config["Instrument"]["padding"]*self.config["Instrument"]["density"]
+        ysize = ydist+2*self.config["Instrument"]["padding"]*self.config["Instrument"]["density"]
+        img = np.zeros((xsize,ysize))
         
         # Place the spectrum into the sub-image
         img[x,y] = flux
@@ -770,7 +874,7 @@ class Model(ImageObject):
     
     # Image Convolution
     def get_sub_image(self,lenslet,spectrum,fast=False):
-        """Returns a sub-image for a given lenslet"""
+        """Returns a sub-image for a given lenslet, which has been binned and convolved with the appropriate telescope and PSF images. There are two modes for this fucntion: fast, which uses a single convolution, and slow, which does each convolution separately and returns intermediate stage images for diagnostics."""
         # This function gets the dense sub-image with the spectrum placed in single dense pixels
         img,corner = self.get_dense_image(lenslet,spectrum)
         self.log.debug("Retrieved Dense Image for %4d" % lenslet)
@@ -780,7 +884,7 @@ class Model(ImageObject):
             img2 = sp.signal.convolve(img,self.FINIMG,mode='same')
             self.log.debug("Convolved Dense Image with PSF and Telescope for %4d" % lenslet)
             # Bin the image back down to the final pixel size
-            small = bin(img2,self.config["density"]).astype(np.int16)
+            small = bin(img2,self.config["Instrument"]["density"]).astype(np.int16)
             self.log.debug("Binned Dense Image to Actual Size for %4d" % lenslet)
             return small,corner
         else:
@@ -791,7 +895,7 @@ class Model(ImageObject):
             img_tel_psf = sp.signal.convolve(img_tel,self.PSFIMG,mode='same')
             self.log.info("Convolved Dense Image with PSF for %4d" % lenslet)
             # Bin the image back down to the final pixel size
-            small = bin(img_tel_psf,self.config["density"]).astype(np.int16)
+            small = bin(img_tel_psf,self.config["Instrument"]["density"]).astype(np.int16)
             self.log.info("Binned Dense Image for %4d" % lenslet)
             return small,corner,(img,img_tel,img_tel_psf)
     
@@ -821,12 +925,12 @@ class Model(ImageObject):
                 self.frame().metadata=dict(Corner=corner)
                 plt.imshow(step)
                 plt.title("%s Image Generation Steps for Lenslet %4d" % (Stages[i],lenslet))
-                plt.savefig("Partials/%04d-%s%s" % (lenslet,StagesF[i],self.config["plot_format"]))
+                plt.savefig("%s%04d-%s%s" % (self.config["System"]["Dirs"]["Partials"],lenslet,StagesF[i],self.config["Instrument"]["plot_format"]))
                 plt.clf()
         
         # We only write the sub-image if the function is called to write sub images
         if write:
-            self.write("Images/Subimage-%4d%s" % (lenslet,".fits"),clobber=True)
+            self.write("%sSubimage-%4d%s" % (self.config["System"]["Dirs"]["Images"],lenslet,".fits"),clobber=True)
             self.keep(None)
         
         if do_return:
@@ -878,12 +982,13 @@ class Model(ImageObject):
         self.save(data,label)
         self.remove(dlabel)
         self.save(data,dlabel)
+        self.log.debug("Placed a new image %s into %s at corner %s" % (label,dlabel,corner))
     
     
     # Basic Manipulation Functions
     def generate_blank(self):
         """Generates a blank SEDMachine Image"""
-        self.save(np.zeros((self.config["image_size"]["px"],self.config["image_size"]["px"])).astype(np.int16),"Blank")
+        self.save(np.zeros((self.config["Instrument"]["image_size"]["px"],self.config["Instrument"]["image_size"]["px"])).astype(np.int16),"Blank")
     
     def crop(self,x,y,xsize,ysize=None,label=None):
         """Crops the provided image to twice the specified size, centered around the x and y coordinates provided."""
@@ -899,7 +1004,7 @@ class Model(ImageObject):
     def generateGaussNoise(self,label=None,mean=10,std=2.0):
         """Generates a gaussian noise mask, saving to this object"""
         distribution = np.random.normal
-        shape = (self.config["ccd_size"]["px"],self.config["ccd_size"]["px"])
+        shape = (self.config["Instrument"]["ccd_size"]["px"],self.config["Instrument"]["ccd_size"]["px"])
         if label == None:
             label = "Gaussian Noise Mask (%2g,%2g)" % (mean,std)
         arguments = (mean,std,shape)
@@ -910,7 +1015,7 @@ class Model(ImageObject):
     def generatePoissNoise(self,label=None,lam=2.0):
         """Generates a poisson noise mask, saving to this object"""
         distribution = np.random.poisson
-        shape = (self.config["ccd_size"]["px"],self.config["ccd_size"]["px"])
+        shape = (self.config["Instrument"]["ccd_size"]["px"],self.config["Instrument"]["ccd_size"]["px"])
         if label == None:
             label = "Poisson Noise Mask (%2g)" % (lam)
         arguments = (lam,shape)
@@ -921,13 +1026,13 @@ class Model(ImageObject):
     def ccdCrop(self):
         """Crops the image to the appropriate ccd size"""
         x,y = self.center
-        size = self.config["ccd_size"]["px"] / 2.0
+        size = self.config["Instrument"]["ccd_size"]["px"] / 2.0
         self.crop(x,y,size,label=self.statename)
     
     def setupNoise(self):
         """Makes noise masks"""
-        self.generatePoissNoise("Dark",self.config["dark"]*self.config["exposure"])
-        self.generatePoissNoise("Bias",self.config["bias"])
+        self.generatePoissNoise("Dark",self.config["Instrument"]["dark"]*self.config["Instrument"]["exposure"])
+        self.generatePoissNoise("Bias",self.config["Instrument"]["bias"])
     
     def applyNoise(self,target):
         """Apply the noise masks to the target image label"""

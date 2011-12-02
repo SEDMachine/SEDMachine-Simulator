@@ -20,4 +20,5 @@ TODO/*
 *.TXT
 *OLD.py
 *config.yaml
+*dump.yaml
 experiment.py
