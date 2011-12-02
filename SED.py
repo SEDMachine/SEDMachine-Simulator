@@ -16,14 +16,7 @@ import arpytools.progressbar
 
 from multiprocessing import Pool, Value
 
-try:
-    from AstroObject.AnalyticSpectra import BlackBodySpectrum,FlatSpectrum,InterpolatedSpectrum
-    from AstroObject.AstroSpectra import SpectraObject
-except ImportError:
-    print "Ensure you have AstroObject installed: please run get-AstroObject.sh"
-    raise
-
-import scipy.signal
+import numpy as np
 
 def update(d, u):
     """A deep update command for dictionaries.
@@ -78,7 +71,7 @@ class Simulator(object):
             formatter_class=argparse.RawDescriptionHelpFormatter,usage=self.USAGE % "subcommand")
         
         self.parser.add_argument('-f',metavar='label',type=str,dest='title',
-            help="label for output image",default=self.config["System"]["Output"]["Label"])
+            help="label for output image")
         # Add the basic controls for the script
         self.parser.add_argument('--version',action='version',version=__version__)
         
@@ -105,6 +98,8 @@ class Simulator(object):
         self.parser.add_argument('--config',action='store',dest='config',type=str,default=self.config["System"]["Configs"]["This"],
             help="use the specified configuration file",metavar="file.yaml")
         self.parser.add_argument('--dump-config',action='store_true',dest='dump',help=argparse.SUPPRESS)
+        self.parser.add_argument('--thread',action='store_true',dest='thread',help=argparse.SUPPRESS)
+        
         
         self.all = argparse.ArgumentParser(add_help=False)
         self.all.add_argument('-c',action='store',dest='sourceconfig',type=str,default=self.config["System"]["Configs"]["Source"])
@@ -309,6 +304,9 @@ class Simulator(object):
         self.config["System"]["Debug"] |= self.options.debug
 
         self.config["System"]["Plot"] |= self.options.plot
+        
+        if hasattr(self.options,'label'):
+            self.config["System"]["Output"]["Label"] = self.options.label
 
         if self.config["System"]["Debug"]:
             self.console.setLevel(logging.DEBUG)
@@ -412,11 +410,11 @@ class Simulator(object):
         
     def dumpConfig(self):
         """Dumps a config back out"""
-        import SED, SEDSource
+        import SEDInstrument, SEDSource
         with open(self.config["System"]["Configs"]["This"].rstrip(".yaml")+".dump.yaml",'w') as stream:
             yaml.dump(self.config["System"],stream,default_flow_style=False)
         
-        Model = SED.Instrument(self.config)
+        Model = SEDInstrument.Instrument(self.config)
         Model.dumpConfig()
         
         Source = SEDSource.Source(self.config)
@@ -466,9 +464,9 @@ class Simulator(object):
         if self.debug:
             start = time.clock()
         
-        import SED
-        self.Limits = SED.SEDLimits
-        self.Model = SED.Instrument(self.config)
+        import SEDInstrument
+        self.Limits = SEDInstrument.SEDLimits
+        self.Model = SEDInstrument.Instrument(self.config)
         
         self.Model.plot = self.options.plot
         self.Model.setup()
@@ -485,10 +483,10 @@ class Simulator(object):
         """Establish the list of lenslets for use in the system"""
         self.lenslets = self.Model.lenslets
         
-        if self.options.o:
-            self.lenslets = self.lenslets[self.options.o:]
-        if self.options.n:
-            self.lenslets = self.lenslets[:self.options.n]
+        if self.config["System"]["Lenslets"]["start"]:
+            self.lenslets = self.lenslets[self.config["System"]["Lenslets"]["start"]:]
+        if self.config["System"]["Lenslets"]["number"]:
+            self.lenslets = self.lenslets[:self.config["System"]["Lenslets"]["number"]]
         
         self.total = len(self.lenslets)
     
@@ -500,7 +498,7 @@ class Simulator(object):
     def positionTests(self):
         """Test the positioning of spectra on the image"""
         self.bar.render(0,"L:%4d" % 0)
-        handle = file(self.config["Dirs"]["Partials"] + "Positions.dat",'w')
+        handle = file(self.config["System"]["Dirs"]["Partials"] + "Positions.dat",'w')
         handle.write("# Spectra Positions\n")
         handle.close()
         for i in self.lenslets:
@@ -518,7 +516,7 @@ class Simulator(object):
             points,wl,deltawl = self.Model.get_wavelengths(lenslet)
             x,y = points.T
             ncorner = np.array([np.max(x),np.min(y)])
-            handle = file(self.config["Dirs"]["Partials"] + "Positions.dat",'a')
+            handle = file(self.config["System"]["Dirs"]["Partials"] + "Positions.dat",'a')
             np.savetxt(handle,np.array([np.hstack((corner,ncorner))]),fmt='%6.1f')
         except self.Limits:
             msg = "Skipped Lenslet %4d" % lenslet
@@ -537,7 +535,7 @@ class Simulator(object):
             
             if self.debug:
                 self.Model.show()
-                self.plt.savefig(self.config["Dirs"]["Partials"] + "%04d-Subimage.pdf" % i)
+                self.plt.savefig(self.config["System"]["Dirs"]["Partials"] + "%04d-Subimage.pdf" % i)
                 self.plt.clf()
         
         except self.Limits:
@@ -603,8 +601,8 @@ class Simulator(object):
     
     def saveFile(self):
         """Saves the file"""
-        self.Filename = "%(label)s-%(date)s.%(fmt)s" % { 'label': self.options.title, 'date': time.strftime("%Y-%m-%d"), 'fmt':'fits' }
-        self.Fullname = self.config["Dirs"]["Images"] + self.Filename
+        self.Filename = "%(label)s-%(date)s.%(fmt)s" % { 'label': self.config["System"]["Output"]["Label"], 'date': time.strftime("%Y-%m-%d"), 'fmt':self.config["System"]["Output"]["Format"] }
+        self.Fullname = self.config["System"]["Dirs"]["Images"] + self.Filename
         self.Model.keep(self.Model.statename)
         self.Model.write(self.Fullname,clobber=True)
         self.log.info("Wrote %s" % self.Fullname)
