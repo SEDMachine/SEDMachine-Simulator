@@ -18,5 +18,6 @@ TODO/*
 *.png
 *.fits
 *.TXT
+*OLD.py
 *config.yaml
 experiment.py
