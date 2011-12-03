@@ -65,7 +65,7 @@ class Simulator(object):
     def initOptions(self):
         """Set up the options for the command line interface."""
         
-        self.USAGE = """SEDrun.py [-D | -T | -E | -F] [arguments] %s"""
+        self.USAGE = sys.argv[0] + """ [-D | -T | -E | -F] [arguments] %s"""
         # Establish an argument parser
         self.parser = argparse.ArgumentParser(description=ShortHelp,epilog=LongHelp,
             formatter_class=argparse.RawDescriptionHelpFormatter,usage=self.USAGE % "subcommand")
@@ -102,14 +102,14 @@ class Simulator(object):
         
         
         self.all = argparse.ArgumentParser(add_help=False)
-        self.all.add_argument('-c',action='store',dest='sourceconfig',type=str,default=self.config["System"]["Configs"]["Source"])
+        self.all.add_argument('-c',action='store',metavar='config',dest='sourceconfig',type=str,help="Source configuration file")
         
         self.subparsers = self.parser.add_subparsers(title="sub-commands",dest="command")
         
         self.initAll()
-        self.initPosCache()
+        # self.initPosCache()
         self.initStartup()
-        self.initPosTest()
+        # self.initPosTest()
         self.initSource()
         
         self.log.debug("Set up Command Line Control Options")
@@ -117,8 +117,8 @@ class Simulator(object):
     def initAll(self):
         """Set up the options for handling a basic command"""
         Command = "all"
-        Usage = self.USAGE % (Command)
-        ShortHelp = "create images with from the source configuration provided"
+        Usage = self.USAGE % "%s [-c config ]"% (Command)
+        ShortHelp = "run the full simulator"
         Description = "Runs the simulator with source configuration provided"
         specgroup = self.subparsers.add_parser(Command,description=Description,help=ShortHelp,
             parents=[self.all],usage=Usage)
@@ -292,10 +292,14 @@ class Simulator(object):
             self.config["System"]["Cache"] = True
 
         self.loadConfig(self.config["System"]["Configs"]["This"],self.config["System"])
-
+        
+        if hasattr(self.options,'sourceconfig') and type(self.options.sourceconfig)==str:
+            self.log.debug("Setting source config to %s" % self.options.sourceconfig)
+            self.config["System"]["Configs"]["Source"] = self.options.sourceconfig
+        
         if self.options.n:
             self.config["System"]["Lenslets"]["number"] = self.options.n
-
+        
         if self.options.o:
             self.config["System"]["Lenslets"]["start"] = self.options.o
 
@@ -333,6 +337,7 @@ class Simulator(object):
             self.log.info("Dumping Configuration Variables...")
             self.dumpConfig()
             self.exit()
+            return
         
         self.log.info("Simulator Setup")
         self.setup()
@@ -415,6 +420,7 @@ class Simulator(object):
             yaml.dump(self.config["System"],stream,default_flow_style=False)
         
         Model = SEDInstrument.Instrument(self.config)
+        Model.setup()
         Model.dumpConfig()
         
         Source = SEDSource.Source(self.config)

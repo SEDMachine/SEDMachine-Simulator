@@ -20,6 +20,7 @@ Contents:
    CLI
    Runner
    Simulator
+   AstroImage
 
 
 
