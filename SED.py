@@ -246,6 +246,10 @@ class Simulator(object):
         # Directory Configuration
         self.config["System"]["Dirs"] = {}
         self.config["System"]["Dirs"]["Logs"] = "Logs/"
+        self.config["System"]["Dirs"]["Partials"] = "Partials/"
+        self.config["System"]["Dirs"]["Caches"] = "Caches/"
+        self.config["System"]["Dirs"]["Images"] = "Images/"
+        
         
         # Lenslet Configuration
         self.config["System"]["Lenslets"] = {}

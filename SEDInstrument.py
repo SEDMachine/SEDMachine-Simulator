@@ -559,8 +559,9 @@ class Instrument(ImageObject):
         else:
             self.log.debug("Regenerating WLs for %d" % lenslet_num)
             results = self._get_wavelengths(lenslet_num)
-            self.WLS[lenslet_num] = np.array(results)
-            self.regenerate = True
+            if self.cache:
+                self.WLS[lenslet_num] = np.array(results) 
+                self.regenerate = True
         return results
     
     def positionCaching(self):
@@ -650,6 +651,8 @@ class Instrument(ImageObject):
         # An array of distances to the origin of this spectrum, can be used to find wavelength
         # of light at each distance
         distance = superDense_distance[unique_idx] * self.config["Instrument"]["convert"]["pxtomm"]
+        
+
         
         # Re sort everything by distnace along the trace.
         # Strictly, this shouldn't be necessary if all of the above functions preserved order.
