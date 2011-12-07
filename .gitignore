@@ -11,6 +11,7 @@ Caches/*
 Images/*
 Partials/*
 Docs/_build/*
+SEDSpec/*.pdf
 .fits
 *.pyc
 *.log
