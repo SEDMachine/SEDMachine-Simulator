@@ -312,10 +312,11 @@ class Simulator(object):
         if hasattr(self.options,'label'):
             self.config["System"]["Output"]["Label"] = self.options.label
 
+        self.debug = self.config["System"]["Debug"]
+        self.setupLog()
         if self.config["System"]["Debug"]:
             self.console.setLevel(logging.DEBUG)
         
-        self.setupLog()
         self.dirCheck()
         
         self.optstring = "SEDScript: \n"
@@ -339,15 +340,18 @@ class Simulator(object):
             self.exit()
             return
         
-        self.log.info("Simulator Setup")
-        self.setup()
+        
+        if cmd not in ["source"]:
+            self.log.info("Simulator Setup")
+            self.setup()
         
         if cmd in ["startup"]:
             self.exit()
             return
         
-        self.log.info("Generating Noise Masks")
-        self.setupNoise()
+        if cmd not in ["source"]:
+            self.log.info("Generating Noise Masks")
+            self.setupNoise()
         
         self.log.info("Source Setup")
         self.setupSource()
@@ -572,7 +576,7 @@ class Simulator(object):
             self.Model.place_cached_sed(i,"Included Spectrum %d" % i,"Final")
             if self.debug:
                 self.Model.show()
-                self.plt.savefig(self.config["Dirs"]["Partials"] + "%04d-Fullimage.pdf" % i)
+                self.plt.savefig(self.config["System"]["Dirs"]["Partials"] + "%04d-Fullimage.pdf" % i)
                 self.plt.clf()
         except self.Limits:
             msg = "Encoutered Spectrum outside image boundaries %d" % i

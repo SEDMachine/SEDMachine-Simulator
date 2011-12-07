@@ -77,11 +77,7 @@ class Instrument(ImageObject):
         """Initializes the system logger. This logger starts with only a buffer, no actual logging output. The buffer is used to hold log messages before a logging output location has been specified."""
         self.log = logging.getLogger(__name__)
         
-        if self.debug:
-            self.logLevel = logging.DEBUG
-        else:
-            self.logLevel = logging.INFO
-            
+        self.logLevel = logging.DEBUG
         self.log.setLevel(self.logLevel)
         logging.captureWarnings(True)
         self.filebuffer = logging.handlers.MemoryHandler(1e6) #Our handler will only handle 1-million messages... lets not go that far
@@ -99,8 +95,7 @@ class Instrument(ImageObject):
         This configures the logging system, including a possible console and file log. It then reads the logging buffer into the logfile.
         """
         
-        if self.debug:
-            self.logLevel = logging.DEBUG
+        self.logLevel = logging.DEBUG
         self.log.setLevel(self.logLevel)
         
         # Setup the Console Log Handler
@@ -125,7 +120,7 @@ class Instrument(ImageObject):
         # Only set up the file log handler if we can actually access the folder
         if os.access(self.config["System"]["Dirs"]["Logs"],os.F_OK) and self.config["Instrument"]["logging"]["file"]["enable"]:
             filename = self.config["System"]["Dirs"]["Logs"] + self.config["Instrument"]["logging"]["file"]["filename"]+".log"
-            self.logfile = logging.FileHandler(filename=filename,mode="a")
+            self.logfile = logging.handlers.TimedRotatingFileHandler(filename)
             self.logfile.setLevel(logging.DEBUG)
             fileformatter = logging.Formatter(self.config["Instrument"]["logging"]["file"]["format"],datefmt=dateFormat)
             self.logfile.setFormatter(fileformatter)
@@ -184,7 +179,7 @@ class Instrument(ImageObject):
         self.config["Instrument"]["density"] = 5
         self.config["Instrument"]["padding"] = 5
         # Default Gain Value
-        self.config["Instrument"]["gain"] = 1e-6
+        self.config["Instrument"]["gain"] = 1e10
         # Noise Information
         self.config["Instrument"]["dark"] = 20 # counts per pixel per second at some fixed degree c
         self.config["Instrument"]["bias"] = 20 # counts per pixel at some fixed degree c
@@ -205,7 +200,7 @@ class Instrument(ImageObject):
         self.config["Instrument"]["logging"]["console"]["level"] = False
         self.config["Instrument"]["logging"]["file"] = {}
         self.config["Instrument"]["logging"]["file"]["enable"] = True
-        self.config["Instrument"]["logging"]["file"]["filename"] = "SED"+"-"+time.strftime("%Y-%m-%d")
+        self.config["Instrument"]["logging"]["file"]["filename"] = "SEDInstrument"
         self.config["Instrument"]["logging"]["file"]["format"] = "%(asctime)s : %(levelname)-8s : %(funcName)-20s : %(message)s"
         
         self.defaults += [copy.deepcopy(self.config)]
@@ -399,7 +394,7 @@ class Instrument(ImageObject):
             self.regenerateCache()
         
         if self.log.getEffectiveLevel() <= logging.DEBUG and self.plot:
-            self.plotKernelPartials()
+            self.plotKernalPartials()
         
         # Get layout data from files
         self.loadOpticsData(self.config["Instrument"]["files"]["lenslets"],self.config["Instrument"]["files"]["dispersion"])
@@ -639,11 +634,8 @@ class Instrument(ImageObject):
         superDense_distance = np.cumsum(superDense_interval)
         
         # Adjust the density of our points. This rounds all values to only full pixel values.
-        if self.config["Instrument"]["density"] == 1:
-            superDense_pts = superDense_pts.astype(np.int)
-        else:
-            superDense_pts = np.round(superDense_pts * self.config["Instrument"]["density"]) / self.config["Instrument"]["density"]
-            superDense_int = (superDense_pts * self.config["Instrument"]["density"]).astype(np.int)
+        superDense_pts = np.round(superDense_pts * self.config["Instrument"]["density"]) / self.config["Instrument"]["density"]
+        superDense_int = (superDense_pts * self.config["Instrument"]["density"]).astype(np.int)
         
         # We can identify unique points using the points when the integer position ratchets up or down.
         unique_x,unique_y = np.diff(superDense_int).astype(np.bool)
@@ -788,28 +780,49 @@ class Instrument(ImageObject):
         # Create the spectra, by calling the spectra with wavelength
         # (in meters, note the conversion from wl, which was originally in microns)
         # Then use the deltawl to get the true amount of flux in each pixel
-        self.log.debug("Asking for spectrum with bounds [%1.4e,%1.4e]" % (np.max(wl),np.min(wl)))
-        radiance = spectrum(wl[:-1]*1e-6) * self.config["Instrument"]["gain"]
+        self.log.debug("Asking for spectrum with wl bounds [%1.4e,%1.4e]" % (np.max(wl),np.min(wl)))
+        
+        WLS = wl*1e-6
+        RS = np.diff(WLS) 
+        WLS = WLS[:-1]
+        RS = WLS/RS
+        
+        self.log.debug("Scailing by %s" % self.config["Instrument"]["gain"])
+        radiance = spectrum(wavelengths=WLS,resolution=RS) 
+        radiance *= self.config["Instrument"]["gain"]
         self.log.debug("Generated spectrum with bounds [%1.4e,%1.4e]" % (np.max(radiance),np.min(radiance)))
         self.log.debug("Re-scaling Radiance by deltawl with bounds [%1.4e,%1.4e]" % (np.max(deltawl),np.min(deltawl)))
-        flux = radiance[1,:] * deltawl
+        flux = radiance[1,:] * deltawl *1e-6
         self.log.debug("Got Flux with bounds [%1.4e,%1.4e]" % (np.max(flux),np.min(flux)))
         
         # This debugging area generates plots for us.
         if self.log.getEffectiveLevel() <= logging.DEBUG and self.plot:
             self.log.debug("Generating Plots for Spectra...")
             plt.clf()
-            plt.plot(wl[:-1],flux,"b.")
+            plt.plot(WLS,radiance[1,:],"b.")
+            plt.title("Retrieved Spectra")
+            plt.xlabel("Wavelength ($\mu m$)")
+            plt.ylabel("Radiance (Units undefined)")
+            plt.savefig("%s%04d-SpecRad%s" % (self.config["System"]["Dirs"]["Partials"],lenslet,self.config["Instrument"]["plot_format"]))
+            plt.clf()
+            plt.clf()
+            plt.plot(wl[:-1]*1e-6,flux,"b.")
             plt.title("Generated, Fluxed Spectra")
             plt.xlabel("Wavelength ($\mu m$)")
             plt.ylabel("Flux (Units undefined)")
             plt.savefig("%s%04d-SpecFlux%s" % (self.config["System"]["Dirs"]["Partials"],lenslet,self.config["Instrument"]["plot_format"]))
             plt.clf()
-            plt.plot(wl[:-1],deltawl,"g.")
+            plt.plot(wl[:-1]*1e-6,deltawl*1e-6,"g.")
             plt.title("$\Delta\lambda$ for each pixel")
             plt.xlabel("Wavelength ($\mu m$)")
             plt.ylabel("$\Delta\lambda$ per pixel")
             plt.savefig("%s%04d-SpecDeltaWL%s" % (self.config["System"]["Dirs"]["Partials"],lenslet,self.config["Instrument"]["plot_format"]))
+            plt.clf()
+            plt.plot(WLS,RS,"g.")
+            plt.title("$R = \\frac{\Delta\lambda}{\lambda}$ for each pixel")
+            plt.xlabel("Wavelength ($\mu m$)")
+            plt.ylabel("Resolution $R = \\frac{\Delta\lambda}{\lambda}$ per pixel")
+            plt.savefig("%s%04d-SpecRes%s" % (self.config["System"]["Dirs"]["Partials"],lenslet,self.config["Instrument"]["plot_format"]))
             plt.clf()
         
         # Take our points out. Note from the above that we multiply by the density in order to do this

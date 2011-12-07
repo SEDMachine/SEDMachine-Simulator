@@ -10,6 +10,13 @@
 
 import math, copy, sys, time, logging, os, argparse, yaml, collections
 
+
+import math, copy, sys, time, logging, os, argparse
+
+import numpy as np
+import pyfits as pf
+import scipy as sp
+
 import logging.handlers
 
 import arpytools.progressbar
@@ -17,11 +24,13 @@ import arpytools.progressbar
 from multiprocessing import Pool, Value
 
 try:
-    from AstroObject.AnalyticSpectra import BlackBodySpectrum,FlatSpectrum,InterpolatedSpectrum
+    from AstroObject.AnalyticSpectra import BlackBodySpectrum,FlatSpectrum,ResampledSpectrum
     from AstroObject.AstroSpectra import SpectraObject
 except ImportError:
     print "Ensure you have AstroObject installed: please run get-AstroObject.sh"
     raise
+
+from Utilities import *
 
 import scipy.signal
 
@@ -54,6 +63,9 @@ class Source(object):
         self.config["Source"] = {}
         self.config["Source"]["Type"] = None
         self.config["Source"]["PreAmp"] = 1.0
+        self.config["Source"]["ExpTime"] = 1200
+        
+        self.config["Source"]["plot_format"] = ".pdf"
         
         # Logging Configuration
         self.config["Source"]["logging"] = {}
@@ -100,7 +112,10 @@ class Source(object):
         
         self.setupSource()
         
+        self.setupNoiseandThruput()
         
+        if self.debug:
+            self._plotSpectrum()
     
     def _configureSystem(self):
         """Configure the source based on the system configuration of the soure"""
@@ -138,6 +153,8 @@ class Source(object):
             self._require("Value")
         elif self.config["Source"]["Type"] == "File":
             self._require("Filename")
+        else:
+            raise AssertionError("Invalid Type of Source: %s" % self.config["Source"]["Type"])
         
     
     def setupLog(self):
@@ -194,6 +211,7 @@ class Source(object):
             self._setupFlat()
         elif self.config["Source"]["Type"] == "File":
             self._setupFile()
+
     
     def _setupBlackbody(self):
         """Set up a blackbody spectrum"""
@@ -211,9 +229,87 @@ class Source(object):
         """Sets up a uniform source file based spectrum"""
         WL,Flux = np.genfromtxt(self.config["Source"]["Filename"]).T
         WL *= 1e-10
-        Flux *= 1e18 * 1e6
-        self.Spectrum = AS(np.array([WL,Flux]),self.config["Source"]["Filename"])
-        self.Spectrum *= self.config["Source"]["PreAmp"]
+        Flux *= 1e18 * 1e6 * 1e-11  * 1.5
+        self.R_Spectrum = ResampledSpectrum(np.array([WL,Flux]),self.config["Source"]["Filename"])
+        self.D_Spectrum = self.R_Spectrum * self.config["Source"]["PreAmp"]
+        
+    def setupNoiseandThruput(self):
+        """Sets up the model for sky, throughput etc for the isntrument, using Nick's simulation"""
+        import SEDSpec.sim
+        
+        lambdas, nsource_photon, shot_noise = SEDSpec.sim.calculate(self.config["Source"]["ExpTime"],"PI",plot=False,verbose=False)
+        
+        lambdas = lambdas * 1e-10
+        
+        l_noise = lambdas[np.isfinite(shot_noise)]
+        shot_noise = shot_noise[np.isfinite(shot_noise)]
+        l_phot = lambdas[np.isfinite(nsource_photon)]
+        nsource_photon = nsource_photon[np.isfinite(nsource_photon)]
+        
+        
+        self.SkySpec = ResampledSpectrum(np.array([l_noise,shot_noise]),"Sky")
+        self.SourceFilter = ResampledSpectrum(np.array([l_phot,nsource_photon]),"Source")
+        
+        self.D_Spectrum *= self.SourceFilter
+        self.Spectrum = self.D_Spectrum + self.SkySpec
+        
+    def _plotSpectrum(self):
+        """Plot the spectrum partials"""
+        if not self.debug:
+            return
+        import matplotlib.pyplot as plt
+        
+        WL = np.linspace(3800,9400,200) * 1e-10
+        RE = np.ones(WL.shape) * 100.0
+        
+        RenderedSpectrum = SpectraObject()
+        RenderedSpectrum.save(self.R_Spectrum.data,"Original")
+        RenderedSpectrum.save(self.SkySpec.data,"Sky")
+        RenderedSpectrum.save(self.SourceFilter.data,"Throughput")
+        
+        RenderedSpectrum.save(self.D_Spectrum(wavelengths=WL,resolution=RE),"Source")
+        
+        FL = RenderedSpectrum.data()[1]
+        self.log.debug(rangemsg(FL,"RSource"))
+        
+        
+        RenderedSpectrum.save(self.Spectrum(wavelengths=WL,resolution=RE),"Rendered Source")
+        
+        FL = RenderedSpectrum.data()[1]
+        self.log.debug(rangemsg(FL,"RAll"))
+        
+        filename = "%(directory)sSpectrum%(format)s" % { "directory": self.config["System"]["Dirs"]["Partials"], "format": self.config["Source"]["plot_format"] }
+        
+        RenderedSpectrum.show()
+        plt.title("Source at R=100 constant")
+        plt.ylabel("Flux")
+        plt.xlabel("Wavelength (m)")
+        plt.savefig(filename)
+        plt.clf()
+        
+        filename = "%(directory)sSpectrumOrig%(format)s" % { "directory": self.config["System"]["Dirs"]["Partials"], "format": self.config["Source"]["plot_format"] }
+        RenderedSpectrum.show("Original")
+        RenderedSpectrum.show("Sky")
+        RenderedSpectrum.show("Throughput")
+        RenderedSpectrum.show("Source")
+        RenderedSpectrum.show("Rendered Source")
+        plt.title("Source at R=100 constant")
+        plt.ylabel("Flux")
+        plt.xlabel("Wavelength (m)")
+        plt.autoscale()
+        plt.axis(expandLim(plt.axis()))
+        plt.legend()
+        plt.savefig(filename)
+        plt.clf()
+        
+        filename = "%(directory)sFilterSpectrum%(format)s" % { "directory": self.config["System"]["Dirs"]["Partials"], "format": ".dat" }
+        
+        np.savetxt(filename,RenderedSpectrum.data("Source"))
+        
+        filename = "%(directory)sFilterSpectrum%(format)s" % { "directory": self.config["System"]["Dirs"]["Partials"], "format": ".fits" }
+        
+        # RenderedSpectrum.write(filename,clobber=True)
+        
         
     def GetSpectrum(self):
         """Return the spectrum generated by this process"""

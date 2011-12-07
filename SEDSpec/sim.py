@@ -4,22 +4,28 @@ import pylab as pl
 import scipy.interpolate, scipy.integrate
 from massey import skyab
 
+import os
+
+PLOT = False
+PRINT = False
 
 def abmag_to_flambda(AB # Ab magnitude
-	, lam): # Wavelength in angstrom
+    , lam): # Wavelength in angstrom
 
-	c = 2.9979e18 # angstrom/s
+    c = 2.9979e18 # angstrom/s
 
-	# return erg/s/cm^2/ang
-	return 10**(-(AB + 48.6)/2.5)*c/lam**2
+    # return erg/s/cm^2/ang
+    return 10**(-(AB + 48.6)/2.5)*c/lam**2
 
 def vegamag_to_flambda(m, band):
-	if band == 'r':
-		pass
+    if band == 'r':
+        pass
 
 
 skyflam = np.transpose(np.array([skyab[:,0], abmag_to_flambda(skyab[:,1], skyab[:,0])]))
-pl.ion()
+
+if PLOT:
+    pl.ion()
 
 hc = 1.98644521e-8 # erg angstrom
 
@@ -32,104 +38,106 @@ moon_i = np.array([2.8e-17,3.0e-17,3.0e-17,3.3e-17,3.8e-17,7.0e-17,9.0e-17])
 
 sky_ls = (4868., 6290., 7706., 10000)
 
+if PLOT:
+    pl.figure(7)
+    pl.clf()
 
-pl.figure(7)
-pl.clf()
 moon_funs = []
 for i in xrange(len(moon_phase)):
-	gm = moon_g[i]-moon_g[0]
-	rm = moon_r[i]-moon_r[0]
-	im = moon_i[i]-moon_i[0]
-	zm = im
+    gm = moon_g[i]-moon_g[0]
+    rm = moon_r[i]-moon_r[0]
+    im = moon_i[i]-moon_i[0]
+    zm = im
 
-	ff= np.poly1d(np.polyfit(sky_ls, np.array([gm, rm, im, zm]), 2))
+    ff= np.poly1d(np.polyfit(sky_ls, np.array([gm, rm, im, zm]), 2))
+    
+    if PLOT:
+        pl.plot(sky_ls, [gm, rm, im, zm], 'o')
+        ll = np.arange(3700, 10000)
+        pl.plot(ll, ff(ll))
 
-	pl.plot(sky_ls, [gm, rm, im, zm], 'o')
-	ll = np.arange(3700, 10000)
-	pl.plot(ll, ff(ll))
-
-	moon_funs.append(ff)
+    moon_funs.append(ff)
 
 
 # From Hanuschik
 uves_sky = np.array([
-	(5730	, -0.2857),
-	(6546	, -0.2857),
-	(6815	, -0.9870),
-	(6860	, -1.064),
-	(6893	, -1.084),
-	(6960	, -1.084),
-	(7005	, -1.084),
-	(7061	, -0.9090),
-	(7095	, -0.9090),
-	(7151	, -0.8311),
-	(7195	, -0.9870),
-	(7262	, -1.006),
-	(7330	, -1.064),
-	(7386	, -1.064),
-	(7497	, -0.7532),
-	(7598	, -0.6363),
-	(7632	, -0.7532),
-	(7699	, -0.8311),
-	(7755	, -0.8896),
-	(7811	, -0.8506),
-	(7855	, -0.8701),
-	(7911	, -0.9870),
-	(7967	, -0.9675),
-	(8001	, -0.9090),
-	(8012	, -0.6363),
-	(8079	, -0.4999),
-	(8169	, -0.4805),
-	(8225	, -0.5389),
-	(8292	, -0.5389),
-	(8325	, -0.7337),
-	(8393	, -0.8506),
-	(8437	, -1.006),
-	(8482	, -1.084),
-	(8549	, -1.123),
-	(8583	, -0.5194),
-	(8650	, -0.4999),
-	(8695	, -0.3051),
-	(8751	, -0.3831),
-	(8806	, -0.5779),
-	(8851	, -0.7532),
-	(8918	, -0.9675),
-	(8952	, -0.4999),
-	(9019	, -0.4025),
-	(9075	, -1.006),
-	(9097	, -0.4025),
-	(9109	, -0.2272),
-	(9165	, -0.2662),
-	(9232	, -0.4025),
-	(9276	, -0.3246),
-	(9332	, -0.4805),
-	(9400	, -0.5974),
-	(9444	, -1.045),
-	(9489	, -1.103),
-	(9545	, -1.084),
-	(9601	, -1.084),
-	(9657	, -1.103),
-	(9702	, -0.07142),
-	(9746	, -0.1883),
-	(9813	, -0.2662),
-	(9869	, -0.2857),
-	(9925	, -0.3441),
-	(9970	, -0.4999),
-	(10030	, -0.6948),
-	(10070	, -0.4025),
-	(10120	, -0.4025),
-	(10180	, -0.1883),
-	(10230	, -0.5779),
-	(10290	, -0.2662),
-	(10320	, 0.02597),
-	(10390	, -0.1493),
-	(10440	, 0.006493),
-	(10490	, -0.1688),
-	(10550	, -0.1688),
-	(10600	, 0.1038),
-	(10660	, -0.01298),
-	(10700	, 0.2402),
-	(10750	, -0.2272)
+    (5730   , -0.2857),
+    (6546   , -0.2857),
+    (6815   , -0.9870),
+    (6860   , -1.064),
+    (6893   , -1.084),
+    (6960   , -1.084),
+    (7005   , -1.084),
+    (7061   , -0.9090),
+    (7095   , -0.9090),
+    (7151   , -0.8311),
+    (7195   , -0.9870),
+    (7262   , -1.006),
+    (7330   , -1.064),
+    (7386   , -1.064),
+    (7497   , -0.7532),
+    (7598   , -0.6363),
+    (7632   , -0.7532),
+    (7699   , -0.8311),
+    (7755   , -0.8896),
+    (7811   , -0.8506),
+    (7855   , -0.8701),
+    (7911   , -0.9870),
+    (7967   , -0.9675),
+    (8001   , -0.9090),
+    (8012   , -0.6363),
+    (8079   , -0.4999),
+    (8169   , -0.4805),
+    (8225   , -0.5389),
+    (8292   , -0.5389),
+    (8325   , -0.7337),
+    (8393   , -0.8506),
+    (8437   , -1.006),
+    (8482   , -1.084),
+    (8549   , -1.123),
+    (8583   , -0.5194),
+    (8650   , -0.4999),
+    (8695   , -0.3051),
+    (8751   , -0.3831),
+    (8806   , -0.5779),
+    (8851   , -0.7532),
+    (8918   , -0.9675),
+    (8952   , -0.4999),
+    (9019   , -0.4025),
+    (9075   , -1.006),
+    (9097   , -0.4025),
+    (9109   , -0.2272),
+    (9165   , -0.2662),
+    (9232   , -0.4025),
+    (9276   , -0.3246),
+    (9332   , -0.4805),
+    (9400   , -0.5974),
+    (9444   , -1.045),
+    (9489   , -1.103),
+    (9545   , -1.084),
+    (9601   , -1.084),
+    (9657   , -1.103),
+    (9702   , -0.07142),
+    (9746   , -0.1883),
+    (9813   , -0.2662),
+    (9869   , -0.2857),
+    (9925   , -0.3441),
+    (9970   , -0.4999),
+    (10030  , -0.6948),
+    (10070  , -0.4025),
+    (10120  , -0.4025),
+    (10180  , -0.1883),
+    (10230  , -0.5779),
+    (10290  , -0.2662),
+    (10320  , 0.02597),
+    (10390  , -0.1493),
+    (10440  , 0.006493),
+    (10490  , -0.1688),
+    (10550  , -0.1688),
+    (10600  , 0.1038),
+    (10660  , -0.01298),
+    (10700  , 0.2402),
+    (10750  , -0.2272)
 ])
 
 uves_sky[:,1] = 10**(uves_sky[:,1])*1e-17 # erg/sec/cm^2/Ang/Arc^2
@@ -138,76 +146,76 @@ uves_sky[:,1] /= (hc/uves_sky[:,0]) # #/sec/cm^2/Ang/Arc^2
 # From Turnrose PASP 86 (1974)
 # Wavelength [A],  10^-18 erg / sec / cm^2 / Angstrom / Arcsecond^2
 skyspec = [
-	(3180, 4.30),
-	(3260, 5.18),
-	(3340, 6.13),
-	(3420, 4.75),
-	(3500, 4.86),
-	(3580, 5.29),
-	(3660, 7.24),
-	(3740, 4.75),
-	(3820, 4.43),
-	(3900, 3.45),
-	(3980, 4.31),
-	(4060, 8.58),
-	(4140, 6.09),
-	(4220, 5.83),
-	(4300, 5.39),
-	(4380, 11.40),
-	(4460, 6.25),
-	(4540, 6.38),
-	(4620, 6.16),
-	(4700, 6.27),
-	(4780, 6.14),
-	(4860, 6.45),
-	(4940, 6.24),
-	(5020, 5.60),
-	(5100, 5.80),
-	(5180, 6.37),
-	(5260, 6.26),
-	(5340, 6.56),
-	(5420, 7.85),
-	(5500, 11.00),
-	(5580, 25.40),
-	(5660, 7.78),
-	(5740, 9.70),
-	(5760, 9.43),
-	(5920, 11.40),
-	(6080, 7.89),
-	(6240, 13.00),
-	(6400, 9.60),
-	(6560, 8.36),
-	(6720, 6.67),
-	(6880, 9.73),
-	(7040, 7.11),
-	(7200, 9.53),
-	(7360, 13.80),
-	(7520, 10.70),
-	(7680, 13.20),
-	(7840, 23.60),
-	(8000, 16.60),
-	(8160, 5.54),
-	(8320, 22.70),
-	(8480, 19.30),
-	(8640, 20.10),
-	(8800, 36.10),
-	(8960, 28.30),
-	(9120, 8.22),
-	(9280, 21.40),
-	(9440, 32.40),
-	(9600, 15.80),
-	(9760, 26.30),
-	(9920, 66.00),
-	(10080, 68.30),
-	(10240, 99.60),
-	(10400, 87.10),
-	(10560, 25.80),
-	(10720, 64.30),
-	(10880, 134.00)
+    (3180, 4.30),
+    (3260, 5.18),
+    (3340, 6.13),
+    (3420, 4.75),
+    (3500, 4.86),
+    (3580, 5.29),
+    (3660, 7.24),
+    (3740, 4.75),
+    (3820, 4.43),
+    (3900, 3.45),
+    (3980, 4.31),
+    (4060, 8.58),
+    (4140, 6.09),
+    (4220, 5.83),
+    (4300, 5.39),
+    (4380, 11.40),
+    (4460, 6.25),
+    (4540, 6.38),
+    (4620, 6.16),
+    (4700, 6.27),
+    (4780, 6.14),
+    (4860, 6.45),
+    (4940, 6.24),
+    (5020, 5.60),
+    (5100, 5.80),
+    (5180, 6.37),
+    (5260, 6.26),
+    (5340, 6.56),
+    (5420, 7.85),
+    (5500, 11.00),
+    (5580, 25.40),
+    (5660, 7.78),
+    (5740, 9.70),
+    (5760, 9.43),
+    (5920, 11.40),
+    (6080, 7.89),
+    (6240, 13.00),
+    (6400, 9.60),
+    (6560, 8.36),
+    (6720, 6.67),
+    (6880, 9.73),
+    (7040, 7.11),
+    (7200, 9.53),
+    (7360, 13.80),
+    (7520, 10.70),
+    (7680, 13.20),
+    (7840, 23.60),
+    (8000, 16.60),
+    (8160, 5.54),
+    (8320, 22.70),
+    (8480, 19.30),
+    (8640, 20.10),
+    (8800, 36.10),
+    (8960, 28.30),
+    (9120, 8.22),
+    (9280, 21.40),
+    (9440, 32.40),
+    (9600, 15.80),
+    (9760, 26.30),
+    (9920, 66.00),
+    (10080, 68.30),
+    (10240, 99.60),
+    (10400, 87.10),
+    (10560, 25.80),
+    (10720, 64.30),
+    (10880, 134.00)
 ]
 
-
-pl.ion()
+if PLOT:
+    pl.ion()
 
 PHASEIX = 0
 skyspec = np.array(skyspec)
@@ -535,14 +543,14 @@ quimby_sky = np.array(quimby_sky)
 
 skyf = sp.interpolate.interp1d(skyspec[:,0], skyspec[:,1])
 
-
-pl.figure(1)
-pl.clf()
-l = skyspec[:,0]
-s = skyspec[:,1]
-pl.semilogy(l,s*hc/l,'o-')
-#pl.semilogy(skyflam[:,0], skyflam[:,1])
-pl.semilogy(quimby_sky[:,0], quimby_sky[:,1])
+if PLOT:
+    pl.figure(1)
+    pl.clf()
+    l = skyspec[:,0]
+    s = skyspec[:,1]
+    pl.semilogy(l,s*hc/l,'o-')
+    #pl.semilogy(skyflam[:,0], skyflam[:,1])
+    pl.semilogy(quimby_sky[:,0], quimby_sky[:,1])
 
 
 
@@ -554,58 +562,58 @@ num_spec = 7.0
 npix = pix_per_res * window_width * num_spec
 
 cameras = {
-	"PI": {"DQEs": np.array([
-		(2000, 0),	
-		(3000, 0.01),
-		(3500, .20),
-		(4000, .60),
-		(4500, .82),
-		(5000, .90),
-		(5500, .93),
-		(6000, .93),
-		(7000, .93),
-		(7500, .88),
-		(8000, .73),
-		(8500, .55),
-		(9000, .33),
-		(10000, .08),
-		(10500, 0.02),
-		(11000, 0)
-	]),
-	"RN" : 4.,
-	"DC":  0.006,
-	"readtime": 37*3},
-	"Andor": { # Midband
-		"DQEs": np.array([
-		(2500, .05),
-		(3500, .18),
-		(4500, .75),
-		(5000, .9),
-		(5500, .92),
-		(6500, .91),
-		(7500, .79),
-		(8500, .48),
-		(9500, .13),
-		(10500, .02),
-		(11000, 0)
-	]), 
-	"RN": 2.9,
-	"DC": 0.0004,
-	"readtime":  82*3},
-	"E2V": {"DQEs" : np.array([
-		(3000, .1),
-		(3500, .3),
-		(4500, .8),
-		(5500, .8),
-		(6500, .78),
-		(7500, .7),
-		(8500, .4),
-		(9500, .13),
-		(10500, .02),
-		(11000, 0)]),
-	"RN": 5,
-	"DC": 0.006,
-	"readtime": 37*3}}
+    "PI": {"DQEs": np.array([
+        (2000, 0),  
+        (3000, 0.01),
+        (3500, .20),
+        (4000, .60),
+        (4500, .82),
+        (5000, .90),
+        (5500, .93),
+        (6000, .93),
+        (7000, .93),
+        (7500, .88),
+        (8000, .73),
+        (8500, .55),
+        (9000, .33),
+        (10000, .08),
+        (10500, 0.02),
+        (11000, 0)
+    ]),
+    "RN" : 4.,
+    "DC":  0.006,
+    "readtime": 37*3},
+    "Andor": { # Midband
+        "DQEs": np.array([
+        (2500, .05),
+        (3500, .18),
+        (4500, .75),
+        (5000, .9),
+        (5500, .92),
+        (6500, .91),
+        (7500, .79),
+        (8500, .48),
+        (9500, .13),
+        (10500, .02),
+        (11000, 0)
+    ]), 
+    "RN": 2.9,
+    "DC": 0.0004,
+    "readtime":  82*3},
+    "E2V": {"DQEs" : np.array([
+        (3000, .1),
+        (3500, .3),
+        (4500, .8),
+        (5500, .8),
+        (6500, .78),
+        (7500, .7),
+        (8500, .4),
+        (9500, .13),
+        (10500, .02),
+        (11000, 0)]),
+    "RN": 5,
+    "DC": 0.006,
+    "readtime": 37*3}}
 
 
 import atmosphere
@@ -617,144 +625,147 @@ airmass = 1.2
 # Source spectrum in units of 
 # #/s/Angstrom/cm^2
 def source(lam):
-	ff = np.poly1d(np.polyfit([3000, 10000], [3.66e-6, 3.66e-6], 0))
+    ff = np.poly1d(np.polyfit([3000, 10000], [3.66e-6, 3.66e-6], 0))
 
-	return ff(lam)
+    return ff(lam)
 
-pl.figure(1)
-l = np.arange(3300, 10500,200)
-pl.plot(l, source(l)*hc/l)
-pl.xlabel(u"$\lambda$ [$\AA$]")
-pl.ylabel(u"flux [$erg$ $s^{-1}$ $cm^{-2}$ $\AA^{-1}$ $arcsec^{-2}$]")
-pl.xlim([3700,10000])
-pl.legend(["Sky", "Massey sky", "21 mag source"], loc="upper right")
-pl.title(u"Source and Sky Spectrum $\phi$: %0.2f" % (moon_phase[PHASEIX]))
-pl.show()
-pl.savefig("source_v_sky_%0.2f.pdf" % (moon_phase[PHASEIX]))
+if PLOT:
+    pl.figure(1)
+    l = np.arange(3300, 10500,200)
+    pl.plot(l, source(l)*hc/l)
+    pl.xlabel(u"$\lambda$ [$\AA$]")
+    pl.ylabel(u"flux [$erg$ $s^{-1}$ $cm^{-2}$ $\AA^{-1}$ $arcsec^{-2}$]")
+    pl.xlim([3700,10000])
+    pl.legend(["Sky", "Massey sky", "21 mag source"], loc="upper right")
+    pl.title(u"Source and Sky Spectrum $\phi$: %0.2f" % (moon_phase[PHASEIX]))
+    pl.show()
+    pl.savefig("source_v_sky_%0.2f.pdf" % (moon_phase[PHASEIX]))
 
-thpts = np.load("thpt.npy")[0]
+thpts = np.load(os.path.abspath(os.path.join(os.path.dirname(__file__),"thpt.npy")))[0]
 qeprism = sp.interpolate.interp1d(thpts["lambda"], thpts["thpt-prism-PI"])
 qegrating = sp.interpolate.interp1d(thpts["lambda"], thpts["thpt-grating"])
 
 def instrument_efficiency(l, qe):
-	return 10**(-ext(l)*airmass/2.5) * qegrating(l)
+    return 10**(-ext(l)*airmass/2.5) * qegrating(l)
 
 def num_photons(fun, exptime, area, lam1, lam2):
-	num_photon = sp.integrate.quad(fun, lam1, lam2, limit=150)[0] * exptime * area 
+    num_photon = sp.integrate.quad(fun, lam1, lam2, limit=150)[0] * exptime * area 
 
-	return num_photon
+    return num_photon
 
-R = 100. # Spectral Resolution
+R = 1000. # Spectral Resolution
 aperture_area = 3.0 * 3.0
 
-def calculate(ET, camera_name):
-	startl = 3700.
-	endl = startl + startl/R
-	ls = []
-	nsky_photon = []
-	nsource_photon = []
+def calculate(ET, camera_name,plot=True,verbose=True):
+    startl = 3700.
+    endl = startl + startl/R
+    ls = []
+    nsky_photon = []
+    nsource_photon = []
 
-	camera = cameras[camera_name]
-	DQEs = camera["DQEs"]
-	qe = sp.interpolate.interp1d(DQEs[:, 0], DQEs[:, 1], kind='cubic')
-	RN = camera["RN"]
-	DC = camera["DC"]
-	exptime = ET - camera["readtime"]
-	print "Integrating. RN %f" % RN
-	while startl < 9500:
-		l = (startl+endl)/2
-		nsky_photon.append(num_photons(skyf, exptime, p60area, startl, endl) * 
-			instrument_efficiency(l, qe) * aperture_area)
-		nsource_photon.append(num_photons(source, exptime, p60area, startl, endl) * 
-			instrument_efficiency(l, qe))
-		ls.append(l)
+    camera = cameras[camera_name]
+    DQEs = camera["DQEs"]
+    qe = sp.interpolate.interp1d(DQEs[:, 0], DQEs[:, 1], kind='cubic')
+    RN = camera["RN"]
+    DC = camera["DC"]
+    exptime = ET - camera["readtime"]
+    if verbose:
+        print "Integrating. RN %f" % RN
+    
+    while startl < 9500:
+        l = (startl+endl)/2
+        nsky_photon.append(num_photons(skyf, exptime, p60area, startl, endl) * 
+            instrument_efficiency(l, qe) * aperture_area)
+        nsource_photon.append(num_photons(source, exptime, p60area, startl, endl) * 
+            instrument_efficiency(l, qe))
+        ls.append(l)
 
-		startl = endl
-		endl = startl + startl/R
+        startl = endl
+        endl = startl + startl/R
 
-	(ls, nsky_photon, nsource_photon) = map(np.array, (ls, nsky_photon, nsource_photon))
-	shot_noise = np.sqrt(nsky_photon + nsource_photon + npix/GAIN * RN**2 + npix * DC * exptime)
+    (ls, nsky_photon, nsource_photon) = map(np.array, (ls, nsky_photon, nsource_photon))
+    shot_noise = np.sqrt(nsky_photon + nsource_photon + npix/GAIN * RN**2 + npix * DC * exptime)
 
-	loi = 4000
-	print "At %i nm:" % (loi/10)
-	print "Efficiency: %1.2f" % (instrument_efficiency(loi, qe))
-	
-	print "Area: %6.0f cm^2 Exptime: %6.0f s" % (p60area, exptime)
-	print
+    loi = 4000
+    if verbose:
+        print "At %i nm:" % (loi/10)
+        print "Efficiency: %1.2f" % (instrument_efficiency(loi, qe))    
+        print "Area: %6.0f cm^2 Exptime: %6.0f s" % (p60area, exptime)
+        print
+    
+    i6000 = np.argmin(np.abs(ls-loi))
+    sky6000 = num_photons(skyf, exptime, p60area, loi-loi/R/2., loi+loi/R/2.) * \
+        instrument_efficiency(loi, qe) * aperture_area
+    source6000 = num_photons(source, exptime, p60area, loi-loi/R/2., loi+loi/R/2.) * \
+        instrument_efficiency(loi, qe)
+    noise = np.sqrt(sky6000 + source6000 + npix*RN**2 + DC * npix * exptime)
+    dlambda = (ls[i6000+1] - ls[i6000])
+    if verbose:
+        print "source photons: %6.1f       sky: %6.1f per R" % (source6000, sky6000)
+        print "  source noise: %6.1f sky noise: %6.1f  RN: %6.1f DCN: %6.1f per R" % (
+            np.sqrt(source6000), np.sqrt(sky6000), 
+            np.sqrt(npix/GAIN*RN**2), np.sqrt(npix*DC*exptime))
+    
+        print "================"
+        print "   total noise: %6.1f  ---> S/N: %6.1f per R" % (noise, source6000/noise)
+        print
+        
+        
+        print "Again %i nm" % (loi/10)
+        print "Source #/s/A/cm^2: %6.1e sky: %6.1e" % (
+            source(loi), skyf(loi))
+        print "Source #/s/A/cm^2: %6.1e sky: %6.1e (modulo efficiency)" % (
+            source6000 / exptime / p60area / dlambda,
+            sky6000 / exptime / p60area / dlambda * aperture_area)
+        
+    if plot:
+        pl.figure(3)
+        pl.clf()
+        pl.title(u"Detected Counts [%s | $\phi$: %0.2f]" % (camera_name, moon_phase[PHASEIX]))
+        pl.semilogy(ls, nsource_photon, linewidth=2)
+        pl.semilogy(ls, np.sqrt(nsky_photon + nsource_photon + npix*RN**2 
+            + npix*DC*exptime),linewidth=3)
+        pl.semilogy(ls, nsky_photon)
+        pl.semilogy(ls, np.ones(len(ls))*npix*RN)
+        pl.semilogy(ls, np.ones(len(ls))*npix*DC*exptime)
+        pl.axvline(3700)
+        pl.ylim([10,1e5])
+        pl.xlabel(u"$\lambda$ [$\AA$]")
+        pl.ylabel("Counts per Resolution Element (1200 s exp)")
 
-	i6000 = np.argmin(np.abs(ls-loi))
-	sky6000 = num_photons(skyf, exptime, p60area, loi-loi/R/2., loi+loi/R/2.) * \
-		instrument_efficiency(loi, qe) * aperture_area
-	source6000 = num_photons(source, exptime, p60area, loi-loi/R/2., loi+loi/R/2.) * \
-		instrument_efficiency(loi, qe)
+        pl.legend(["21 mag Source", "Noise", u"Sky [D=%2.1f $as^2$]" % (aperture_area), "RN=%i/pix (G=%1.1f, N=%i)" % (RN, GAIN, npix), "DC=%1.3f/pix/s" % (DC)], loc='upper left')
 
-	print "source photons: %6.1f       sky: %6.1f per R" % (source6000, sky6000)
-	print "  source noise: %6.1f sky noise: %6.1f  RN: %6.1f DCN: %6.1f per R" % (
-		np.sqrt(source6000), np.sqrt(sky6000), 
-		np.sqrt(npix/GAIN*RN**2), np.sqrt(npix*DC*exptime))
+        ax2 = pl.twinx()
+        l = np.arange(3700, 9500)
+        ax2.plot(l,instrument_efficiency(l, qe), '--')
+        pl.ylim([0,1])
+        pl.ylabel("Instrument QE")
 
-	print "================"
-	noise = np.sqrt(sky6000 + source6000 + npix*RN**2 + DC * npix * exptime)
-	print "   total noise: %6.1f  ---> S/N: %6.1f per R" % (noise, source6000/noise)
-
-	print
-	
-
-	print "Again %i nm" % (loi/10)
-	dlambda = (ls[i6000+1] - ls[i6000])
-	print "Source #/s/A/cm^2: %6.1e sky: %6.1e" % (
-		source(loi), skyf(loi))
-	print "Source #/s/A/cm^2: %6.1e sky: %6.1e (modulo efficiency)" % (
-		source6000 / exptime / p60area / dlambda,
-		sky6000 / exptime / p60area / dlambda * aperture_area)
-		
-	
-	pl.figure(3)
-	pl.clf()
-	pl.title(u"Detected Counts [%s | $\phi$: %0.2f]" % (camera_name, moon_phase[PHASEIX]))
-	pl.semilogy(ls, nsource_photon, linewidth=2)
-	pl.semilogy(ls, np.sqrt(nsky_photon + nsource_photon + npix*RN**2 
-		+ npix*DC*exptime),linewidth=3)
-	pl.semilogy(ls, nsky_photon)
-	pl.semilogy(ls, np.ones(len(ls))*npix*RN)
-	pl.semilogy(ls, np.ones(len(ls))*npix*DC*exptime)
-	pl.axvline(3700)
-	pl.ylim([10,1e5])
-	pl.xlabel(u"$\lambda$ [$\AA$]")
-	pl.ylabel("Counts per Resolution Element (1200 s exp)")
-
-	pl.legend(["21 mag Source", "Noise", u"Sky [D=%2.1f $as^2$]" % (aperture_area), "RN=%i/pix (G=%1.1f, N=%i)" % (RN, GAIN, npix), "DC=%1.3f/pix/s" % (DC)], loc='upper left')
-
-	ax2 = pl.twinx()
-	l = np.arange(3700, 9500)
-	ax2.plot(l,instrument_efficiency(l, qe), '--')
-	pl.ylim([0,1])
-	pl.ylabel("Instrument QE")
-
-	pl.xlim([3500,10000])
-	pl.savefig("counts_%s_%0.2f.pdf" % (camera_name, moon_phase[PHASEIX]))
+        pl.xlim([3500,10000])
+        pl.savefig("counts_%s_%0.2f.pdf" % (camera_name, moon_phase[PHASEIX]))
 
 
-	fig = pl.figure(4)
-	pl.clf()
-	pl.axvline(3700)
-	ax1 = fig.add_subplot(111)
-	pl.title(u"S/N for 21 mag source [%s | Moon$\phi$: %0.2f]" % (camera_name, moon_phase[PHASEIX]))
-	pl.plot(ls, nsource_photon/shot_noise)
-	#pl.semilogy(ls, nsource_photon/shot_noise)
-	pl.ylim([0, 20])
-	pl.xlim([3500,10000])
-	pl.xlabel(u"$\lambda$ ($\AA$)")
-	pl.ylabel(u"$S/N$ per $R$")
-	pl.axhline([10],color='r')
-	pl.axhline([10/np.sqrt(3)],color='r')
-	pl.grid('on', which='minor')
-	pl.savefig("sn_%s_%0.2f.pdf" % (camera_name, moon_phase[PHASEIX]))
+        fig = pl.figure(4)
+        pl.clf()
+        pl.axvline(3700)
+        ax1 = fig.add_subplot(111)
+        pl.title(u"S/N for 21 mag source [%s | Moon$\phi$: %0.2f]" % (camera_name, moon_phase[PHASEIX]))
+        pl.plot(ls, nsource_photon/shot_noise)
+        #pl.semilogy(ls, nsource_photon/shot_noise)
+        pl.ylim([0, 20])
+        pl.xlim([3500,10000])
+        pl.xlabel(u"$\lambda$ ($\AA$)")
+        pl.ylabel(u"$S/N$ per $R$")
+        pl.axhline([10],color='r')
+        pl.axhline([10/np.sqrt(3)],color='r')
+        pl.grid('on', which='minor')
+        pl.savefig("sn_%s_%0.2f.pdf" % (camera_name, moon_phase[PHASEIX]))
 
-	np.save("sn_%s_%0.2f" % (camera_name, moon_phase[PHASEIX]), [{"lambda": ls, "source": nsource_photon, "noise": shot_noise}])
+    np.save("sn_%s_%0.2f" % (camera_name, moon_phase[PHASEIX]), [{"lambda": ls, "source": nsource_photon, "noise": shot_noise}])
+    
+    return ls, nsource_photon, shot_noise
 
-exptime = 1200
-calculate(exptime, "PI")
-
+# exptime = 1200
+# calculate(exptime, "PI",plot=PLOT,verbose=PRINT)
 
 
