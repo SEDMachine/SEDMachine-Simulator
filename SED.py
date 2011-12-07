@@ -279,7 +279,12 @@ class Simulator(object):
         self.config["System"]["Configs"]["This"] = self.options.config
 
         mode = self.options.mode
-
+        
+        if mode == None:
+            mode = "full"
+        
+        self.log.debug("Operating Mode: %s" % mode)
+        
         if mode != "full":
             self.config["System"]["Lenslets"]["start"] = 2150
             self.config["System"]["Lenslets"]["number"] = 5
@@ -497,9 +502,9 @@ class Simulator(object):
         """Establish the list of lenslets for use in the system"""
         self.lenslets = self.Model.lenslets
         
-        if self.config["System"]["Lenslets"]["start"]:
+        if "start" in self.config["System"]["Lenslets"]:
             self.lenslets = self.lenslets[self.config["System"]["Lenslets"]["start"]:]
-        if self.config["System"]["Lenslets"]["number"]:
+        if "number" in self.config["System"]["Lenslets"]:
             self.lenslets = self.lenslets[:self.config["System"]["Lenslets"]["number"]]
         
         self.total = len(self.lenslets)
