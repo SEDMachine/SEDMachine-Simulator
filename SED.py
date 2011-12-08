@@ -31,7 +31,7 @@ def update(d, u):
             d[k] = u[k]
     return d
 
-__version__ = open(os.path.abspath(os.path.join(os.path.dirname(__file__),"VERSION")),'r').read()
+__version__ = open(os.path.abspath(os.path.join(os.path.dirname(__file__),"VERSION")),'r').read().rstrip("\n")
 
 LongHelp = """
 This is the Command Line Interface to the SEDMachine Simulator Program."""
@@ -56,7 +56,6 @@ class Simulator(object):
         self.initLog()
         self.defaults = []
         self.defaultConfig()
-        self.debug = False
         self.bar = arpytools.progressbar.ProgressBar(color="green")
         self.prog = Value('d',0)
         self.initOptions()
@@ -75,6 +74,7 @@ class Simulator(object):
         # Add the basic controls for the script
         self.parser.add_argument('--version',action='version',version=__version__)
         
+        # Mode Controls
         self.basics = self.parser.add_mutually_exclusive_group()
         self.basics.add_argument('-D','--dev',action='store_const',dest='mode',const='dev',
             help="equivalent to --debug --easy")
@@ -84,25 +84,31 @@ class Simulator(object):
             help="uses simple configuration for testing the simulator")
         self.basics.add_argument('-F','--full',action='store_const',dest='mode',const='full',
             help="disables --debug and forces normal deployment operation")
-            
+        
+        # Operational Controls
         self.parser.add_argument('--plot',action='store_true',dest='plot',help="Enable debugging plots")
         self.parser.add_argument('--no-cache',action='store_false',dest='cache',
             help="ignore cached data from the simulator")
+        self.parser.add_argument('-d','--debug',action='store_true',dest='debug',help="enable debugging messages and plots")
+        
+        # Special Configuration items
         self.parser.add_argument('-n',action='store',metavar='N',type=int,
             help="limit the run to N lenslets")
         self.parser.add_argument('-o',action='store',metavar='I',type=int,
             help="start filling from lenslet in array position I")
-            
-        self.parser.add_argument('-d','--debug',action='store_true',dest='debug',help="enable debugging messages and plots")
         
-        self.parser.add_argument('--config',action='store',dest='config',type=str,default=self.config["System"]["Configs"]["This"],
-            help="use the specified configuration file",metavar="file.yaml")
+        # Config Commands
+        self.parser.add_argument('--config',action='store',dest='config',type=str,
+            default=self.config["System"]["Configs"]["This"],help="use the specified configuration file",metavar="file.yaml")
         self.parser.add_argument('--dump-config',action='store_true',dest='dump',help=argparse.SUPPRESS)
+        
+        # Futrure Options
         self.parser.add_argument('--thread',action='store_true',dest='thread',help=argparse.SUPPRESS)
         
-        
         self.all = argparse.ArgumentParser(add_help=False)
-        self.all.add_argument('-c',action='store',metavar='config',dest='sourceconfig',type=str,help="Source configuration file")
+        
+        self.all.add_argument('-c',action='store',metavar='config',dest='sourceconfig',type=str,
+            help="Source configuration file")
         
         self.subparsers = self.parser.add_subparsers(title="sub-commands",dest="command")
         
@@ -111,6 +117,7 @@ class Simulator(object):
         self.initStartup()
         # self.initPosTest()
         self.initSource()
+        self.initInstrument()
         
         self.log.debug("Set up Command Line Control Options")
     
@@ -141,6 +148,14 @@ class Simulator(object):
         Description = "Produces output to determine if the spectrum placement appears to have been done correctly"
         postest = self.subparsers.add_parser(Command,description=Description,help=ShortHelp,usage=Usage)
     
+    def initInstrument(self):
+        """Subcommand for handling only startup functions"""
+        Command = "instrument"
+        Usage = self.USAGE % "%s" % (Command)
+        ShortHelp = "run the initalization and caching for the instrument"
+        Description = "Initializes the instrument."
+        startupgroup = self.subparsers.add_parser(Command,description=Description,help=ShortHelp,usage=Usage)
+    
     def initStartup(self):
         """Subcommand for handling only startup functions"""
         Command = "startup"
@@ -160,61 +175,57 @@ class Simulator(object):
     def initLog(self):
         """Initializes the system logger. This logger starts with only a buffer, no actual logging output. The buffer is used to hold log messages before a logging output location has been specified."""
         self.log = logging.getLogger(__name__)
-        
         self.log.setLevel(logging.DEBUG)
         logging.captureWarnings(True)
-        self.filebuffer = logging.handlers.MemoryHandler(1e6) #Our handler will only handle 1-million messages... lets not go that far
+        self.filebuffer = logging.handlers.MemoryHandler(1e6) 
+        #Our handler will only handle 1-million messages... lets not go that far
         self.consolebuffer = logging.handlers.MemoryHandler(1e6)
         self.consolebuffer.setLevel(logging.INFO)
         self.log.addHandler(self.filebuffer)
         self.log.addHandler(self.consolebuffer)
-
-        self.log.info("Runner has Initialized")
-
+        
+        self.log.debug("----------------------------------------")
+        self.log.info("Welcome to the SEDMachine Data Simulator")
+        self.log.debug("Version %s" % __version__)
+        
     def setupLog(self):
         """Setup Logging Functions for the SEDMachine Model.
-
+        
         This configures the logging system, including a possible console and file log. It then reads the logging buffer into the logfile.
         """
-
-        if self.debug:
-            self.logLevel = logging.DEBUG
-        else:
-            self.logLevel = logging.INFO
-        self.log.setLevel(self.logLevel)
-
+        
         # Setup the Console Log Handler
         self.console = logging.StreamHandler()
         consoleFormat = self.config["System"]["logging"]["console"]["format"]
         if self.config["System"]["logging"]["console"]["level"]:
             self.console.setLevel(self.config["System"]["logging"]["console"]["level"])
+        elif self.debug:
+            self.console.setLevel(logging.DEBUG)
         else:
             self.console.setLevel(logging.INFO)
         consoleFormatter = logging.Formatter(consoleFormat)
         self.console.setFormatter(consoleFormatter)
+        
         if self.config["System"]["logging"]["console"]["enable"]:
             self.log.addHandler(self.console)
             self.consolebuffer.setTarget(self.console)
-            self.consolebuffer.close()
-            self.log.removeHandler(self.consolebuffer)
-            
-
-
-
-        dateFormat = "%Y-%m-%d-%H:%M:%S"
+        self.consolebuffer.close()
+        self.log.removeHandler(self.consolebuffer)
+        
         self.logfile = None
         # Only set up the file log handler if we can actually access the folder
         if os.access(self.config["System"]["Dirs"]["Logs"],os.F_OK) and self.config["System"]["logging"]["file"]["enable"]:
             filename = self.config["System"]["Dirs"]["Logs"] + self.config["System"]["logging"]["file"]["filename"]+".log"
-            self.logfile = logging.FileHandler(filename=filename,mode="a")
+            self.logfile = logging.handlers.TimedRotatingFileHandler(filename=filename,when='midnight')
             self.logfile.setLevel(logging.DEBUG)
-            fileformatter = logging.Formatter(self.config["System"]["logging"]["file"]["format"],datefmt=dateFormat)
+            fileformatter = logging.Formatter(self.config["System"]["logging"]["file"]["format"],datefmt="%Y-%m-%d-%H:%M:%S")
             self.logfile.setFormatter(fileformatter)
             self.log.addHandler(self.logfile)
             # Finally, we should flush the old buffers
             self.filebuffer.setTarget(self.logfile)
-            self.filebuffer.close()
-            self.log.removeHandler(self.filebuffer)
+        
+        self.filebuffer.close()
+        self.log.removeHandler(self.filebuffer)
         self.log.debug("Configured Logging")
         
     
@@ -265,10 +276,12 @@ class Simulator(object):
         self.config["System"]["logging"]["console"]["level"] = False
         self.config["System"]["logging"]["file"] = {}
         self.config["System"]["logging"]["file"]["enable"] = True
-        self.config["System"]["logging"]["file"]["filename"] = "SEDrun"+"-"+time.strftime("%Y-%m-%d")
+        self.config["System"]["logging"]["file"]["filename"] = "SED"
         self.config["System"]["logging"]["file"]["format"] = "%(asctime)s : %(levelname)-8s : %(funcName)-20s : %(message)s"
         
         self.defaults += [copy.deepcopy(self.config)]
+        
+        self.debug = self.config["System"]["Debug"]
         
         self.log.debug("Set up default configutaion")
     
@@ -311,18 +324,20 @@ class Simulator(object):
         
         if self.options.o:
             self.config["System"]["Lenslets"]["start"] = self.options.o
-
+        
         self.config["System"]["Cache"] |= self.options.cache
-
+        
         self.config["System"]["Debug"] |= self.options.debug
-
+        
         self.config["System"]["Plot"] |= self.options.plot
         
         if hasattr(self.options,'label'):
             self.config["System"]["Output"]["Label"] = self.options.label
-
+        
         self.debug = self.config["System"]["Debug"]
+        
         self.setupLog()
+        
         if self.config["System"]["Debug"]:
             self.console.setLevel(logging.DEBUG)
         
@@ -354,7 +369,7 @@ class Simulator(object):
             self.log.info("Simulator Setup")
             self.setup()
         
-        if cmd in ["startup"]:
+        if cmd in ["instrument"]:
             self.exit()
             return
         
@@ -364,6 +379,10 @@ class Simulator(object):
         
         self.log.info("Source Setup")
         self.setupSource()
+        
+        if cmd in ["startup"]:
+            self.exit()
+            return
         
         if cmd in ["source"]:
             self.exit()
@@ -565,7 +584,12 @@ class Simulator(object):
             self.Model.log.info(msg)
         finally:
             self.prog.value += 1.0
-            self.bar.render(int((self.prog.value/self.total) * 100),"L:%4d" % i)
+            if self.debug:
+                self.log.info("=>Finished Generating Spectrum %d" % self.prog.value)
+            else:
+                self.bar.render(int((self.prog.value/self.total) * 100),"L:%4d" % i)
+        
+    
     
     def generateAllLenslets(self):
         """Generate all lenslet spectra"""
@@ -595,7 +619,10 @@ class Simulator(object):
             self.Model.log.info(msg)
         finally:
             self.prog.value += 1
-            self.bar.render(int((self.prog.value/self.total) * 100),"L:%4d" % i)
+            if self.debug:
+                self.log.info("=>Finished Placing Spectrum %d" % self.prog.value)
+            else:
+                self.bar.render(int((self.prog.value/self.total) * 100),"L:%4d" % i)
     
     def placeAllLenslets(self):
         """Place all lenslets into the image file"""

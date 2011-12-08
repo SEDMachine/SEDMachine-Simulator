@@ -51,10 +51,10 @@ class Instrument(ImageObject):
     
     def __init__(self,config):
         super(Instrument, self).__init__()
-        self.cache = False
-        self.plot = True
-        self.debug = False
         self.config = config
+        self.debug = self.config["System"]["Debug"]
+        self.cache = self.config["System"]["Cache"]
+        self.plot = self.config["System"]["Plot"]
         self.defaults = []
         self.regenerate = not self.cache
         self.WLS = {}
@@ -76,61 +76,55 @@ class Instrument(ImageObject):
     def initLog(self):
         """Initializes the system logger. This logger starts with only a buffer, no actual logging output. The buffer is used to hold log messages before a logging output location has been specified."""
         self.log = logging.getLogger(__name__)
-        
-        self.logLevel = logging.DEBUG
-        self.log.setLevel(self.logLevel)
+        self.log.setLevel(logging.DEBUG)
         logging.captureWarnings(True)
-        self.filebuffer = logging.handlers.MemoryHandler(1e6) #Our handler will only handle 1-million messages... lets not go that far
+        self.filebuffer = logging.handlers.MemoryHandler(1e6) 
+        #Our handler will only handle 1-million messages... lets not go that far
+        self.consolebuffer = logging.handlers.MemoryHandler(1e6)
+        self.consolebuffer.setLevel(logging.INFO)
         self.log.addHandler(self.filebuffer)
-        self.consolebuffer = logging.handlers.MemoryHandler(1e6) #Our handler will only handle 1-million messages... lets not go that far
         self.log.addHandler(self.consolebuffer)
         
-        self.log.info("--------------------------------")
-        self.log.info("Welcome to the SED Machine model")
-        self.log.debug(" Version %s" % __version__ )
+        self.log.info("------------------------------------------")
+        self.log.info("Welcome to the SEDMachine Instrument model")
+        self.log.debug("Version %s" % __version__ )
     
     def setupLog(self):
         """Setup Logging Functions for the SEDMachine Model.
         
         This configures the logging system, including a possible console and file log. It then reads the logging buffer into the logfile.
         """
-        
-        self.logLevel = logging.DEBUG
-        self.log.setLevel(self.logLevel)
-        
         # Setup the Console Log Handler
         self.console = logging.StreamHandler()
         consoleFormat = self.config["Instrument"]["logging"]["console"]["format"]
         if self.config["Instrument"]["logging"]["console"]["level"]:
             self.console.setLevel(self.config["Instrument"]["logging"]["console"]["level"])
+        elif self.debug:
+            self.console.setLevel(logging.DEBUG)
         else:
-            self.console.setLevel(logging.INFO)
+            self.console.setLevel(logging.ERROR)
         consoleFormatter = logging.Formatter(consoleFormat)
         self.console.setFormatter(consoleFormatter)
         if self.config["Instrument"]["logging"]["console"]["enable"]:
             self.log.addHandler(self.console)
             self.consolebuffer.setTarget(self.console)
-            self.consolebuffer.close()
-            self.log.removeHandler(self.consolebuffer)
+        self.consolebuffer.close()
+        self.log.removeHandler(self.consolebuffer)
         
-        
-        
-        dateFormat = "%Y-%m-%d-%H:%M:%S"
         self.logfile = None
         # Only set up the file log handler if we can actually access the folder
         if os.access(self.config["System"]["Dirs"]["Logs"],os.F_OK) and self.config["Instrument"]["logging"]["file"]["enable"]:
             filename = self.config["System"]["Dirs"]["Logs"] + self.config["Instrument"]["logging"]["file"]["filename"]+".log"
-            self.logfile = logging.handlers.TimedRotatingFileHandler(filename)
+            self.logfile = logging.handlers.TimedRotatingFileHandler(filename,when='midnight')
             self.logfile.setLevel(logging.DEBUG)
-            fileformatter = logging.Formatter(self.config["Instrument"]["logging"]["file"]["format"],datefmt=dateFormat)
+            fileformatter = logging.Formatter(self.config["Instrument"]["logging"]["file"]["format"],datefmt="%Y-%m-%d-%H:%M:%S")
             self.logfile.setFormatter(fileformatter)
             self.log.addHandler(self.logfile)
             # Finally, we should flush the old buffers
             self.filebuffer.setTarget(self.logfile)
-            self.filebuffer.close()
-            self.log.removeHandler(self.filebuffer)
         
-        
+        self.filebuffer.close()
+        self.log.removeHandler(self.filebuffer)
         self.log.debug("Configured Logging")
     
     
@@ -195,8 +189,8 @@ class Instrument(ImageObject):
         # Logging Configuration
         self.config["Instrument"]["logging"] = {}
         self.config["Instrument"]["logging"]["console"] = {}
-        self.config["Instrument"]["logging"]["console"]["enable"] = False
-        self.config["Instrument"]["logging"]["console"]["format"] = "... ...%(message)s"
+        self.config["Instrument"]["logging"]["console"]["enable"] = True
+        self.config["Instrument"]["logging"]["console"]["format"] = "......%(message)s"
         self.config["Instrument"]["logging"]["console"]["level"] = False
         self.config["Instrument"]["logging"]["file"] = {}
         self.config["Instrument"]["logging"]["file"]["enable"] = True
@@ -344,7 +338,7 @@ class Instrument(ImageObject):
             # Preconvolved System
             self.FINIMG = np.load(self.config["System"]["CacheFiles"]["conv"])
         except IOError as e:
-            self.log.warning("Cached files not found, using configuration to generate files. Error: %s" % e )
+            self.log.warning("Cached files not found, regenerating. Error: %s" % e )
             self.regenerate = True
         else:
             self.log.debug("Loaded Telescope Images for Numpy Files")
@@ -355,10 +349,10 @@ class Instrument(ImageObject):
         You can force the script to ignore cached files in the runner script using the option `--no-cache`. To regenrate the cache manually, simply delete the contents of the Caches directory"""
         try:
             # Cached Wavelengths
-            cachedWL = np.load(self.config["System"]["CacheFiles"]["wls"]+".npy")
+            cachedWL = np.load(self.config["System"]["CacheFiles"]["wls"])
             self.WLS = dict(cachedWL)
         except IOError as e:
-            self.log.warning("Cached files not found, using configuration to generate files. Error: %s" % e )
+            self.log.warning("Cached files not found, regenerating. Error: %s" % e )
             self.regenerate = True
         else:
             self.log.debug("Loaded Wavelengths from Numpy Files")
@@ -790,43 +784,6 @@ class Instrument(ImageObject):
         WLS = WLS[:-1]
         RS = WLS/RS
         
-        self.log.debug("Scailing by %s" % self.config["Instrument"]["gain"])
-        radiance = spectrum(wavelengths=WLS,resolution=RS) 
-        radiance *= self.config["Instrument"]["gain"]
-        self.log.debug("Generated spectrum with bounds [%1.4e,%1.4e]" % (np.max(radiance),np.min(radiance)))
-        self.log.debug("Re-scaling Radiance by deltawl with bounds [%1.4e,%1.4e]" % (np.max(deltawl),np.min(deltawl)))
-        flux = radiance[1,:] * deltawl *1e-6
-        self.log.debug("Got Flux with bounds [%1.4e,%1.4e]" % (np.max(flux),np.min(flux)))
-        
-        # This debugging area generates plots for us.
-        if self.log.getEffectiveLevel() <= logging.DEBUG and self.plot:
-            self.log.debug("Generating Plots for Spectra...")
-            plt.clf()
-            plt.plot(WLS,radiance[1,:],"b.")
-            plt.title("Retrieved Spectra")
-            plt.xlabel("Wavelength ($\mu m$)")
-            plt.ylabel("Radiance (Units undefined)")
-            plt.savefig("%s%04d-SpecRad%s" % (self.config["System"]["Dirs"]["Partials"],lenslet,self.config["Instrument"]["plot_format"]))
-            plt.clf()
-            plt.clf()
-            plt.plot(wl[:-1]*1e-6,flux,"b.")
-            plt.title("Generated, Fluxed Spectra")
-            plt.xlabel("Wavelength ($\mu m$)")
-            plt.ylabel("Flux (Units undefined)")
-            plt.savefig("%s%04d-SpecFlux%s" % (self.config["System"]["Dirs"]["Partials"],lenslet,self.config["Instrument"]["plot_format"]))
-            plt.clf()
-            plt.plot(wl[:-1]*1e-6,deltawl*1e-6,"g.")
-            plt.title("$\Delta\lambda$ for each pixel")
-            plt.xlabel("Wavelength ($\mu m$)")
-            plt.ylabel("$\Delta\lambda$ per pixel")
-            plt.savefig("%s%04d-SpecDeltaWL%s" % (self.config["System"]["Dirs"]["Partials"],lenslet,self.config["Instrument"]["plot_format"]))
-            plt.clf()
-            plt.plot(WLS,RS,"g.")
-            plt.title("$R = \\frac{\Delta\lambda}{\lambda}$ for each pixel")
-            plt.xlabel("Wavelength ($\mu m$)")
-            plt.ylabel("Resolution $R = \\frac{\Delta\lambda}{\lambda}$ per pixel")
-            plt.savefig("%s%04d-SpecRes%s" % (self.config["System"]["Dirs"]["Partials"],lenslet,self.config["Instrument"]["plot_format"]))
-            plt.clf()
         
         # Take our points out. Note from the above that we multiply by the density in order to do this
         xorig,yorig = (points * self.config["Instrument"]["density"])[:-1].T.astype(np.int)
@@ -875,6 +832,47 @@ class Instrument(ImageObject):
         # number of full-size pixels across.
         xsize = xdist+2*self.config["Instrument"]["padding"]*self.config["Instrument"]["density"]
         ysize = ydist+2*self.config["Instrument"]["padding"]*self.config["Instrument"]["density"]
+        
+        self.log.debug("Scailing by %g" % self.config["Instrument"]["gain"])
+        radiance = spectrum(wavelengths=WLS,resolution=RS) 
+        radiance *= self.config["Instrument"]["gain"]
+        self.log.debug("Generated spectrum with bounds [%1.4e,%1.4e]" % (np.max(radiance),np.min(radiance)))
+        self.log.debug("Re-scaling Radiance by deltawl with bounds [%1.4e,%1.4e]" % (np.max(deltawl),np.min(deltawl)))
+        flux = radiance[1,:] * deltawl *1e-6
+        self.log.debug("Got Flux with bounds [%1.4e,%1.4e]" % (np.max(flux),np.min(flux)))
+        
+        # This debugging area generates plots for us.
+        if self.log.getEffectiveLevel() <= logging.DEBUG and self.plot:
+            self.log.debug("Generating Plots for Spectra...")
+            plt.clf()
+            plt.plot(WLS,radiance[1,:],"b.")
+            plt.title("Retrieved Spectra")
+            plt.xlabel("Wavelength ($\mu m$)")
+            plt.ylabel("Radiance (Units undefined)")
+            plt.savefig("%s%04d-SpecRad%s" % (self.config["System"]["Dirs"]["Partials"],lenslet,self.config["Instrument"]["plot_format"]))
+            plt.clf()
+            plt.clf()
+            plt.plot(wl[:-1]*1e-6,flux,"b.")
+            plt.title("Generated, Fluxed Spectra")
+            plt.xlabel("Wavelength ($\mu m$)")
+            plt.ylabel("Flux (Units undefined)")
+            plt.savefig("%s%04d-SpecFlux%s" % (self.config["System"]["Dirs"]["Partials"],lenslet,self.config["Instrument"]["plot_format"]))
+            plt.clf()
+            plt.plot(wl[:-1]*1e-6,deltawl*1e-6,"g.")
+            plt.title("$\Delta\lambda$ for each pixel")
+            plt.xlabel("Wavelength ($\mu m$)")
+            plt.ylabel("$\Delta\lambda$ per pixel")
+            plt.savefig("%s%04d-SpecDeltaWL%s" % (self.config["System"]["Dirs"]["Partials"],lenslet,self.config["Instrument"]["plot_format"]))
+            plt.clf()
+            plt.semilogy(WLS,RS,"g.")
+            plt.title("$R = \\frac{\Delta\lambda}{\lambda}$ for each pixel")
+            plt.xlabel("Wavelength ($\mu m$)")
+            plt.ylabel("Resolution $R = \\frac{\Delta\lambda}{\lambda}$ per pixel")
+            plt.savefig("%s%04d-SpecRes%s" % (self.config["System"]["Dirs"]["Partials"],lenslet,self.config["Instrument"]["plot_format"]))
+            plt.clf()
+        
+        
+        
         img = np.zeros((xsize,ysize))
         
         # Place the spectrum into the sub-image

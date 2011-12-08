@@ -26,6 +26,7 @@ from multiprocessing import Pool, Value
 try:
     from AstroObject.AnalyticSpectra import BlackBodySpectrum,FlatSpectrum,ResampledSpectrum
     from AstroObject.AstroSpectra import SpectraObject
+    import AstroObject.Utilities as AOU
 except ImportError:
     print "Ensure you have AstroObject installed: please run get-AstroObject.sh"
     raise
@@ -42,6 +43,8 @@ class Source(object):
         super(Source, self).__init__()
         self.config = config
         self.debug = self.config["System"]["Debug"]
+        self.cache = self.config["System"]["Cache"]
+        self.plot = self.config["System"]["Plot"]
         self.defaults = []
         self.initLog()
     
@@ -70,12 +73,12 @@ class Source(object):
         # Logging Configuration
         self.config["Source"]["logging"] = {}
         self.config["Source"]["logging"]["console"] = {}
-        self.config["Source"]["logging"]["console"]["enable"] = False
-        self.config["Source"]["logging"]["console"]["format"] = "... ...%(message)s"
+        self.config["Source"]["logging"]["console"]["enable"] = True
+        self.config["Source"]["logging"]["console"]["format"] = "......%(message)s"
         self.config["Source"]["logging"]["console"]["level"] = False
         self.config["Source"]["logging"]["file"] = {}
         self.config["Source"]["logging"]["file"]["enable"] = True
-        self.config["Source"]["logging"]["file"]["filename"] = "SEDSource"+"-"+time.strftime("%Y-%m-%d")
+        self.config["Source"]["logging"]["file"]["filename"] = "SEDSource"
         self.config["Source"]["logging"]["file"]["format"] = "%(asctime)s : %(levelname)-8s : %(funcName)-20s : %(message)s"
         
         self.defaults += [copy.deepcopy(self.config)]
@@ -84,22 +87,18 @@ class Source(object):
     def initLog(self):
         """Initializes the system logger. This logger starts with only a buffer, no actual logging output. The buffer is used to hold log messages before a logging output location has been specified."""
         self.log = logging.getLogger(__name__)
-
-        if self.debug:
-            self.logLevel = logging.DEBUG
-        else:
-            self.logLevel = logging.INFO
-
-        self.log.setLevel(self.logLevel)
+        self.log.setLevel(logging.DEBUG)
         logging.captureWarnings(True)
-        self.filebuffer = logging.handlers.MemoryHandler(1e6) #Our handler will only handle 1-million messages... lets not go that far
+        self.filebuffer = logging.handlers.MemoryHandler(1e6) 
+        #Our handler will only handle 1-million messages... lets not go that far
+        self.consolebuffer = logging.handlers.MemoryHandler(1e6)
+        self.consolebuffer.setLevel(logging.INFO)
         self.log.addHandler(self.filebuffer)
-        self.consolebuffer = logging.handlers.MemoryHandler(1e6) #Our handler will only handle 1-million messages... lets not go that far
         self.log.addHandler(self.consolebuffer)
-
-        self.log.info("--------------------------------")
-        self.log.info("Welcome to the SED Machine source model")
-        self.log.debug(" Version %s" % __version__ )
+        
+        self.log.info("--------------------------------------")
+        self.log.info("Welcome to the SEDMachine Source model")
+        self.log.debug("Version %s" % __version__ )
     
     def setup(self):
         """Setup the simulation system"""
@@ -163,48 +162,42 @@ class Source(object):
         This configures the logging system, including a possible console and file log. It then reads the logging buffer into the logfile.
         """
 
-        if self.debug:
-            self.logLevel = logging.DEBUG
-        self.log.setLevel(self.logLevel)
-
-        # Setup the Console Log Handler
         self.console = logging.StreamHandler()
         consoleFormat = self.config["Source"]["logging"]["console"]["format"]
         if self.config["Source"]["logging"]["console"]["level"]:
             self.console.setLevel(self.config["Source"]["logging"]["console"]["level"])
+        elif self.debug:
+            self.console.setLevel(logging.DEBUG)
         else:
-            self.console.setLevel(logging.INFO)
+            self.console.setLevel(logging.ERROR)
         consoleFormatter = logging.Formatter(consoleFormat)
         self.console.setFormatter(consoleFormatter)
         if self.config["Source"]["logging"]["console"]["enable"]:
             self.log.addHandler(self.console)
             self.consolebuffer.setTarget(self.console)
-            self.consolebuffer.close()
-            self.log.removeHandler(self.consolebuffer)
-
-
-
-        dateFormat = "%Y-%m-%d-%H:%M:%S"
+        self.consolebuffer.close()
+        self.log.removeHandler(self.consolebuffer)
+        
         self.logfile = None
         # Only set up the file log handler if we can actually access the folder
         if os.access(self.config["System"]["Dirs"]["Logs"],os.F_OK) and self.config["Source"]["logging"]["file"]["enable"]:
             filename = self.config["System"]["Dirs"]["Logs"] + self.config["Source"]["logging"]["file"]["filename"]+".log"
-            self.logfile = logging.FileHandler(filename=filename,mode="a")
+            self.logfile = logging.handlers.TimedRotatingFileHandler(filename,when='midnight')
             self.logfile.setLevel(logging.DEBUG)
-            fileformatter = logging.Formatter(self.config["Source"]["logging"]["file"]["format"],datefmt=dateFormat)
+            fileformatter = logging.Formatter(self.config["Source"]["logging"]["file"]["format"],datefmt="%Y-%m-%d-%H:%M:%S")
             self.logfile.setFormatter(fileformatter)
             self.log.addHandler(self.logfile)
             # Finally, we should flush the old buffers
             self.filebuffer.setTarget(self.logfile)
-            self.filebuffer.close()
-            self.log.removeHandler(self.filebuffer)
-
-
+        
+        self.filebuffer.close()
+        self.log.removeHandler(self.filebuffer)
         self.log.debug("Configured Logging")
         
     
     def setupSource(self):
         """A switch function to setup the correct source"""
+        self.log.info("Setting up source type '%s'" % self.config["Source"]["Type"])
         if self.config["Source"]["Type"] == "BlackBody":
             self._setupBlackbody()
         elif self.config["Source"]["Type"] == "Flat":
@@ -237,6 +230,8 @@ class Source(object):
         """Sets up the model for sky, throughput etc for the isntrument, using Nick's simulation"""
         import SEDSpec.sim
         
+        self.log.info("Simulating Noise, Sky and Throughput for System")
+        
         lambdas, nsource_photon, shot_noise = SEDSpec.sim.calculate(self.config["Source"]["ExpTime"],"PI",plot=False,verbose=False)
         
         lambdas = lambdas * 1e-10
@@ -257,6 +252,7 @@ class Source(object):
         """Plot the spectrum partials"""
         if not self.debug:
             return
+        self.log.info("Plotting Source and Intermediate Partials")
         import matplotlib.pyplot as plt
         
         WL = np.linspace(3800,9400,200) * 1e-10
@@ -270,13 +266,13 @@ class Source(object):
         RenderedSpectrum.save(self.D_Spectrum(wavelengths=WL,resolution=RE),"Source")
         
         FL = RenderedSpectrum.data()[1]
-        self.log.debug(rangemsg(FL,"RSource"))
+        self.log.debug(AOU.npArrayInfo(FL,"RSource"))
         
         
         RenderedSpectrum.save(self.Spectrum(wavelengths=WL,resolution=RE),"Rendered Source")
         
         FL = RenderedSpectrum.data()[1]
-        self.log.debug(rangemsg(FL,"RAll"))
+        self.log.debug(AOU.npArrayInfo(FL,"RAll"))
         
         filename = "%(directory)sSpectrum%(format)s" % { "directory": self.config["System"]["Dirs"]["Partials"], "format": self.config["Source"]["plot_format"] }
         
