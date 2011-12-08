@@ -325,7 +325,7 @@ class Simulator(object):
         if self.options.o:
             self.config["System"]["Lenslets"]["start"] = self.options.o
         
-        self.config["System"]["Cache"] |= self.options.cache
+        self.config["System"]["Cache"] &= self.options.cache
         
         self.config["System"]["Debug"] |= self.options.debug
         
