@@ -230,7 +230,7 @@ class Instrument(ImageObject):
         CacheFiles["psf"]       = self.config["System"]["Dirs"]["Caches"] + CacheFileBase + ".psf"    + ".npy"
         CacheFiles["conv"]      = self.config["System"]["Dirs"]["Caches"] + CacheFileBase + ".conv"   + ".npy"
         CacheFiles["config"]    = self.config["System"]["Dirs"]["Caches"] + CacheFileBase + ".config" + ".yaml"
-        CacheFiles["wls"]       = self.config["System"]["Dirs"]["Caches"] + CacheFileBase + ".wls"    + ".npy"
+        CacheFiles["wls"]       = self.config["System"]["Dirs"]["Caches"] + CacheFileBase + ".wls"    + ".npz"
         
         CacheFiles = self.update(CacheFiles,self.config["System"]["CacheFiles"])
         self.config["System"]["CacheFiles"] = CacheFiles
@@ -257,8 +257,13 @@ class Instrument(ImageObject):
             self.log.debug("Configuration has not changed, will not regenerate data.")
         else:
             self.regenearte = True
+            with open("%sConfigs.dat" % self.config["System"]["Dirs"]["Partials"],'w') as stream:
+                stream.write(str(self.config["Instrument"]))
+                stream.write("\n")
+                stream.write(str(self.defaults[-1]["Instrument"]))
             self.config["Instrument"] = self.defaults[-1]["Instrument"]
             self.log.info("Configuration appears to have changed, will regenerate data.")
+
         
         return
     
@@ -320,6 +325,7 @@ class Instrument(ImageObject):
     # Cacheing Functions
     def regenerateCache(self):
         """Cache calculated components of the system, including the telescope image and encircled energy image. Caches are stored to speed up system initalization. This function regenerates all cached files, including the configuration file. You can force the script to ignore cached files in the runner script using the option `--no-cache`. To regenrate the cache manually, simply delete the contents of the Caches directory"""
+        self.log.debug("Regenerating Cached Files")
         with open(self.config["System"]["CacheFiles"]["config"],'w') as stream:
             yaml.dump(self.defaults[-1]["Instrument"],stream,default_flow_style=False)
         
@@ -349,13 +355,17 @@ class Instrument(ImageObject):
         You can force the script to ignore cached files in the runner script using the option `--no-cache`. To regenrate the cache manually, simply delete the contents of the Caches directory"""
         try:
             # Cached Wavelengths
-            cachedWL = np.load(self.config["System"]["CacheFiles"]["wls"])
-            self.WLS = dict(cachedWL)
+            self.WLS = {}
+            ZIPFile = np.load(self.config["System"]["CacheFiles"]["wls"])
+            for label in ZIPFile:
+                self.WLS[label] = ZIPFile[label]
         except IOError as e:
             self.log.warning("Cached files not found, regenerating. Error: %s" % e )
             self.regenerate = True
         else:
             self.log.debug("Loaded Wavelengths from Numpy Files")
+            with open("%s%s%s" % (self.config["System"]["Dirs"]["Partials"],"WLKeys-Loaded",".dat"),'w') as stream:
+                stream.write("\n".join(self.WLS.keys()))
     
     def resetWLCache(self):
         """Resets the Wavelength Cache, which will force it to regenerate during the simulation"""
@@ -401,7 +411,7 @@ class Instrument(ImageObject):
     
     def plotKernalPartials(self):
         """Plots the kernel data partials"""
-        self.log.debug("Generating Kernel Images")
+        self.log.debug("Generating Kernel Plots and Images")
         plt.clf()
         plt.imshow(self.TELIMG)
         plt.title("Telescope Image")
@@ -547,29 +557,42 @@ class Instrument(ImageObject):
         
         .. Note:: The logic of this collection is in `_get_wavelengths()`, which is heavily documented in source code.
         """
-        if lenslet_num in self.WLS:
+        if str(lenslet_num) in self.WLS:
             self.log.debug("Using Cached WLs for %d" % lenslet_num)
-            results = self.WLS[lenslet_num]
+            xs,ys,wls = self.WLS[str(lenslet_num)]
+            results = np.array([xs,ys]).T, wls, np.diff(wls)
         else:
             self.log.debug("Regenerating WLs for %d" % lenslet_num)
             results = self._get_wavelengths(lenslet_num)
             if self.cache:
-                for item in results:
-                    self.log.debug(npArrayInfo(item,"Results"))
-                self.WLS[lenslet_num] = np.array(results[0:1]) 
-                self.regenerate = True
-        if len(results) > 3:
-            results = results[:2]
-        elif len(results) == 2:
-            points,wl = results
-            results = (points,wl,np.diff(wl))
+                for item,label in zip(results,["Points,WLs,DeltaWLs"]):
+                    self.log.debug(npArrayInfo(item,label))
+                points,wls,wldiffs = results
+                xs,ys = points.T
+                self.WLS[str(lenslet_num)] = np.array([xs,ys,wls]) 
+                self.regenerate |= True
+        if len(results) != 3:
+            self.log.critical("We have a problem with retrieved WLs")
+            self.log.info(npArrayInfo(results,"WL Retrieved Results"))
+            raise Exception
+        
+        filename = "%(dir)s%(file)s%(fmt)s" % { 'dir' : self.config["System"]["Dirs"]["Partials"],
+            'file' : 'points_from_wl_cache', 'fmt' : '.dat'}
+        with open(filename,'w') as stream:
+            stream.write(npArrayInfo(results[0],"Points") + "\n")
+            for row in results[0]:
+                for col in row:
+                    stream.write(str(col)+" -> "+str(type(col))+" ")
+                stream.write("| "+str(type(row))+"\n")
+        self.log.debug(npArrayInfo(results[1],"CachedWLs"))
         return results
     
     def positionCaching(self):
         """Save the wavelength and position cache. This must be done after all wavelengths have been collected."""
         if self.cache and self.regenerate:
-            toCache = np.array(zip(self.WLS.keys(),self.WLS.values()))
-            np.save(self.config["System"]["CacheFiles"]["wls"],toCache)
+            np.savez(self.config["System"]["CacheFiles"]["wls"],**self.WLS)
+        with open("%s%s%s" % (self.config["System"]["Dirs"]["Partials"],"WLKeys-Saved",".dat"),'w') as stream:
+            stream.write("\n".join(self.WLS.keys()))
         
     
     def _get_wavelengths(self,lenslet_num):
@@ -909,13 +932,13 @@ class Instrument(ImageObject):
         else:
             # Convolve this spectrum with an appropriate image of the telescope
             img_tel = sp.signal.convolve(img,self.TELIMG,mode='same')
-            self.log.info("Convolved Dense Image with Telescope for %4d" % lenslet)
+            self.log.debug("Convolved Dense Image with Telescope for %4d" % lenslet)
             # Convolve again with an appropriate PSF
             img_tel_psf = sp.signal.convolve(img_tel,self.PSFIMG,mode='same')
-            self.log.info("Convolved Dense Image with PSF for %4d" % lenslet)
+            self.log.debug("Convolved Dense Image with PSF for %4d" % lenslet)
             # Bin the image back down to the final pixel size
             small = bin(img_tel_psf,self.config["Instrument"]["density"]).astype(np.int16)
-            self.log.info("Binned Dense Image for %4d" % lenslet)
+            self.log.debug("Binned Dense Image for %4d" % lenslet)
             return small,corner,(img,img_tel,img_tel_psf)
     
     
@@ -927,7 +950,7 @@ class Instrument(ImageObject):
         else:
             small, corner = self.get_sub_image(lenslet,spectrum,fast=True)
         
-        self.log.info("Retrieved SED Subimage for lenslet %d" % lenslet)
+        self.log.debug("Retrieved SED Subimage for lenslet %d" % lenslet)
         
         label = "SUBIMG%d" % lenslet
         

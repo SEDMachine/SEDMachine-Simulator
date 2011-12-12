@@ -113,7 +113,7 @@ class Simulator(object):
         self.subparsers = self.parser.add_subparsers(title="sub-commands",dest="command")
         
         self.initAll()
-        # self.initPosCache()
+        self.initCache()
         self.initStartup()
         # self.initPosTest()
         self.initSource()
@@ -130,11 +130,11 @@ class Simulator(object):
         specgroup = self.subparsers.add_parser(Command,description=Description,help=ShortHelp,
             parents=[self.all],usage=Usage)
     
-    def initPosCache(self):
+    def initCache(self):
         """Position Caching Subcommand"""
-        Command = "poscache"
+        Command = "cache"
         Usage = self.USAGE % "%s" % (Command)
-        ShortHelp = "position caching mode for spectrum placement"
+        ShortHelp = "Caching mode for spectrum placement - Caches everything except subimages"
         Description = "Caches results of the model._get_wavelenghts results for faster lookup later"
         postest = self.subparsers.add_parser(Command,description=Description,help=ShortHelp,
             usage=Usage)
@@ -403,7 +403,7 @@ class Simulator(object):
         self.log.info("Caching Wavelength Data")
         self.positionCaches()
         
-        if cmd in ["poscache"]:
+        if cmd in ["cache"]:
             self.exit()
             return
         
@@ -597,7 +597,8 @@ class Simulator(object):
     def generateAllLenslets(self):
         """Generate all lenslet spectra"""
         self.log.info("Generating Spectra in %d Lenslets" % len(self.lenslets))
-        self.bar.render(0,"L:%4d" % 0)
+        if not self.debug:
+            self.bar.render(0,"L:%4d" % 0)
         if self.options.thread:
             map_func = self.pool.async_map
         else:
@@ -631,7 +632,8 @@ class Simulator(object):
         """Place all lenslets into the image file"""
         self.Model.save(self.Model.data("Blank"),"Final")
         self.log.info("Placing Spectra in %d Lenslets" % len(self.lenslets))
-        self.bar.render(0,"L:%4d" % 0)
+        if not self.debug:
+            self.bar.render(0,"L:%4d" % 0)
         self.prog.value = 0
         if self.options.thread:
             map_func = self.pool.async_map
