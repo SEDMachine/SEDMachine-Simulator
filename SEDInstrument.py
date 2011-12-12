@@ -550,12 +550,15 @@ class Instrument(ImageObject):
         if lenslet_num in self.WLS:
             self.log.debug("Using Cached WLs for %d" % lenslet_num)
             results = self.WLS[lenslet_num]
+            results = results + (np.diff(results[1]))
         else:
             self.log.debug("Regenerating WLs for %d" % lenslet_num)
             results = self._get_wavelengths(lenslet_num)
             if self.cache:
-                self.WLS[lenslet_num] = np.array(results) 
+                self.WLS[lenslet_num] = np.array(results[0:1]) 
                 self.regenerate = True
+        if len(results) > 3:
+            results = results[:2]
         return results
     
     def positionCaching(self):
