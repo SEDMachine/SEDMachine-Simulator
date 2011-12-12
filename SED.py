@@ -325,10 +325,13 @@ class Simulator(object):
         if self.options.o:
             self.config["System"]["Lenslets"]["start"] = self.options.o
         
+        # The trigger sets this to False, as such the option should unset it.
         self.config["System"]["Cache"] &= self.options.cache
         
+        # Default value for this is False, as such the option should trigger it.
         self.config["System"]["Debug"] |= self.options.debug
         
+        # The option for this turns it on, as such, this should be or.
         self.config["System"]["Plot"] |= self.options.plot
         
         if hasattr(self.options,'label'):
@@ -569,7 +572,7 @@ class Simulator(object):
     def generateLenslet(self,i,spectrum):
         """Generate a single lenslet spectrum"""
         try:
-            self.Model.cache_sed_subimage(i,spectrum)
+            self.Model.cache_sed_subimage(i,spectrum,write=self.config["System"]["Cache"])
             
             if self.debug:
                 self.Model.show()
@@ -584,10 +587,10 @@ class Simulator(object):
             self.Model.log.info(msg)
         finally:
             self.prog.value += 1.0
-            if self.debug:
-                self.log.info("=>Finished Generating Spectrum %d" % self.prog.value)
-            else:
-                self.bar.render(int((self.prog.value/self.total) * 100),"L:%4d" % i)
+        if self.debug:
+            self.log.info("=>Finished Generating Spectrum %d" % self.prog.value)
+        else:
+            self.bar.render(int((self.prog.value/self.total) * 100),"L:%4d" % i)
         
     
     
@@ -606,7 +609,7 @@ class Simulator(object):
     def placeLenslet(self,i):
         """Place a single lenslet into the model"""
         try:
-            self.Model.place_cached_sed(i,"Included Spectrum %d" % i,"Final")
+            self.Model.place_cached_sed(i,"Included Spectrum %d" % i,"Final",fromfile=self.config["System"]["Cache"])
             if self.debug:
                 self.Model.show()
                 self.plt.savefig(self.config["System"]["Dirs"]["Partials"] + "%04d-Fullimage.pdf" % i)
@@ -619,10 +622,10 @@ class Simulator(object):
             self.Model.log.info(msg)
         finally:
             self.prog.value += 1
-            if self.debug:
-                self.log.info("=>Finished Placing Spectrum %d" % self.prog.value)
-            else:
-                self.bar.render(int((self.prog.value/self.total) * 100),"L:%4d" % i)
+        if self.debug:
+            self.log.info("=>Finished Placing Spectrum %d" % self.prog.value)
+        else:
+            self.bar.render(int((self.prog.value/self.total) * 100),"L:%4d" % i)
     
     def placeAllLenslets(self):
         """Place all lenslets into the image file"""

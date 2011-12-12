@@ -655,15 +655,13 @@ class Instrument(ImageObject):
         # Pull out sorted valuses
         distance = distance[sorted_idx]
         points = unique_pts[:,sorted_idx].T
-        self.log.debug("Points set using original, superDense array, bounds [%1.4f,%1.4f]"
-            % (np.min(points),np.max(points)))
+        self.log.debug(npArrayInfo(points,"Points"))
         
         
         # Pull out the original wavelengths
         wl_orig = superDense_lam[unique_idx][sorted_idx]
         wl = wl_orig
-        self.log.debug("Wavelengths set using original, superDense array, bounds [%1.4f,%1.4f]"
-            % (np.min(wl),np.max(wl)))
+        self.log.debug(npArrayInfo(wl,"Wavelengths"))
         # We are getting some odd behavior, where the dispersion function seems to not cover the whole
         # arc length and instead covers only part of it. This causes much of our arc to leave the desired
         # and available wavelength boundaries. As such, I'm disabling the more accurate dispersion mode.
@@ -777,7 +775,7 @@ class Instrument(ImageObject):
         # Create the spectra, by calling the spectra with wavelength
         # (in meters, note the conversion from wl, which was originally in microns)
         # Then use the deltawl to get the true amount of flux in each pixel
-        self.log.debug("Asking for spectrum with wl bounds [%1.4e,%1.4e]" % (np.max(wl),np.min(wl)))
+        self.log.debug(npArrayInfo(wl,"Spectrum wl Request"))
         
         WLS = wl*1e-6
         RS = np.diff(WLS) 
@@ -836,10 +834,10 @@ class Instrument(ImageObject):
         self.log.debug("Scailing by %g" % self.config["Instrument"]["gain"])
         radiance = spectrum(wavelengths=WLS,resolution=RS) 
         radiance *= self.config["Instrument"]["gain"]
-        self.log.debug("Generated spectrum with bounds [%1.4e,%1.4e]" % (np.max(radiance),np.min(radiance)))
-        self.log.debug("Re-scaling Radiance by deltawl with bounds [%1.4e,%1.4e]" % (np.max(deltawl),np.min(deltawl)))
+        self.log.debug(npArrayInfo(radiance,"Generated Spectrum"))
+        self.log.debug(npArrayInfo(deltawl,"DeltaWL Rescaling"))
         flux = radiance[1,:] * deltawl *1e-6
-        self.log.debug("Got Flux with bounds [%1.4e,%1.4e]" % (np.max(flux),np.min(flux)))
+        self.log.debug(npArrayInfo(flux,"Final Flux"))
         
         # This debugging area generates plots for us.
         if self.log.getEffectiveLevel() <= logging.DEBUG and self.plot:
@@ -917,7 +915,7 @@ class Instrument(ImageObject):
     # Image Caching
     def cache_sed_subimage(self,lenslet,spectrum,write=False,do_return=False):
         """Generates a sub image, and saves that result to this object. Should be thread-safe."""
-        if self.log.getEffectiveLevel() <= logging.DEBUG:
+        if self.debug:
             small, corner, steps = self.get_sub_image(lenslet,spectrum)
         else:
             small, corner = self.get_sub_image(lenslet,spectrum,fast=True)
@@ -929,14 +927,15 @@ class Instrument(ImageObject):
         self.save(small,label)
         self.frame().header=dict(Lenslet=lenslet,Spectrum=spectrum.label)
         self.frame().metadata=dict(Corner=corner)
+        self.frame().header.update(dict(Corner_X=corner[0],Corner_Y=corner[1]))
         
         Stages = ["Raw Image","Convolved with Telescope","Convolved with Telescope and PSF"]
         StagesF = ["Raw","Tel","PSF"]
-        if self.log.getEffectiveLevel() <= logging.DEBUG and self.plot:
+        if self.debug and self.plot:
             for i,step in enumerate(steps):
                 self.save(step,"%04d-Intermediate-%d: %s" % (lenslet,i,Stages[i]))
-                self.frame().header=dict(Lenslet=lenslet,Spectrum=spectrum.label,Stage=Stages[i])
-                self.frame().metadata=dict(Corner=corner)
+                self.frame().header.update(dict(Lenslet=lenslet,Spectrum=spectrum.label,Stage=Stages[i]))
+                self.frame().metadata.update(dict(Corner=corner))
                 plt.imshow(step)
                 plt.title("%s Image Generation Steps for Lenslet %4d" % (Stages[i],lenslet))
                 plt.savefig("%s%04d-%s%s" % (self.config["System"]["Dirs"]["Partials"],lenslet,StagesF[i],self.config["Instrument"]["plot_format"]))
@@ -944,8 +943,8 @@ class Instrument(ImageObject):
         
         # We only write the sub-image if the function is called to write sub images
         if write:
-            self.write("%sSubimage-%4d%s" % (self.config["System"]["Dirs"]["Images"],lenslet,".fits"),clobber=True)
-            self.keep(None)
+            self.write("%sSubimage-%4d%s" % (self.config["System"]["Dirs"]["Images"],lenslet,".fits"),[label],label,clobber=True)
+            self.remove(label)
         
         if do_return:
             return small, corner
@@ -953,16 +952,27 @@ class Instrument(ImageObject):
     
     
     # Placement Functions
-    def place_cached_sed(self,lenslet,label,dlabel):
+    def place_cached_sed(self,lenslet,label,dlabel,fromfile=False):
         """Places a cached SED Subimage"""
         slabel = "SUBIMG%d" % lenslet
-        try:
-            subframe = self.frame(slabel)
-        except KeyError as e:
-            raise SEDLimits(str(e))
+        if fromfile:
+            try:
+                filename = "%sSubimage-%4d%s" % (self.config["System"]["Dirs"]["Images"],lenslet,".fits")
+                slabel = self.read(filename)[0]
+                subframe = self.frame(slabel)
+            except IOError as e:
+                self.log.debug("Could not load spectrum %s from file" % filename)
+        else:
+            try:
+                subframe = self.frame(slabel)
+            except KeyError as e:
+                raise SEDLimits(str(e))
         subimg = subframe()
         mlenslet = subframe.header['Lenslet']
-        mcorner = subframe.metadata['Corner']
+        if fromfile:
+            mcorner = float(subframe.header["Corner_X"]),float(subframe.header["Corner_Y"])
+        else:
+            mcorner = subframe.metadata['Corner']
         if mlenslet != lenslet:
             raise ValueError("Lenslet Number Mismatch %d:%d for state %s in %s" % (lenslet,mlenslet,slabel,self))
         self.place(subimg,mcorner,label,dlabel)

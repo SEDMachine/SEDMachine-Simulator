@@ -42,7 +42,7 @@ def expandLim(axis,scale=0.05):
 
 def rangemsg(array,name):
     """Message describing this array"""
-    MSG = "Array named %(name)-10s has %(elements)8d els with shape %(shape)11s. Range %(range)10s. Zeros %(zeros)d (%(zper)3d%%). NaNs %(nans)d (%(nper)3d%%). Type %(type)3s"
+    MSG = "Array named %(name)s has %(elements)d els with shape %(shape)s. Range %(range)s. Zeros %(zeros)d (%(zper)3d%%). NaNs %(nans)d (%(nper)3d%%). Type %(type)3s"
     fmtr = {}
     fmtr["elements"] = array.size
     fmtr["shape"] = str(array.shape)
