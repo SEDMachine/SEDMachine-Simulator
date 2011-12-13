@@ -38,8 +38,59 @@ __all__ = ["SEDLimits","Instrument"]
 
 class SEDLimits(Exception):
     """A Basic Error-Differentiation Class.
-    This error is used to express the fact that the SEDModel has encountered a spectrum which can't be placed as some part of it falls outside of the limits of the SED system."""
+    This error is used to express the fact that the SEDModel has encountered a spectrum which can't be placed as some part of it falls outside of the limits of the SED system.
+    """
     pass
+
+
+class Lenslet(object):
+    """An object-representation of a lenslet"""
+    def __init__(self, xs,ys,p1s,p2s,ls,ix):
+        super(Lenslet, self).__init__()
+        self.num = ix
+        self.xs = xs
+        self.ys = ys
+        self.points = np.array([xs,ys]).T
+        self.ps = np.array([p1s,p2s]).T
+        self.ls = np.array(ls)
+    
+    def introspect(self):
+        """Show all sorts of fun data about this lenslet"""
+        STR  = "--Lenslet %(index)04d is %(valid)s\n" % {'index':self.num, 'valid': 'valid' if self.valid() else 'invalid'}
+        STR += "|    x    |    y    |    p1    |    p2    |    wl    |\n"
+        for xy,p,wl in zip(self.points,self.ps,self.ls):
+            data = { 'x': xy[0], 'y': xy[1], 'pA': p[0], 'pB': p[1], 'wl': wl }
+            STR += "|%(x) 9.6g|%(y) 9.6g|%(pA) 10.6g|%(pB) 10.6g|%(wl) 10.6g|\n" % data
+        return STR
+    
+    def valid(self):
+        """Returns true if this is a valid lenslet, false if it fails any of the tests"""
+        if len(self.points) != len(self.ps) or len(self.points) != len(self.ls):
+            LOG.warning("Lenslet %d failed b/c the data had inconsistent points" % self.num)
+            return False
+        if len(self.points) < 3:
+            LOG.debug("Lenslet %d failed b/c there were fewer than three data points" % self.num)
+            return False
+        if np.any(self.points.flatten == 0):
+            LOG.debug("Lenslet %d failed b/c some (x,y) were exactly zero" % self.num)
+            return False
+        dist = 30
+        if np.any(np.abs(np.diff(self.xs)) > dist):
+            LOG.debug("Lenslet %d failed b/c x distance was more than %d" % (self.num,dist))
+            return False
+        startix = np.argmin(self.ls)
+        endix = np.argmax(self.ls)
+        start = np.array([self.xs[startix],self.ys[startix]])
+        end = np.array([self.xs[endix],self.ys[endix]])
+
+        # Get the total length of the spectra
+        self.distance = np.sqrt(np.sum(end-start)**2)
+        
+        if self.distance == 0:
+            LOG.debug("Lenslet %d failed b/c the points have no separating distance")
+            return False
+        
+        return True
 
 
 class Instrument(ImageObject):
@@ -64,7 +115,8 @@ class Instrument(ImageObject):
     
     def update(self, d, u):
         """A deep update command for dictionaries.
-        This is because the normal dictionary.update() command does not handle nested dictionaries."""
+        This is because the normal dictionary.update() command does not handle nested dictionaries.
+        """
         for k, v in u.iteritems():
             if isinstance(v, collections.Mapping):
                 r = self.update(d.get(k, {}), v)
@@ -74,7 +126,8 @@ class Instrument(ImageObject):
         return d
     
     def initLog(self):
-        """Initializes the system logger. This logger starts with only a buffer, no actual logging output. The buffer is used to hold log messages before a logging output location has been specified."""
+        """Initializes the system logger. This logger starts with only a buffer, no actual logging output. The buffer is used to hold log messages before a logging output location has been specified.
+        """
         self.log = logging.getLogger(__name__)
         self.log.setLevel(logging.DEBUG)
         logging.captureWarnings(True)
@@ -146,7 +199,8 @@ class Instrument(ImageObject):
         self._configureDynamic()
     
     def _configureDefaults(self):
-        """Set up the default configure variable. If you change the default configuration variables in this function (instead of using a configuration file), the script will generally not detect the change, and so will not regenerate Cached files. You can force the script to ignore cached files in the runner script using the option `--no-cache`. To regenrate the cache manually, simply delete the contents of the Caches directory"""
+        """Set up the default configure variable. If you change the default configuration variables in this function (instead of using a configuration file), the script will generally not detect the change, and so will not regenerate Cached files. You can force the script to ignore cached files in the runner script using the option `--no-cache`. To regenrate the cache manually, simply delete the contents of the Caches directory
+        """
         
         # Configuration Variables for The System
         self.config["Instrument"] = {}
@@ -324,7 +378,8 @@ class Instrument(ImageObject):
     
     # Cacheing Functions
     def regenerateCache(self):
-        """Cache calculated components of the system, including the telescope image and encircled energy image. Caches are stored to speed up system initalization. This function regenerates all cached files, including the configuration file. You can force the script to ignore cached files in the runner script using the option `--no-cache`. To regenrate the cache manually, simply delete the contents of the Caches directory"""
+        """Cache calculated components of the system, including the telescope image and encircled energy image. Caches are stored to speed up system initalization. This function regenerates all cached files, including the configuration file. You can force the script to ignore cached files in the runner script using the option `--no-cache`. To regenrate the cache manually, simply delete the contents of the Caches directory
+        """
         self.log.debug("Regenerating Cached Files")
         with open(self.config["System"]["CacheFiles"]["config"],'w') as stream:
             yaml.dump(self.defaults[-1]["Instrument"],stream,default_flow_style=False)
@@ -335,7 +390,8 @@ class Instrument(ImageObject):
     
     def cachedKernel(self):
         """Load cached kernels from the Caches directory. If any file is missing, it will attempt to trigger regeneration of the cache.
-        You can force the script to ignore cached files in the runner script using the option `--no-cache`. To regenrate the cache manually, simply delete the contents of the Caches directory"""
+        You can force the script to ignore cached files in the runner script using the option `--no-cache`. To regenrate the cache manually, simply delete the contents of the Caches directory
+        """
         try:
             # Telescope Image Setup
             self.TELIMG = np.load(self.config["System"]["CacheFiles"]["telescope"])
@@ -352,7 +408,8 @@ class Instrument(ImageObject):
     
     def cachedWL(self):
         """Load cached wavelengths from the Caches directory. If any file is missing, it will attempt to trigger regeneration of the cache.
-        You can force the script to ignore cached files in the runner script using the option `--no-cache`. To regenrate the cache manually, simply delete the contents of the Caches directory"""
+        You can force the script to ignore cached files in the runner script using the option `--no-cache`. To regenrate the cache manually, simply delete the contents of the Caches directory
+        """
         try:
             # Cached Wavelengths
             self.WLS = {}
@@ -368,7 +425,8 @@ class Instrument(ImageObject):
                 stream.write("\n".join(self.WLS.keys()))
     
     def resetWLCache(self):
-        """Resets the Wavelength Cache, which will force it to regenerate during the simulation"""
+        """Resets the Wavelength Cache, which will force it to regenerate during the simulation
+        """
         self.log.debug("Forcing Wavelenghts to Regenerate")
         self.WLS = {}
     
@@ -783,6 +841,16 @@ class Instrument(ImageObject):
         
         self.ix, self.p1, self.p2, self.lams, self.xs, self.ys = ix, p1, p2, lams, xs, ys
         self.xpix, self.ypix = xpix, ypix
+        
+        self.lensletObjects = {}
+        FileName = self.config["System"]["Dirs"]["Partials"] + "Lenslets" + ".dat"
+        with open(FileName,'w') as stream:
+            for idx in self.lenslets:
+                select = idx == ix
+                aLenslet = Lenslet(xs[select],ys[select],p1[select],p2[select],lams[select],idx)
+                if aLenslet.valid():
+                    self.lensletObjects[idx] = aLenslet
+                    stream.write(aLenslet.introspect())
     
     def loadOpticsData(self,laspec,dispspec):
         """Loads an optical conversion based on the lenslet array spec and dispersion spec files provided. This wrapper function handles both file loading functions. See `loadDispersionData` and `loadLensletData`."""
