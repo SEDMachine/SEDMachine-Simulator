@@ -45,37 +45,40 @@ class SEDLimits(Exception):
 
 class Lenslet(object):
     """An object-representation of a lenslet"""
-    def __init__(self, xs,ys,p1s,p2s,ls,ix):
+    def __init__(self, xs,ys,xpixs,ypixs,p1s,p2s,ls,ix):
         super(Lenslet, self).__init__()
         self.num = ix
         self.xs = xs
         self.ys = ys
         self.points = np.array([xs,ys]).T
+        self.xpixs = xpixs
+        self.ypixs = ypixs
+        self.pixs = np.array([xpixs,ypixs]).T
         self.ps = np.array([p1s,p2s]).T
         self.ls = np.array(ls)
     
     def introspect(self):
         """Show all sorts of fun data about this lenslet"""
         STR  = "--Lenslet %(index)04d is %(valid)s\n" % {'index':self.num, 'valid': 'valid' if self.valid() else 'invalid'}
-        STR += "|    x    |    y    |    p1    |    p2    |    wl    |\n"
-        for xy,p,wl in zip(self.points,self.ps,self.ls):
-            data = { 'x': xy[0], 'y': xy[1], 'pA': p[0], 'pB': p[1], 'wl': wl }
-            STR += "|%(x) 9.6g|%(y) 9.6g|%(pA) 10.6g|%(pB) 10.6g|%(wl) 10.6g|\n" % data
+        STR += "|    x    |    y    |    xp    |    yp    |    p1    |    p2    |    wl    |\n"
+        for xy,pixs,p,wl in zip(self.points,self.pixs,self.ps,self.ls):
+            data = { 'x': xy[0], 'y': xy[1], 'pA': p[0], 'pB': p[1], 'wl': wl ,'pxA':pixs[0],'pxB':pixs[1]}
+            STR += "|%(x) 9.6g|%(y) 9.6g|%(pxA) 10.6g|%(pxB) 10.6g|%(pA) 10.6g|%(pB) 10.6g|%(wl) 10.6g|\n" % data
         return STR
     
     def valid(self):
         """Returns true if this is a valid lenslet, false if it fails any of the tests"""
-        if len(self.points) != len(self.ps) or len(self.points) != len(self.ls):
+        if len(self.points) != len(self.ps) or len(self.points) != len(self.ls) or len(self.points) != len(self.pixs):
             LOG.warning("Lenslet %d failed b/c the data had inconsistent points" % self.num)
             return False
         if len(self.points) < 3:
             LOG.debug("Lenslet %d failed b/c there were fewer than three data points" % self.num)
             return False
-        if np.any(self.points.flatten == 0):
+        if np.any(self.pixs.flatten == 0):
             LOG.debug("Lenslet %d failed b/c some (x,y) were exactly zero" % self.num)
             return False
         dist = 30
-        if np.any(np.abs(np.diff(self.xs)) > dist):
+        if np.any(np.abs(np.diff(self.xpixs)) > dist):
             LOG.debug("Lenslet %d failed b/c x distance was more than %d" % (self.num,dist))
             return False
         startix = np.argmin(self.ls)
@@ -847,10 +850,11 @@ class Instrument(ImageObject):
         with open(FileName,'w') as stream:
             for idx in self.lenslets:
                 select = idx == ix
-                aLenslet = Lenslet(xs[select],ys[select],p1[select],p2[select],lams[select],idx)
+                aLenslet = Lenslet(xs[select],ys[select],xpix[select],ypix[select],p1[select],p2[select],lams[select],idx)
                 if aLenslet.valid():
                     self.lensletObjects[idx] = aLenslet
                     stream.write(aLenslet.introspect())
+        self.lenslets = self.lensletObjects.keys()
     
     def loadOpticsData(self,laspec,dispspec):
         """Loads an optical conversion based on the lenslet array spec and dispersion spec files provided. This wrapper function handles both file loading functions. See `loadDispersionData` and `loadLensletData`."""
