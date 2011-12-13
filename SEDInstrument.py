@@ -985,6 +985,7 @@ class Instrument(ImageObject):
     def place_cached_sed(self,lenslet,label,dlabel,fromfile=False):
         """Places a cached SED Subimage"""
         slabel = "SUBIMG%d" % lenslet
+        subframe = False
         if fromfile:
             try:
                 filename = "%sSubimage-%4d%s" % (self.config["System"]["Dirs"]["Images"],lenslet,".fits")
@@ -992,6 +993,7 @@ class Instrument(ImageObject):
                 subframe = self.frame(slabel)
             except IOError as e:
                 self.log.debug("Could not load spectrum %s from file" % filename)
+                raise SEDLimits(str(e))
         else:
             try:
                 subframe = self.frame(slabel)
