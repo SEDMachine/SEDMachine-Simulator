@@ -561,10 +561,10 @@ class Simulator(object):
             np.savetxt(handle,np.array([np.hstack((corner,ncorner))]),fmt='%6.1f')
         except self.Limits:
             msg = "Skipped Lenslet %4d" % lenslet
-            self.Model.log.info(msg)
+            self.Model.log.debug(msg)
         else:
             msg = "Cached Lenslet %4d" % lenslet
-            self.Model.log.info(msg)
+            self.Model.log.debug(msg)
         finally:
             self.prog.value += 1.0
             self.bar.render(int((self.prog.value/self.total) * 100),"L:%4d" % lenslet)
