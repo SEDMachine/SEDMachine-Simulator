@@ -666,22 +666,8 @@ class Instrument(ImageObject):
         # I'm not sure how to do that right now.
         
         # First, we take only data points which apply to this lenslet
+        lenslet = self.lensletObjects[lenslet_num]
         use = lenslet_num == self.ix
-        
-        # Each lenslet should have three points. It might not though, because we clipped some lenselet points that were too close to the edge.
-        # We really should move this logic up higher.
-        if len(self.xpix[use]) < 3:
-            raise SEDLimits
-        
-        if np.any(self.xpix[use] == 0):
-            raise SEDLimits
-        
-        if np.any(self.ypix[use] == 0):
-            raise SEDLimits
-        
-        # We ignore anything that has an x-dispersion across more than 30 pixels.
-        if np.any(np.abs(np.diff(self.xpix[use])) > 30):
-            raise SEDLimits
         
         # Interpolation to convert from wavelength to pixels.
         #   The accuracy of this interpolation is not important.
@@ -689,14 +675,14 @@ class Instrument(ImageObject):
         #   and is fed an array that is very dense, used on this dense interpolation
         #   and then binned back onto pixels. Thus it will be used to get a list
         #   of all illuminated pixels.
-        fx = np.poly1d(np.polyfit(self.lams[use], self.xpix[use], 2))
-        fy = np.poly1d(np.polyfit(self.lams[use], self.ypix[use], 2))
+        fx = np.poly1d(np.polyfit(lenslet.ls, lenslet.xpixs, 2))
+        fy = np.poly1d(np.polyfit(lenslet.ls, lenslet.ypixs, 2))
         
         # Find the starting and ending position of the spectra
-        startix = np.argmin(self.lams[use])
-        endix = np.argmax(self.lams[use])
-        start = np.array([self.xs[use][startix],self.ys[use][startix]])
-        end = np.array([self.xs[use][endix],self.ys[use][endix]])
+        startix = np.argmin(lenslet.ls)
+        endix = np.argmax(lenslet.ls)
+        start = np.array([lenslet.xs[startix],lenslet.ys[startix]])
+        end = np.array([lenslet.xs[endix],lenslet.ys[endix]])
         
         # Get the total length of the spectra
         distance = np.sqrt(np.sum(end-start)**2)
@@ -709,7 +695,7 @@ class Instrument(ImageObject):
         
         # Create a data array one hundred times as dense as the number of pixels
         #   This is the super dense array which will use the above interpolation
-        superDense_lam = np.linspace(np.min(self.lams[use]),np.max(self.lams[use]),npix*100)
+        superDense_lam = np.linspace(np.min(lenslet.ls),np.max(lenslet.ls),npix*100)
         
         # Interpolate along our really dense set of wavelengths to find all possible
         # illuminated pixel positions in this spectrum
@@ -842,11 +828,8 @@ class Instrument(ImageObject):
         cntix = np.argmin(p1**2 + p2**2)
         self.center = (xs[cntix] * self.config["Instrument"]["convert"]["mmtopx"], ys[cntix] * self.config["Instrument"]["convert"]["mmtopx"])
         
-        self.ix, self.p1, self.p2, self.lams, self.xs, self.ys = ix, p1, p2, lams, xs, ys
-        self.xpix, self.ypix = xpix, ypix
-        
         self.lensletObjects = {}
-        FileName = self.config["System"]["Dirs"]["Partials"] + "Lenslets" + ".dat"
+        FileName = self.config["System"]["Dirs"]["Partials"] + "Lenslets-raw" + ".dat"
         with open(FileName,'w') as stream:
             for idx in self.lenslets:
                 select = idx == ix
@@ -855,9 +838,30 @@ class Instrument(ImageObject):
                     self.lensletObjects[idx] = aLenslet
                     stream.write(aLenslet.introspect())
         self.lenslets = self.lensletObjects.keys()
+        self._plot_lenslet_data()
+        
+    def _plot_lenslet_data(self):
+        """Outputs the lenslet data"""
+        if self.debug and self.plot:
+            self.log.info("Generating Lenslet Plots")
+            plt.clf()
+            FileName = "%(dir)sLenslet-xy%(fmt)s" % { 'dir' : self.config["System"]["Dirs"]["Partials"], 'fmt':self.config["Instrument"]["plot_format"]}
+            for lenslet in self.lensletObjects.values():
+                plt.plot(lenslet.xs,lenslet.ys,linestyle='-')
+            plt.title("Lenslet x-y positions")
+            plt.savefig(FileName)
+            plt.clf()
+            FileName = "%(dir)sLenslet-pxy%(fmt)s" % { 'dir' : self.config["System"]["Dirs"]["Partials"], 'fmt':self.config["Instrument"]["plot_format"]}
+            for lenslet in self.lensletObjects.values():
+                x,y = lenslet.ps.T
+                plt.plot(x,y,marker='.')
+            plt.title("Lenslet p-xy positions")
+            plt.savefig(FileName)
+            plt.clf()
     
     def loadOpticsData(self,laspec,dispspec):
         """Loads an optical conversion based on the lenslet array spec and dispersion spec files provided. This wrapper function handles both file loading functions. See `loadDispersionData` and `loadLensletData`."""
+        self.log.info("Loading Optics Data from Spec Files")
         self.loadDispersionData(dispspec)
         self.loadLensletData(laspec)
     
