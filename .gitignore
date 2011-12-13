@@ -12,6 +12,8 @@ Images/*
 Partials/*
 Docs/_build/*
 SEDSpec/*.pdf
+Logs.tar.gz
+*.npy
 .fits
 *.pyc
 *.log
