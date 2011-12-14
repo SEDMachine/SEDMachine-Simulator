@@ -274,7 +274,7 @@ class Source(object):
         FL = RenderedSpectrum.data()[1]
         self.log.debug(AOU.npArrayInfo(FL,"RAll"))
         
-        filename = "%(directory)sSpectrum%(format)s" % { "directory": self.config["System"]["Dirs"]["Partials"], "format": self.config["Source"]["plot_format"] }
+        filename = "%(directory)sSource-Spectrum%(format)s" % { "directory": self.config["System"]["Dirs"]["Partials"], "format": self.config["Source"]["plot_format"] }
         
         RenderedSpectrum.show()
         plt.title("Source at R=100 constant")
@@ -283,7 +283,7 @@ class Source(object):
         plt.savefig(filename)
         plt.clf()
         
-        filename = "%(directory)sSpectrumOrig%(format)s" % { "directory": self.config["System"]["Dirs"]["Partials"], "format": self.config["Source"]["plot_format"] }
+        filename = "%(directory)sSource-All-Spectra%(format)s" % { "directory": self.config["System"]["Dirs"]["Partials"], "format": self.config["Source"]["plot_format"] }
         RenderedSpectrum.show("Original")
         RenderedSpectrum.show("Sky")
         RenderedSpectrum.show("Throughput")
@@ -298,11 +298,11 @@ class Source(object):
         plt.savefig(filename)
         plt.clf()
         
-        filename = "%(directory)sFilterSpectrum%(format)s" % { "directory": self.config["System"]["Dirs"]["Partials"], "format": ".dat" }
+        filename = "%(directory)sSource-Spectrum%(format)s" % { "directory": self.config["System"]["Dirs"]["Partials"], "format": ".dat" }
         
         np.savetxt(filename,RenderedSpectrum.data("Source"))
         
-        filename = "%(directory)sFilterSpectrum%(format)s" % { "directory": self.config["System"]["Dirs"]["Partials"], "format": ".fits" }
+        filename = "%(directory)sThroughput-Spectrum%(format)s" % { "directory": self.config["System"]["Dirs"]["Partials"], "format": ".fits" }
         
         # RenderedSpectrum.write(filename,clobber=True)
         

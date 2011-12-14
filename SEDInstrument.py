@@ -41,6 +41,74 @@ class SEDLimits(Exception):
     This error is used to express the fact that the SEDModel has encountered a spectrum which can't be placed as some part of it falls outside of the limits of the SED system."""
     pass
 
+class SubImage(ImageFrame):
+    """A custom frame type for SEDMachine Sub-Images"""
+    def __init__(self, array, label, header=None, metadata=None):
+        super(SubImage, self).__init__(array,label,header,metadata)
+        self.lensletNumber = 0
+        self.corner = [0,0]
+        self.configHash = hash(0)
+        self.spectrum = "NO SPEC"
+        
+    def sync_header(self):
+        """Synchronizes the header dictionary with the HDU header"""
+        # assert self.label == self.header['SEDlabel'], "Label does not match value specified in header: %s and %s" % (self.label,self.header['SEDlabel'])
+        self.configHash = self.header['SEDconf']
+        self.corner = [self.header['SEDcrx'],self.header['SEDcry']]
+        self.spectrum = self.header['SEDspec']
+        self.lensletNumber = self.header['SEDlens']
+    
+    def __hdu__(self,primary=False):
+        """Retruns an HDU which represents this frame. HDUs are either ``pyfits.PrimaryHDU`` or ``pyfits.ImageHDU`` depending on the *primary* keyword."""
+        if primary:
+            LOG.info("Generating a primary HDU for %s" % self)
+            HDU = pyfits.PrimaryHDU(self())
+        else:
+            LOG.info("Generating an image HDU for %s" % self)
+            HDU = pyfits.ImageHDU(self())
+        HDU.header.update('object',self.label)
+        HDU.header.update('SEDlabel',self.label)
+        HDU.header.update('SEDconf',self.configHash)
+        HDU.header.update('SEDcrx',self.corner[0])
+        HDU.header.update('SEDcry',self.corner[1])
+        HDU.header.update('SEDspec',self.spectrum)
+        HDU.header.update('SEDlens',self.lensletNumber)
+        for key,value in self.header.iteritems():
+            HDU.header.update(key,value)
+        return HDU
+    
+    def __show__(self):
+        """Plots the image in this frame using matplotlib's ``imshow`` function. The color map is set to an inverted binary, as is often useful when looking at astronomical images. The figure object is returned, and can be manipulated further.
+        
+        .. Note::
+            This function serves as a quick view of the current state of the frame. It is not intended for robust plotting support, as that can be easily accomplished using ``matplotlib``. Rather, it attempts to do the minimum possible to create an acceptable image for immediate inspection.
+        """
+        LOG.debug("Plotting %s using matplotlib.pyplot.imshow" % self)
+        figure = plt.imshow(self())
+        figure.set_cmap('binary_r')
+        return figure
+    
+    @classmethod
+    def __read__(cls,HDU,label):
+        """Attempts to convert a given HDU into an object of type :class:`ImageFrame`. This method is similar to the :meth:`__save__` method, but instead of taking data as input, it takes a full HDU. The use of a full HDU allows this method to check for the correct type of HDU, and to gather header information from the HDU. When reading data from a FITS file, this is the prefered method to initialize a new frame.
+        """
+        LOG.debug("Attempting to read as %s" % cls)
+        if not isinstance(HDU,(pyfits.ImageHDU,pyfits.PrimaryHDU)):
+            msg = "Must save a PrimaryHDU or ImageHDU to a %s, found %s" % (cls.__name__,type(HDU))
+            raise AbstractError(msg)
+        if not isinstance(HDU.data,np.ndarray):
+            msg = "HDU Data must be %s for %s, found data of %s" % (np.ndarray,cls.__name__,type(HDU.data))
+            raise AbstractError(msg)
+        try:
+            Object = cls(HDU.data,label,header=HDU.header)
+        except AssertionError as AE:
+            msg = "%s data did not validate: %s" % (cls.__name__,AE)
+            raise AbstractError(msg)
+        LOG.debug("Created %s" % Object)
+        Object.sync_header()
+        return Object
+    
+
 
 class Instrument(ImageObject):
     """This is a model container for the SEDMachine data simulator. This class is based on `AstroObject.ImageObject`, which it uses to provide some awareness of the way images are stored and retrieved. As such, this object has .save(), .select() and .show() etc. methods which can be used to examine the underlying data. It also means that this ImageObject subclass will contain the final, simulated image when the system is done.
@@ -51,6 +119,7 @@ class Instrument(ImageObject):
     
     def __init__(self,config):
         super(Instrument, self).__init__()
+        self.dataClasses = [SubImage]
         self.config = config
         self.debug = self.config["System"]["Debug"]
         self.cache = self.config["System"]["Cache"]
@@ -144,6 +213,9 @@ class Instrument(ImageObject):
         self._configureFile()
         self._configureCaches()
         self._configureDynamic()
+        fileName = "%(dir)sInstrument-Config.dat" % {'dir':self.config["System"]["Dirs"]["Partials"]}
+        with open(fileName,'w') as stream:
+            yaml.dump(self.config,stream,default_flow_style=False)
     
     def _configureDefaults(self):
         """Set up the default configure variable. If you change the default configuration variables in this function (instead of using a configuration file), the script will generally not detect the change, and so will not regenerate Cached files. You can force the script to ignore cached files in the runner script using the option `--no-cache`. To regenrate the cache manually, simply delete the contents of the Caches directory"""
@@ -257,7 +329,7 @@ class Instrument(ImageObject):
             self.log.debug("Configuration has not changed, will not regenerate data.")
         else:
             self.regenearte = True
-            with open("%sConfigs.dat" % self.config["System"]["Dirs"]["Partials"],'w') as stream:
+            with open("%sCaching-Configurations.dat" % self.config["System"]["Dirs"]["Partials"],'w') as stream:
                 stream.write(str(self.config["Instrument"]))
                 stream.write("\n")
                 stream.write(str(self.defaults[-1]["Instrument"]))
@@ -364,7 +436,7 @@ class Instrument(ImageObject):
             self.regenerate = True
         else:
             self.log.debug("Loaded Wavelengths from Numpy Files")
-            with open("%s%s%s" % (self.config["System"]["Dirs"]["Partials"],"WLKeys-Loaded",".dat"),'w') as stream:
+            with open("%s%s%s" % (self.config["System"]["Dirs"]["Partials"],"Instrument-CachedWls-Keys-Loaded",".dat"),'w') as stream:
                 stream.write("\n".join(self.WLS.keys()))
     
     def resetWLCache(self):
@@ -416,17 +488,17 @@ class Instrument(ImageObject):
         plt.imshow(self.TELIMG)
         plt.title("Telescope Image")
         plt.colorbar()
-        plt.savefig("%sTelImage%s" % (self.config["System"]["Dirs"]["Partials"],self.config["Instrument"]["plot_format"]))
+        plt.savefig("%sInstrument-TEL-Kernel%s" % (self.config["System"]["Dirs"]["Partials"],self.config["Instrument"]["plot_format"]))
         plt.clf()
         plt.imshow(self.PSFIMG)
         plt.title("PSF Image")
         plt.colorbar()
-        plt.savefig("%sPSFImage%s" % (self.config["System"]["Dirs"]["Partials"],self.config["Instrument"]["plot_format"]))
+        plt.savefig("%sInstrument-PSF-Kernel%s" % (self.config["System"]["Dirs"]["Partials"],self.config["Instrument"]["plot_format"]))
         plt.clf()
         plt.imshow(self.FINIMG)
         plt.title("Convolved Tel + PSF Image")
         plt.colorbar()
-        plt.savefig("%sFINImage%s" % (self.config["System"]["Dirs"]["Partials"],self.config["Instrument"]["plot_format"]))
+        plt.savefig("%sInstrument-FIN-Kernel%s" % (self.config["System"]["Dirs"]["Partials"],self.config["Instrument"]["plot_format"]))
         plt.clf()
     
     # Kernel Creation for Image Manipulation
@@ -577,7 +649,7 @@ class Instrument(ImageObject):
             raise Exception
         
         filename = "%(dir)s%(file)s%(fmt)s" % { 'dir' : self.config["System"]["Dirs"]["Partials"],
-            'file' : 'points_from_wl_cache', 'fmt' : '.dat'}
+            'file' : 'Instrument-Cached-WL-Points', 'fmt' : '.dat'}
         with open(filename,'w') as stream:
             stream.write(npArrayInfo(results[0],"Points") + "\n")
             for row in results[0]:
@@ -591,7 +663,7 @@ class Instrument(ImageObject):
         """Save the wavelength and position cache. This must be done after all wavelengths have been collected."""
         if self.cache and self.regenerate:
             np.savez(self.config["System"]["CacheFiles"]["wls"],**self.WLS)
-        with open("%s%s%s" % (self.config["System"]["Dirs"]["Partials"],"WLKeys-Saved",".dat"),'w') as stream:
+        with open("%s%s%s" % (self.config["System"]["Dirs"]["Partials"],"Instrument-CachedWls-Keys-Saved",".dat"),'w') as stream:
             stream.write("\n".join(self.WLS.keys()))
         
     
@@ -710,7 +782,7 @@ class Instrument(ImageObject):
             plt.xlabel("x (px)")
             plt.ylabel("$\Delta$Distance along arc (px)")
             plt.plot(points[:-1,1],np.diff(distance) * self.config["Instrument"]["convert"]["mmtopx"],'g.')
-            plt.savefig("%s%04d-Distances_Diff%s" % (self.config["System"]["Dirs"]["Partials"],lenslet_num,self.config["Instrument"]["plot_format"]))
+            plt.savefig("%sInstrument-%04d-Delta-Distances%s" % (self.config["System"]["Dirs"]["Partials"],lenslet_num,self.config["Instrument"]["plot_format"]))
             plt.clf()
         
         return points,wl,np.diff(wl)
@@ -848,8 +920,8 @@ class Instrument(ImageObject):
         corner /= self.config["Instrument"]["density"]
         self.log.debug("Corner Position Offset in Dense Space: %s" % (offset))
         if self.log.getEffectiveLevel() <= logging.DEBUG:
-            with open("Partials/Offsets.dat",'a') as handle:
-                np.savetxt(handle,offset.T)
+            with open(self.config["System"]["Dirs"]["Partials"]+"Instrument-Offsets.dat",'a') as handle:
+                np.savetxt(handle,offset)
         corner -= np.array([-self.config["Instrument"]["padding"],self.config["Instrument"]["padding"]])
         
         x += offset[0]
@@ -877,26 +949,26 @@ class Instrument(ImageObject):
             plt.title("Retrieved Spectra")
             plt.xlabel("Wavelength ($\mu m$)")
             plt.ylabel("Radiance (Units undefined)")
-            plt.savefig("%s%04d-SpecRad%s" % (self.config["System"]["Dirs"]["Partials"],lenslet,self.config["Instrument"]["plot_format"]))
+            plt.savefig("%sInstrument-%04d-Radiance%s" % (self.config["System"]["Dirs"]["Partials"],lenslet,self.config["Instrument"]["plot_format"]))
             plt.clf()
             plt.clf()
             plt.plot(wl[:-1]*1e-6,flux,"b.")
             plt.title("Generated, Fluxed Spectra")
             plt.xlabel("Wavelength ($\mu m$)")
             plt.ylabel("Flux (Units undefined)")
-            plt.savefig("%s%04d-SpecFlux%s" % (self.config["System"]["Dirs"]["Partials"],lenslet,self.config["Instrument"]["plot_format"]))
+            plt.savefig("%sInstrument-%04d-Flux%s" % (self.config["System"]["Dirs"]["Partials"],lenslet,self.config["Instrument"]["plot_format"]))
             plt.clf()
             plt.plot(wl[:-1]*1e-6,deltawl*1e-6,"g.")
             plt.title("$\Delta\lambda$ for each pixel")
             plt.xlabel("Wavelength ($\mu m$)")
             plt.ylabel("$\Delta\lambda$ per pixel")
-            plt.savefig("%s%04d-SpecDeltaWL%s" % (self.config["System"]["Dirs"]["Partials"],lenslet,self.config["Instrument"]["plot_format"]))
+            plt.savefig("%sInstrument-%04d-DeltaWL%s" % (self.config["System"]["Dirs"]["Partials"],lenslet,self.config["Instrument"]["plot_format"]))
             plt.clf()
             plt.semilogy(WLS,RS,"g.")
-            plt.title("$R = \\frac{\Delta\lambda}{\lambda}$ for each pixel")
+            plt.title("$R = \\frac{\lambda}{\Delta\lambda}$ for each pixel")
             plt.xlabel("Wavelength ($\mu m$)")
             plt.ylabel("Resolution $R = \\frac{\Delta\lambda}{\lambda}$ per pixel")
-            plt.savefig("%s%04d-SpecRes%s" % (self.config["System"]["Dirs"]["Partials"],lenslet,self.config["Instrument"]["plot_format"]))
+            plt.savefig("%sInstrument-%04d-Resolution%s" % (self.config["System"]["Dirs"]["Partials"],lenslet,self.config["Instrument"]["plot_format"]))
             plt.clf()
         
         
@@ -909,7 +981,7 @@ class Instrument(ImageObject):
             % (flux.shape,lenslet,img.shape))
         
         if self.log.getEffectiveLevel() <= logging.DEBUG:
-            np.savetxt("Partials/SubimageValues.dat",np.array([x,y,wl[:-1],deltawl,flux]).T)
+            np.savetxt(self.config["System"]["Dirs"]["Partials"]+"Instrument-Subimage-Values.dat",np.array([x,y,wl[:-1],deltawl,flux]).T)
         
         return img, corner
     
@@ -955,26 +1027,40 @@ class Instrument(ImageObject):
         label = "SUBIMG%d" % lenslet
         
         self.save(small,label)
-        self.frame().header=dict(Lenslet=lenslet,Spectrum=spectrum.label)
-        self.frame().metadata=dict(Corner=corner)
-        self.frame().header.update(dict(Corner_X=corner[0],Corner_Y=corner[1]))
+        frame = self.frame()
+        frame.lensletNumber = lenslet
+        frame.corner = corner
+        frame.spectrum = spectrum.label
+        frame.config = hash(str(self.config))
         
-        Stages = ["Raw Image","Convolved with Telescope","Convolved with Telescope and PSF"]
-        StagesF = ["Raw","Tel","PSF"]
+
         if self.debug and self.plot:
+            Stages = ["Raw Image","Convolved with Telescope","Convolved with Telescope and PSF"]
+            StagesF = ["Raw","Tel","PSF"]
             for i,step in enumerate(steps):
                 self.save(step,"%04d-Intermediate-%d: %s" % (lenslet,i,Stages[i]))
-                self.frame().header.update(dict(Lenslet=lenslet,Spectrum=spectrum.label,Stage=Stages[i]))
-                self.frame().metadata.update(dict(Corner=corner))
+                frame = self.frame()
+                frame.lensletNumber = lenslet
+                frame.corner = corner
+                frame.spectrum = spectrum.label
+                frame.config = hash(str(self.config))
+                frame.header.update(dict(SEDstg=Stages[i]))
                 plt.imshow(step)
                 plt.title("%s Image Generation Steps for Lenslet %4d" % (Stages[i],lenslet))
-                plt.savefig("%s%04d-%s%s" % (self.config["System"]["Dirs"]["Partials"],lenslet,StagesF[i],self.config["Instrument"]["plot_format"]))
+                plt.savefig("%sInstrument-%04d-Subimage-%s%s" % (self.config["System"]["Dirs"]["Partials"],lenslet,StagesF[i],self.config["Instrument"]["plot_format"]))
                 plt.clf()
         
         # We only write the sub-image if the function is called to write sub images
         if write:
-            self.write("%sSubimage-%4d%s" % (self.config["System"]["Dirs"]["Caches"],lenslet,".fits"),[label],label,clobber=True)
+            toSave = [label]
+            if self.debug and self.plot:
+                toSave += ["%04d-Intermediate-%d: %s" % (lenslet,i,Stages[i]) for i in range(len(steps))]
+            self.write("%sSubimage-%4d%s" % (self.config["System"]["Dirs"]["Caches"],lenslet,".fits"),toSave,label,clobber=True)
             self.remove(label)
+            if self.debug and self.plot:
+                for i,step in enumerate(steps):
+                    self.remove("%04d-Intermediate-%d: %s" % (lenslet,i,Stages[i]))
+                    
         
         if do_return:
             return small, corner
@@ -1000,11 +1086,8 @@ class Instrument(ImageObject):
             except KeyError as e:
                 raise SEDLimits(str(e))
         subimg = subframe()
-        mlenslet = subframe.header['Lenslet']
-        if fromfile:
-            mcorner = float(subframe.header["Corner_X"]),float(subframe.header["Corner_Y"])
-        else:
-            mcorner = subframe.metadata['Corner']
+        mlenslet = subframe.lensletNumber
+        mcorner = subframe.corner
         if mlenslet != lenslet:
             raise ValueError("Lenslet Number Mismatch %d:%d for state %s in %s" % (lenslet,mlenslet,slabel,self))
         self.remove(slabel)

@@ -351,7 +351,7 @@ class Simulator(object):
         for key,value in vars(self.options).iteritems():
             self.optstring += "%(key)15s : %(value)-40s \n" % { 'key':key , 'value':value }
 
-        with open(self.config["System"]["Dirs"]["Partials"]+"/Options.dat",'w') as stream:
+        with open(self.config["System"]["Dirs"]["Partials"]+"/Script-Options.dat",'w') as stream:
             stream.write(self.optstring)
     
     def run(self):
@@ -473,7 +473,7 @@ class Simulator(object):
         """Performs all setup options"""
         self.setupModel()
         self.setupLenslets()
-        with open("%(dir)s%(fname)s%(fmt)s" % {'dir': self.config["System"]["Dirs"]["Partials"], 'fname': "lists", 'fmt':".dat" },'w') as stream:
+        with open("%(dir)s%(fname)s%(fmt)s" % {'dir': self.config["System"]["Dirs"]["Partials"], 'fname': "Instrument-Audit", 'fmt':".dat" },'w') as stream:
             stream.write("State Audit File %s\n" % (time.strftime("%Y-%m-%d-%H:%M:%S")))
     
     
@@ -547,7 +547,7 @@ class Simulator(object):
     def positionTests(self):
         """Test the positioning of spectra on the image"""
         self.bar.render(0,"L:%4d" % 0)
-        handle = file(self.config["System"]["Dirs"]["Partials"] + "Positions.dat",'w')
+        handle = file(self.config["System"]["Dirs"]["Partials"] + "Instrument-Positions.dat",'w')
         handle.write("# Spectra Positions\n")
         handle.close()
         for i in self.lenslets:
@@ -565,7 +565,7 @@ class Simulator(object):
             points,wl,deltawl = self.Model.get_wavelengths(lenslet)
             x,y = points.T
             ncorner = np.array([np.max(x),np.min(y)])
-            handle = file(self.config["System"]["Dirs"]["Partials"] + "Positions.dat",'a')
+            handle = file(self.config["System"]["Dirs"]["Partials"] + "Instrument-Positions.dat",'a')
             np.savetxt(handle,np.array([np.hstack((corner,ncorner))]),fmt='%6.1f')
         except self.Limits:
             msg = "Skipped Lenslet %4d" % lenslet
@@ -584,7 +584,7 @@ class Simulator(object):
             
             if self.debug:
                 self.Model.show()
-                self.plt.savefig(self.config["System"]["Dirs"]["Partials"] + "%04d-Subimage.pdf" % i)
+                self.plt.savefig(self.config["System"]["Dirs"]["Partials"] + "Subimage-%04d-Final.pdf" % i)
                 self.plt.clf()
         
         except self.Limits:
@@ -596,7 +596,7 @@ class Simulator(object):
         finally:
             self.prog.value += 1.0
             States = self.Model.list()
-            with open("%(dir)s%(fname)s%(fmt)s" % {'dir': self.config["System"]["Dirs"]["Partials"], 'fname': "lists", 'fmt':".dat" },'a') as stream:
+            with open("%(dir)s%(fname)s%(fmt)s" % {'dir': self.config["System"]["Dirs"]["Partials"], 'fname': "Instrument-Audit", 'fmt':".dat" },'a') as stream:
                 stream.write("%4d: %s\n" % (len(States),States))
             self.log.debug("Memory Status: %d states saved in object" % len(States))
             
@@ -626,7 +626,7 @@ class Simulator(object):
             self.Model.place_cached_sed(i,"Included Spectrum %d" % i,"Final",fromfile=self.config["System"]["Cache"])
             if self.debug:
                 self.Model.show()
-                self.plt.savefig(self.config["System"]["Dirs"]["Partials"] + "%04d-Fullimage.pdf" % i)
+                self.plt.savefig(self.config["System"]["Dirs"]["Partials"] + "FullImage-%04d-Final.pdf" % i)
                 self.plt.clf()
         except self.Limits:
             msg = "Encoutered Spectrum outside image boundaries %d" % i
@@ -637,7 +637,7 @@ class Simulator(object):
         finally:
             self.prog.value += 1
             States = self.Model.list()
-            with open("%(dir)s%(fname)s%(fmt)s" % {'dir': self.config["System"]["Dirs"]["Partials"], 'fname': "lists", 'fmt':".dat" },'a') as stream:
+            with open("%(dir)s%(fname)s%(fmt)s" % {'dir': self.config["System"]["Dirs"]["Partials"], 'fname': "Instrument-Audit", 'fmt':".dat" },'a') as stream:
                 stream.write("%4d: %s\n" % (len(States),States))
             self.log.debug("Memory Status: %d states saved in object" % len(States))
             
