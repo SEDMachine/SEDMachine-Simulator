@@ -473,6 +473,8 @@ class Simulator(object):
         """Performs all setup options"""
         self.setupModel()
         self.setupLenslets()
+        with open("%(dir)s%(fname)s%(fmt)s" % {'dir': self.config["System"]["Dirs"]["Partials"], 'fname': "lists", 'fmt':".dat" },'w') as stream:
+            stream.write("State Audit File %s\n" % (time.strftime("%Y-%m-%d-%H:%M:%S")))
     
     
     def setupSource(self):
@@ -593,6 +595,11 @@ class Simulator(object):
             self.Model.log.info(msg)
         finally:
             self.prog.value += 1.0
+            States = self.Model.list()
+            with open("%(dir)s%(fname)s%(fmt)s" % {'dir': self.config["System"]["Dirs"]["Partials"], 'fname': "lists", 'fmt':".dat" },'a') as stream:
+                stream.write("%4d: %s\n" % (len(States),States))
+            self.log.debug("Memory Status: %d states saved in object" % len(States))
+            
         if self.debug:
             self.log.info("=>Finished Generating Spectrum %d" % self.prog.value)
         else:
@@ -629,6 +636,11 @@ class Simulator(object):
             self.Model.log.info(msg)
         finally:
             self.prog.value += 1
+            States = self.Model.list()
+            with open("%(dir)s%(fname)s%(fmt)s" % {'dir': self.config["System"]["Dirs"]["Partials"], 'fname': "lists", 'fmt':".dat" },'a') as stream:
+                stream.write("%4d: %s\n" % (len(States),States))
+            self.log.debug("Memory Status: %d states saved in object" % len(States))
+            
         if self.debug:
             self.log.info("=>Finished Placing Spectrum %d" % self.prog.value)
         else:

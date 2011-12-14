@@ -1007,6 +1007,7 @@ class Instrument(ImageObject):
             mcorner = subframe.metadata['Corner']
         if mlenslet != lenslet:
             raise ValueError("Lenslet Number Mismatch %d:%d for state %s in %s" % (lenslet,mlenslet,slabel,self))
+        self.remove(slabel)
         self.place(subimg,mcorner,label,dlabel)
     
     def place_sed(self,lenslet,spectrum,label,dlabel):
@@ -1039,6 +1040,8 @@ class Instrument(ImageObject):
         self.remove(dlabel)
         self.save(data,dlabel)
         self.log.debug("Placed a new image %s into %s at corner %s" % (label,dlabel,corner))
+        self.remove(label)
+        
     
     
     # Basic Manipulation Functions
