@@ -973,7 +973,7 @@ class Instrument(ImageObject):
         
         # We only write the sub-image if the function is called to write sub images
         if write:
-            self.write("%sSubimage-%4d%s" % (self.config["System"]["Dirs"]["Images"],lenslet,".fits"),[label],label,clobber=True)
+            self.write("%sSubimage-%4d%s" % (self.config["System"]["Dirs"]["Caches"],lenslet,".fits"),[label],label,clobber=True)
             self.remove(label)
         
         if do_return:
@@ -988,7 +988,7 @@ class Instrument(ImageObject):
         subframe = False
         if fromfile:
             try:
-                filename = "%sSubimage-%4d%s" % (self.config["System"]["Dirs"]["Images"],lenslet,".fits")
+                filename = "%sSubimage-%4d%s" % (self.config["System"]["Dirs"]["Caches"],lenslet,".fits")
                 slabel = self.read(filename)[0]
                 subframe = self.frame(slabel)
             except IOError as e:
