@@ -47,6 +47,7 @@ class Lenslet(object):
     """An object-representation of a lenslet"""
     def __init__(self, xs,ys,xpixs,ypixs,p1s,p2s,ls,ix):
         super(Lenslet, self).__init__()
+        self.log = logging.getLogger(__name__)
         self.num = ix
         self.xs = xs
         self.ys = ys
@@ -56,6 +57,7 @@ class Lenslet(object):
         self.pixs = np.array([xpixs,ypixs]).T
         self.ps = np.array([p1s,p2s]).T
         self.ls = np.array(ls)
+        
     
     def introspect(self):
         """Show all sorts of fun data about this lenslet"""
@@ -69,17 +71,17 @@ class Lenslet(object):
     def valid(self):
         """Returns true if this is a valid lenslet, false if it fails any of the tests"""
         if len(self.points) != len(self.ps) or len(self.points) != len(self.ls) or len(self.points) != len(self.pixs):
-            LOG.warning("Lenslet %d failed b/c the data had inconsistent points" % self.num)
+            self.log.warning("Lenslet %d failed b/c the data had inconsistent points" % self.num)
             return False
         if len(self.points) < 3:
-            LOG.debug("Lenslet %d failed b/c there were fewer than three data points" % self.num)
+            self.log.debug("Lenslet %d failed b/c there were fewer than three data points" % self.num)
             return False
         if np.any(self.pixs.flatten == 0):
-            LOG.debug("Lenslet %d failed b/c some (x,y) were exactly zero" % self.num)
+            self.log.debug("Lenslet %d failed b/c some (x,y) were exactly zero" % self.num)
             return False
         dist = 30
         if np.any(np.abs(np.diff(self.xpixs)) > dist):
-            LOG.debug("Lenslet %d failed b/c x distance was more than %d" % (self.num,dist))
+            self.log.debug("Lenslet %d failed b/c x distance was more than %d" % (self.num,dist))
             return False
         startix = np.argmin(self.ls)
         endix = np.argmax(self.ls)
@@ -90,7 +92,7 @@ class Lenslet(object):
         self.distance = np.sqrt(np.sum(end-start)**2)
         
         if self.distance == 0:
-            LOG.debug("Lenslet %d failed b/c the points have no separating distance")
+            self.log.debug("Lenslet %d failed b/c the points have no separating distance" % self.num)
             return False
         
         return True
@@ -667,7 +669,7 @@ class Instrument(ImageObject):
         
         # First, we take only data points which apply to this lenslet
         lenslet = self.lensletObjects[lenslet_num]
-        use = lenslet_num == self.ix
+        # use = lenslet_num == self.ix
         
         # Interpolation to convert from wavelength to pixels.
         #   The accuracy of this interpolation is not important.
