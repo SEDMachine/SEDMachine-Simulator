@@ -222,7 +222,7 @@ class Source(object):
         """Sets up a uniform source file based spectrum"""
         WL,Flux = np.genfromtxt(self.config["Source"]["Filename"]).T
         WL *= 1e-10
-        Flux *= 1e18 * 1e6 * 1e-11  * 1.5
+        Flux /= np.max(Flux) 
         self.R_Spectrum = ResampledSpectrum(np.array([WL,Flux]),self.config["Source"]["Filename"])
         self.D_Spectrum = self.R_Spectrum * self.config["Source"]["PreAmp"]
         

@@ -1,5 +1,5 @@
-Simulator Model
-===============
+Instrument Model
+================
 
 .. autoclass::
     SEDInstrument.Instrument

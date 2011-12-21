@@ -32,7 +32,7 @@ from AstroObject.Utilities import *
 
 from Utilities import *
 
-__version__ = open(os.path.abspath(os.path.join(os.path.dirname(__file__),"VERSION")),'r').read()
+__version__ = "0.1.1"
 __all__ = ["SEDLimits","Instrument"]
 
 

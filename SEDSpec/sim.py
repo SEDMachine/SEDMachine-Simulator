@@ -2,6 +2,7 @@ import numpy as np
 import scipy as sp
 import pylab as pl
 import scipy.interpolate, scipy.integrate
+
 from massey import skyab
 
 import os
@@ -21,7 +22,8 @@ def vegamag_to_flambda(m, band):
     if band == 'r':
         pass
 
-
+# Convert some sky spec from AB to fLambda
+# This sky spectrum is imported from the massey module, and uses the mag conversion functions above.
 skyflam = np.transpose(np.array([skyab[:,0], abmag_to_flambda(skyab[:,1], skyab[:,0])]))
 
 if PLOT:
@@ -29,6 +31,9 @@ if PLOT:
 
 hc = 1.98644521e-8 # erg angstrom
 
+# Moon phase adjustments. These moon phase attenuation values are for different filter bands.
+# The intermediate wavelengths are accounted for using a polyfit
+# the result is a function which takes phase and wavelength, and outputs an attenuation...
 
 # See derivation on pg 83 of SED NB 1 (20 July 2011)
 moon_phase = np.array([0., 0.08, 0.16, 0.24, 0.32, 0.40, 0.50])
@@ -140,6 +145,7 @@ uves_sky = np.array([
     (10750  , -0.2272)
 ])
 
+# Fix teh wavelength value of the UVES sky spectrum. 
 uves_sky[:,1] = 10**(uves_sky[:,1])*1e-17 # erg/sec/cm^2/Ang/Arc^2
 uves_sky[:,1] /= (hc/uves_sky[:,0]) # #/sec/cm^2/Ang/Arc^2
 
