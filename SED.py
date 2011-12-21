@@ -425,7 +425,7 @@ class Simulator(object):
         except Exception as e:
             self.log.critical("Simulator Encoutered a Critical Error, and was forced to close!")
             self.log.critical("Exception %s" % str(e))
-            raise e
+            raise
         
     
     def exit(self):
@@ -501,10 +501,8 @@ class Simulator(object):
         self.Source = SEDSource.Source(self.config)
         
         self.Source.setup()
-        
-        self.Spectrum = self.Source.GetSpectrum()
-        
-        self.log.debug("Set Spectrum to %s" % self.Spectrum)
+                
+        self.log.debug("Set Spectrum to %s" % self.Source.Spectrum)
         
         
     
@@ -616,7 +614,7 @@ class Simulator(object):
             map_func = self.pool.async_map
         else:
             map_func = map
-        map_func(lambda i: self.generateLenslet(i,self.Spectrum),self.lenslets)
+        map_func(lambda i: self.generateLenslet(i,self.Source.getSpectrum(i)),self.lenslets)
         self.bar.lines = 0
     
     
