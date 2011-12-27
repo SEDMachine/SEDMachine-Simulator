@@ -62,10 +62,10 @@ class SubImage(ImageFrame):
     def __hdu__(self,primary=False):
         """Retruns an HDU which represents this frame. HDUs are either ``pyfits.PrimaryHDU`` or ``pyfits.ImageHDU`` depending on the *primary* keyword."""
         if primary:
-            LOG.info("Generating a primary HDU for %s" % self)
+            LOG.log(5,"Generating a primary HDU for %s" % self)
             HDU = pf.PrimaryHDU(self())
         else:
-            LOG.info("Generating an image HDU for %s" % self)
+            LOG.log(5,"Generating an image HDU for %s" % self)
             HDU = pf.ImageHDU(self())
         HDU.header.update('object',self.label)
         HDU.header.update('SEDlabel',self.label)
