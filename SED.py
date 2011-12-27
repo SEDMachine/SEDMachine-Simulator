@@ -425,7 +425,7 @@ class Simulator(object):
         except Exception as e:
             self.log.critical("Simulator Encoutered a Critical Error, and was forced to close!")
             self.log.critical("Exception %s" % str(e))
-            raise e
+            raise
         
     
     def exit(self):
