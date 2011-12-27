@@ -11,6 +11,9 @@ Caches/*
 Images/*
 Partials/*
 Docs/_build/*
+SEDSpec/*.pdf
+Logs.tar.gz
+*.npy
 .fits
 *.pyc
 *.log
@@ -18,5 +21,7 @@ TODO/*
 *.png
 *.fits
 *.TXT
+*OLD.py
 *config.yaml
+*dump.yaml
 experiment.py

@@ -16,10 +16,12 @@ Contents:
 
 .. toctree::
    :maxdepth: 2
+   :numbered:
    
    CLI
    Runner
    Simulator
+   AstroImage
 
 
 

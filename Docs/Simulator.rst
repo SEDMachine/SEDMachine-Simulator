@@ -1,7 +1,9 @@
-Simulator Model
-===============
+Instrument Model
+================
 
 .. autoclass::
-    SED.Model
+    SEDInstrument.Instrument
     :members:
     :inherited-members:
+    :private-members:
+    
