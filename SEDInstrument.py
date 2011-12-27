@@ -34,6 +34,7 @@ from Utilities import *
 
 __version__ = open(os.path.abspath(os.path.join(os.path.dirname(__file__),"VERSION")),'r').read()
 __all__ = ["SEDLimits","Instrument"]
+LOG = logging.getLogger(__name__)
 
 
 class SEDLimits(Exception):
@@ -62,10 +63,10 @@ class SubImage(ImageFrame):
         """Retruns an HDU which represents this frame. HDUs are either ``pyfits.PrimaryHDU`` or ``pyfits.ImageHDU`` depending on the *primary* keyword."""
         if primary:
             LOG.info("Generating a primary HDU for %s" % self)
-            HDU = pyfits.PrimaryHDU(self())
+            HDU = pf.PrimaryHDU(self())
         else:
             LOG.info("Generating an image HDU for %s" % self)
-            HDU = pyfits.ImageHDU(self())
+            HDU = pf.ImageHDU(self())
         HDU.header.update('object',self.label)
         HDU.header.update('SEDlabel',self.label)
         HDU.header.update('SEDconf',self.configHash)
@@ -93,7 +94,7 @@ class SubImage(ImageFrame):
         """Attempts to convert a given HDU into an object of type :class:`ImageFrame`. This method is similar to the :meth:`__save__` method, but instead of taking data as input, it takes a full HDU. The use of a full HDU allows this method to check for the correct type of HDU, and to gather header information from the HDU. When reading data from a FITS file, this is the prefered method to initialize a new frame.
         """
         LOG.debug("Attempting to read as %s" % cls)
-        if not isinstance(HDU,(pyfits.ImageHDU,pyfits.PrimaryHDU)):
+        if not isinstance(HDU,(pf.ImageHDU,pf.PrimaryHDU)):
             msg = "Must save a PrimaryHDU or ImageHDU to a %s, found %s" % (cls.__name__,type(HDU))
             raise AbstractError(msg)
         if not isinstance(HDU.data,np.ndarray):
