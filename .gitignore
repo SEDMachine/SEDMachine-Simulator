@@ -25,3 +25,4 @@ TODO/*
 *config.yaml
 *dump.yaml
 experiment.py
+*.egg-info
