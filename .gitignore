@@ -26,3 +26,9 @@ TODO/*
 *dump.yaml
 experiment.py
 *.egg-info
+
+# Buildout Components
+bin/
+develop-eggs/
+eggs/
+parts/
