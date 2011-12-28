@@ -35,7 +35,7 @@ from Utilities import *
 
 import scipy.signal
 
-__version__ = open(os.path.abspath(os.path.join(os.path.dirname(__file__),"VERSION")),'r').read()
+__version__ = AOU.getVersion(__name__)
 
 class Source(object):
     """An SED Machine Source wrapping class"""

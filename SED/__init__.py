@@ -7,6 +7,3 @@
 #  Version 0.1.2
 # 
 
-print "Testing Module Behavior"
-
-__version__ == "0.0"

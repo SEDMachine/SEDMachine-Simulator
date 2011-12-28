@@ -32,7 +32,7 @@ from AstroObject.Utilities import *
 
 from Utilities import *
 
-__version__ = "0.1.1"
+__version__ = getVersion(__name__)
 __all__ = ["SEDLimits","Instrument"]
 LOG = logging.getLogger(__name__)
 
