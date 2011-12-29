@@ -1,7 +1,7 @@
 ---
 Title: Simulation Scripts for SED Machine
 Author: Alexander Rudy
-  Version 0.1.2
+  Version 0.1.3
 ---
 
 # Introduction
@@ -18,4 +18,6 @@ This Program contains SEDMachine Simulation and plotting scripts. They are writt
 	- Creation of SEDSource module to handle source manipulation
 	- Cleanup of Nick's spectrum simulations in SEDSpec
 	- Basic Utlity additions
+* 0.1.3
+	- Use of setup.py for deployment and setup managment.
 

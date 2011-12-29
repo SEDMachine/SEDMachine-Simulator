@@ -2,7 +2,7 @@ Instrument Model
 ================
 
 .. autoclass::
-    SEDInstrument.Instrument
+    SED.Instrument.Instrument
     :members:
     :inherited-members:
     :private-members:

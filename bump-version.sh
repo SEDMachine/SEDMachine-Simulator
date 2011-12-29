@@ -31,13 +31,15 @@ VERSION=`cat $VSPECFILE`
 echo "Version is currently $VERSION, changing to $1"
 
 echo "$1" > $VSPECFILE
+echo "$1" > "SED/"$VSPECFILE
+
 
 VERSION=`cat $VSPECFILE`
 
 echo "New Version $VERSION"
 
 echo "Manipulating Python (.py) files"
-files=`find *.py`
+files=`find SED/*.py`
 
 for file in $files
 do
@@ -55,8 +57,10 @@ do
 done
 
 echo "Manipulating Special Files:"
-sed -i '' -Ee "s/__version__ += +\'[0-9\.]+\'/__version__ = \'$VERSION\'/" '__init__.py'
+sed -i '' -Ee "s/__version__ += +\'[0-9\.]+\'/__version__ = \'$VERSION\'/" 'SED/__init__.py'
 echo "  Changed __init__.py version variable to $VERSION"
+sed -i '' -Ee "s/    version = \"[0-9a-zA-Z\.]+\",/    version = \"$VERSION\",/" 'setup.py'
+echo "  Changed setup.py version variable to $VERSION"
 sed -i '' -Ee "s/version += +\'[0-9\.]+\'/version = \'$VERSION\'/" 'Docs/conf.py'
 echo "  Changed Sphinyx conf.py version variable to $VERSION"
 sed -i '' -Ee "s/release += +\'[0-9\.]+\'/release = \'$VERSION\'/" 'Docs/conf.py'

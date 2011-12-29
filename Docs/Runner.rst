@@ -13,5 +13,5 @@ This will set up the command line runner, and activate it. In general, the comma
 .. Note :: Version 0.2 will use :mod:`AstroObject` v0.3.0, which contains a simulator model that is highly pluggable. Plugging the simulator will make more sense then.
 
 .. autoclass::
-    SED.Simulator
+    SED.Simulator.Simulator
     :members:
