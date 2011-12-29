@@ -1,11 +1,10 @@
-#!/usr/bin/env python
 #
 #  SED.scrpt.py
 #  Simulation Software
 #
 #  Created by Alexander Rudy on 2011-11-09.
 #  Copyright 2011 Alexander Rudy. All rights reserved.
-#  Version 0.1.2
+#  Version 0.1.3
 #
 
 import math, copy, sys, time, logging, os, argparse, yaml, collections
@@ -17,6 +16,8 @@ import arpytools.progressbar
 from multiprocessing import Pool, Value
 
 import numpy as np
+
+import AstroObject.Utilities as AOU
 
 def update(d, u):
     """A deep update command for dictionaries.
@@ -31,7 +32,7 @@ def update(d, u):
             d[k] = u[k]
     return d
 
-__version__ = open(os.path.abspath(os.path.join(os.path.dirname(__file__),"VERSION")),'r').read().rstrip("\n")
+__version__ = AOU.getVersion(__name__)
 
 LongHelp = """
 This is the Command Line Interface to the SEDMachine Simulator Program."""
@@ -351,7 +352,7 @@ class Simulator(object):
         for key,value in vars(self.options).iteritems():
             self.optstring += "%(key)15s : %(value)-40s \n" % { 'key':key , 'value':value }
 
-        with open(self.config["System"]["Dirs"]["Partials"]+"/Options.dat",'w') as stream:
+        with open(self.config["System"]["Dirs"]["Partials"]+"/Script-Options.dat",'w') as stream:
             stream.write(self.optstring)
     
     def run(self):
@@ -456,15 +457,15 @@ class Simulator(object):
         
     def dumpConfig(self):
         """Dumps a config back out"""
-        import SEDInstrument, SEDSource
+        import Instrument, Source
         with open(self.config["System"]["Configs"]["This"].rstrip(".yaml")+".dump.yaml",'w') as stream:
             yaml.dump(self.config["System"],stream,default_flow_style=False)
         
-        Model = SEDInstrument.Instrument(self.config)
+        Model = Instrument.Instrument(self.config)
         Model.setup()
         Model.dumpConfig()
         
-        Source = SEDSource.Source(self.config)
+        Source = Source.Source(self.config)
         Source.setup()
         Source.dumpConfig()
         
@@ -473,7 +474,7 @@ class Simulator(object):
         """Performs all setup options"""
         self.setupModel()
         self.setupLenslets()
-        with open("%(dir)s%(fname)s%(fmt)s" % {'dir': self.config["System"]["Dirs"]["Partials"], 'fname': "lists", 'fmt':".dat" },'w') as stream:
+        with open("%(dir)s%(fname)s%(fmt)s" % {'dir': self.config["System"]["Dirs"]["Partials"], 'fname': "Instrument-Audit", 'fmt':".dat" },'w') as stream:
             stream.write("State Audit File %s\n" % (time.strftime("%Y-%m-%d-%H:%M:%S")))
     
     
@@ -496,9 +497,9 @@ class Simulator(object):
         
         
         update(self.config["System"]["Source"],sourceCfg)
-        import SEDSource
+        import Source
         
-        self.Source = SEDSource.Source(self.config)
+        self.Source = Source.Source(self.config)
         
         self.Source.setup()
                 
@@ -511,9 +512,9 @@ class Simulator(object):
         if self.debug:
             start = time.clock()
         
-        import SEDInstrument
-        self.Limits = SEDInstrument.SEDLimits
-        self.Model = SEDInstrument.Instrument(self.config)
+        import Instrument
+        self.Limits = Instrument.SEDLimits
+        self.Model = Instrument.Instrument(self.config)
         
         self.Model.plot = self.options.plot
         self.Model.setup()
@@ -545,7 +546,7 @@ class Simulator(object):
     def positionTests(self):
         """Test the positioning of spectra on the image"""
         self.bar.render(0,"L:%4d" % 0)
-        handle = file(self.config["System"]["Dirs"]["Partials"] + "Positions.dat",'w')
+        handle = file(self.config["System"]["Dirs"]["Partials"] + "Instrument-Positions.dat",'w')
         handle.write("# Spectra Positions\n")
         handle.close()
         for i in self.lenslets:
@@ -563,7 +564,7 @@ class Simulator(object):
             points,wl,deltawl = self.Model.get_wavelengths(lenslet)
             x,y = points.T
             ncorner = np.array([np.max(x),np.min(y)])
-            handle = file(self.config["System"]["Dirs"]["Partials"] + "Positions.dat",'a')
+            handle = file(self.config["System"]["Dirs"]["Partials"] + "Instrument-Positions.dat",'a')
             np.savetxt(handle,np.array([np.hstack((corner,ncorner))]),fmt='%6.1f')
         except self.Limits:
             msg = "Skipped Lenslet %4d" % lenslet
@@ -582,7 +583,7 @@ class Simulator(object):
             
             if self.debug:
                 self.Model.show()
-                self.plt.savefig(self.config["System"]["Dirs"]["Partials"] + "%04d-Subimage.pdf" % i)
+                self.plt.savefig(self.config["System"]["Dirs"]["Partials"] + "Subimage-%04d-Final.pdf" % i)
                 self.plt.clf()
         
         except self.Limits:
@@ -594,7 +595,7 @@ class Simulator(object):
         finally:
             self.prog.value += 1.0
             States = self.Model.list()
-            with open("%(dir)s%(fname)s%(fmt)s" % {'dir': self.config["System"]["Dirs"]["Partials"], 'fname': "lists", 'fmt':".dat" },'a') as stream:
+            with open("%(dir)s%(fname)s%(fmt)s" % {'dir': self.config["System"]["Dirs"]["Partials"], 'fname': "Instrument-Audit", 'fmt':".dat" },'a') as stream:
                 stream.write("%4d: %s\n" % (len(States),States))
             self.log.debug("Memory Status: %d states saved in object" % len(States))
             
@@ -624,7 +625,7 @@ class Simulator(object):
             self.Model.place_cached_sed(i,"Included Spectrum %d" % i,"Final",fromfile=self.config["System"]["Cache"])
             if self.debug:
                 self.Model.show()
-                self.plt.savefig(self.config["System"]["Dirs"]["Partials"] + "%04d-Fullimage.pdf" % i)
+                self.plt.savefig(self.config["System"]["Dirs"]["Partials"] + "FullImage-%04d-Final.pdf" % i)
                 self.plt.clf()
         except self.Limits:
             msg = "Encoutered Spectrum outside image boundaries %d" % i
@@ -635,7 +636,7 @@ class Simulator(object):
         finally:
             self.prog.value += 1
             States = self.Model.list()
-            with open("%(dir)s%(fname)s%(fmt)s" % {'dir': self.config["System"]["Dirs"]["Partials"], 'fname': "lists", 'fmt':".dat" },'a') as stream:
+            with open("%(dir)s%(fname)s%(fmt)s" % {'dir': self.config["System"]["Dirs"]["Partials"], 'fname': "Instrument-Audit", 'fmt':".dat" },'a') as stream:
                 stream.write("%4d: %s\n" % (len(States),States))
             self.log.debug("Memory Status: %d states saved in object" % len(States))
             
@@ -674,10 +675,7 @@ class Simulator(object):
         self.Model.write(self.Fullname,clobber=True)
         self.log.info("Wrote %s" % self.Fullname)
     
-
-
-if __name__ == '__main__':
-    Sim = Simulator()
-    Sim.run()
-
-
+def run():
+    """Run this simulator"""
+    SIM = Simulator()
+    SIM.run()
