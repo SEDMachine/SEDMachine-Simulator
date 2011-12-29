@@ -20,6 +20,7 @@ This Program contains SEDMachine Simulation and plotting scripts. They are writt
 	- Basic Utlity additions
 * 0.1.3
 	- Use of setup.py for deployment and setup managment.
-* 0.1.3p1
+* 0.1.3p1,p2
 	- Patch setup.py for AstroObject 0.2.8 rather than 0.2.6
+	- Patch setup.py for Matplotlib 1.0 rather than 1.1
 
