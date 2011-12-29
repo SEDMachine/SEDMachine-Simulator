@@ -1,7 +1,7 @@
 ---
 Title: Simulation Scripts for SED Machine
 Author: Alexander Rudy
-  Version 0.1.3
+  Version 0.1.3p1
 ---
 
 # Introduction
@@ -20,4 +20,6 @@ This Program contains SEDMachine Simulation and plotting scripts. They are writt
 	- Basic Utlity additions
 * 0.1.3
 	- Use of setup.py for deployment and setup managment.
+* 0.1.3p1
+	- Patch setup.py for AstroObject 0.2.8 rather than 0.2.6
 
