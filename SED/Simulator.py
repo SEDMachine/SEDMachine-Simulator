@@ -78,9 +78,6 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
         self.registerStage(self.saveFile,"save")
         
         
-        
-        
-    
     def defaultConfig(self):
         """Default configuration values from the program"""
         config = {}
@@ -137,139 +134,6 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
         
         update(self.config,config)
         self.log.debug("Set up default configutaion")
-    
-    def parseOptions(self):
-        """Interprests the options system"""
-        self.options = self.parser.parse_args()
-
-        self.config["System"]["Configs"]["This"] = self.options.config
-
-        mode = self.options.mode
-        
-        if mode == None:
-            mode = "full"
-        
-        self.log.debug("Operating Mode: %s" % mode)
-        
-        if mode != "full":
-            self.config["System"]["Lenslets"]["start"] = 2150
-            self.config["System"]["Lenslets"]["number"] = 5
-            self.config["System"]["Source"]["Type"] = "BlackBody"
-            self.config["System"]["Source"]["Temp"] = 5000
-        if mode == "dev":
-            self.config["System"]["Debug"] = True
-            self.config["System"]["Cache"] = True
-        elif mode == "test":
-            self.config["System"]["Debug"] = False
-            self.config["System"]["Cache"] = False
-        elif mode == "easy":
-            self.config["System"]["Debug"] = False
-            self.config["System"]["Cache"] = True
-
-        self.loadConfig(self.config["System"]["Configs"]["This"],self.config["System"])
-        
-        if hasattr(self.options,'sourceconfig') and type(self.options.sourceconfig)==str:
-            self.log.debug("Setting source config to %s" % self.options.sourceconfig)
-            self.config["System"]["Configs"]["Source"] = self.options.sourceconfig
-        
-        if self.options.n:
-            self.config["System"]["Lenslets"]["number"] = self.options.n
-        
-        if self.options.o:
-            self.config["System"]["Lenslets"]["start"] = self.options.o
-        
-        # The trigger sets this to False, as such the option should unset it.
-        self.config["System"]["Cache"] &= self.options.cache
-        
-        # Default value for this is False, as such the option should trigger it.
-        self.config["System"]["Debug"] |= self.options.debug
-        
-        # The option for this turns it on, as such, this should be or.
-        self.config["System"]["Plot"] |= self.options.plot
-        
-        if hasattr(self.options,'label'):
-            self.config["System"]["Output"]["Label"] = self.options.label
-        
-        self.debug = self.config["System"]["Debug"]
-        
-        self.setupLog()
-        
-        if self.config["System"]["Debug"]:
-            self.console.setLevel(logging.DEBUG)
-        
-        self.dirCheck()
-        
-        self.optstring = "SEDScript: \n"
-
-        for key,value in vars(self.options).iteritems():
-            self.optstring += "%(key)15s : %(value)-40s \n" % { 'key':key , 'value':value }
-
-        with open(self.config["System"]["Dirs"]["Partials"]+"/Script-Options.dat",'w') as stream:
-            stream.write(self.optstring)
-    
-    def oldrun(self):
-        """Runs the simulator"""
-        self.start = time.clock()
-        
-        try:
-            self.parseOptions()
-            cmd = self.options.command
-        
-            if self.options.dump:
-                self.log.info("Dumping Configuration Variables...")
-                self.dumpConfig()
-                self.exit()
-                return
-            
-            if cmd in ["postest"]:
-                self.log.info("Testing Source Positioning")
-                self.positionTests()
-                self.exit()
-                return
-    
-        
-            self.exit()
-            return
-        except Exception as e:
-            self.log.critical("Simulator Encoutered a Critical Error, and was forced to close!")
-            self.log.critical("Exception %s" % str(e))
-            raise
-        
-    
-    def loadConfig(self,filename,dest):
-        """Loads the config file"""
-        try:
-            with open(filename) as stream:
-                cfg = update(dest,yaml.load(stream))
-        except IOError:
-            self.log.warning("Couldn't Read configuration file %s, using defaults" % filename)
-            cfg = dest
-        else:
-            self.log.debug("Loaded configuration from file %s" % filename)
-        
-        return cfg
-        
-    def dirCheck(self):
-        """Checks that all of the configured directories exist, and creates the ones that don't."""
-        for DIR in self.config["System"]["Dirs"].values():
-            if not os.access(DIR,os.F_OK):
-                os.mkdir(DIR)
-                self.log.info("Created Directory %s" % DIR)
-        
-    def dumpConfig(self):
-        """Dumps a config back out"""
-        import Instrument, Source
-        with open(self.config["System"]["Configs"]["This"].rstrip(".yaml")+".dump.yaml",'w') as stream:
-            yaml.dump(self.config["System"],stream,default_flow_style=False)
-        
-        Model = Instrument.Instrument(self.config)
-        Model.setup()
-        Model.dumpConfig()
-        
-        Source = Source.Source(self.config)
-        Source.setup()
-        Source.dumpConfig()
-    
     
     
     def setupSource(self):
@@ -339,39 +203,9 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
         """Sets up the noise masks in the model"""
         self.Model.setupNoise()
         
-    
-    def positionTests(self):
-        """Test the positioning of spectra on the image"""
-        self.bar.render(0,"L:%4d" % 0)
-        handle = file(self.config["System"]["Dirs"]["Partials"] + "Instrument-Positions.dat",'w')
-        handle.write("# Spectra Positions\n")
-        handle.close()
-        for i in self.lenslets:
-            self.positionTest(i,self.Spectrum)
-        self.bar.lines = 0
-    
     def positionCaches(self):
         """Caches the positions"""
         self.Model.positionCaching()
-    
-    def positionTest(self,lenslet,spectrum):
-        """A single position test"""
-        try:
-            image,corner = self.Model.get_dense_image(lenslet,spectrum)
-            points,wl,deltawl = self.Model.get_wavelengths(lenslet)
-            x,y = points.T
-            ncorner = np.array([np.max(x),np.min(y)])
-            handle = file(self.config["System"]["Dirs"]["Partials"] + "Instrument-Positions.dat",'a')
-            np.savetxt(handle,np.array([np.hstack((corner,ncorner))]),fmt='%6.1f')
-        except self.Limits:
-            msg = "Skipped Lenslet %4d" % lenslet
-            self.Model.log.debug(msg)
-        else:
-            msg = "Cached Lenslet %4d" % lenslet
-            self.Model.log.debug(msg)
-        finally:
-            self.prog.value += 1.0
-            self.bar.render(int((self.prog.value/self.total) * 100),"L:%4d" % lenslet)
     
     def generateLenslet(self,i,spectrum):
         """Generate a single lenslet spectrum"""
