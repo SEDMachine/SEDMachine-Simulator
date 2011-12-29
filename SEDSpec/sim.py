@@ -7,6 +7,8 @@ from massey import skyab
 
 import os
 
+from pkg_resources import resource_stream
+
 PLOT = False
 PRINT = False
 
@@ -647,7 +649,7 @@ if PLOT:
     pl.show()
     pl.savefig("source_v_sky_%0.2f.pdf" % (moon_phase[PHASEIX]))
 
-thpts = np.load(os.path.abspath(os.path.join(os.path.dirname(__file__),"thpt.npy")))[0]
+thpts = np.load(resource_stream(__name__,"thpt.npy")))[0]
 qeprism = sp.interpolate.interp1d(thpts["lambda"], thpts["thpt-prism-PI"])
 qegrating = sp.interpolate.interp1d(thpts["lambda"], thpts["thpt-grating"])
 
