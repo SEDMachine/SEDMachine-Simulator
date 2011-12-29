@@ -4,7 +4,7 @@
 #
 #  Created by Alexander Rudy on 2011-11-09.
 #  Copyright 2011 Alexander Rudy. All rights reserved.
-#  Version 0.1.2
+#  Version 0.2.0a1a1a1
 #
 
 import math, copy, sys, time, logging, os, argparse, yaml, collections
