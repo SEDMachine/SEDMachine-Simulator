@@ -4,6 +4,7 @@
 #  
 #  Created by Alexander Rudy on 2011-11-02.
 #  Copyright 2011 Alexander Rudy. All rights reserved.
+#  Version 0.2.0a1
 # 
 
 import numpy as np

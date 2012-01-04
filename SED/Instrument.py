@@ -6,7 +6,7 @@
 #
 #  Created by Alexander Rudy on 2011-11-04.
 #  Copyright 2011 Alexander Rudy. All rights reserved.
-#  Version 0.1.3p2p1
+#  Version 0.2.0a1
 #
 
 
@@ -25,6 +25,7 @@ import os,logging,time,copy,collections
 import logging.handlers
 
 import AstroObject
+import AstroObject.AstroSimulator
 from AstroObject.AstroSpectra import SpectraObject
 from AstroObject.AstroImage import ImageObject,ImageFrame
 from AstroObject.AnalyticSpectra import BlackBodySpectrum, AnalyticSpectrum, FlatSpectrum
@@ -167,7 +168,7 @@ class Lenslet(object):
         return True
 
 
-class Instrument(ImageObject):
+class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
     """This is a model container for the SEDMachine data simulator. This class is based on `AstroObject.ImageObject`, which it uses to provide some awareness of the way images are stored and retrieved. As such, this object has .save(), .select() and .show() etc. methods which can be used to examine the underlying data. It also means that this ImageObject subclass will contain the final, simulated image when the system is done.
     
     .. Note:: This object is not yet thread-safe, but coming versions of AstroObject will allow objects like this one to be locking and thread safe. Unfortunately, this limitation means that the simulator can generally not be run in multi-thread mode yet.
@@ -175,7 +176,7 @@ class Instrument(ImageObject):
     """
     
     def __init__(self,config):
-        super(Instrument, self).__init__()
+        super(Instrument, self).__init__(name="Instrument")
         self.dataClasses = [SubImage]
         self.config = config
         self.debug = self.config["System"]["Debug"]
@@ -184,9 +185,7 @@ class Instrument(ImageObject):
         self.defaults = []
         self.regenerate = not self.cache
         self.WLS = {}
-        self.initLog()
-        self.configure()
-        self.setupLog()
+        self._configure()
     
     def update(self, d, u):
         """A deep update command for dictionaries.
@@ -200,64 +199,10 @@ class Instrument(ImageObject):
                 d[k] = u[k]
         return d
     
-    def initLog(self):
-        """Initializes the system logger. This logger starts with only a buffer, no actual logging output. The buffer is used to hold log messages before a logging output location has been specified.
-        """
-        self.log = logging.getLogger(__name__)
-        self.log.setLevel(logging.DEBUG)
-        logging.captureWarnings(True)
-        self.filebuffer = logging.handlers.MemoryHandler(1e6) 
-        #Our handler will only handle 1-million messages... lets not go that far
-        self.consolebuffer = logging.handlers.MemoryHandler(1e6)
-        self.consolebuffer.setLevel(logging.INFO)
-        self.log.addHandler(self.filebuffer)
-        self.log.addHandler(self.consolebuffer)
-        
-        self.log.info("------------------------------------------")
-        self.log.info("Welcome to the SEDMachine Instrument model")
-        self.log.debug("Version %s" % __version__ )
-    
-    def setupLog(self):
-        """Setup Logging Functions for the SEDMachine Model.
-        
-        This configures the logging system, including a possible console and file log. It then reads the logging buffer into the logfile.
-        """
-        # Setup the Console Log Handler
-        self.console = logging.StreamHandler()
-        consoleFormat = self.config["Instrument"]["logging"]["console"]["format"]
-        if self.config["Instrument"]["logging"]["console"]["level"]:
-            self.console.setLevel(self.config["Instrument"]["logging"]["console"]["level"])
-        elif self.debug:
-            self.console.setLevel(logging.DEBUG)
-        else:
-            self.console.setLevel(logging.ERROR)
-        consoleFormatter = logging.Formatter(consoleFormat)
-        self.console.setFormatter(consoleFormatter)
-        if self.config["Instrument"]["logging"]["console"]["enable"]:
-            self.log.addHandler(self.console)
-            self.consolebuffer.setTarget(self.console)
-        self.consolebuffer.close()
-        self.log.removeHandler(self.consolebuffer)
-        
-        self.logfile = None
-        # Only set up the file log handler if we can actually access the folder
-        if os.access(self.config["System"]["Dirs"]["Logs"],os.F_OK) and self.config["Instrument"]["logging"]["file"]["enable"]:
-            filename = self.config["System"]["Dirs"]["Logs"] + self.config["Instrument"]["logging"]["file"]["filename"]+".log"
-            self.logfile = logging.handlers.TimedRotatingFileHandler(filename,when='midnight')
-            self.logfile.setLevel(logging.DEBUG)
-            fileformatter = logging.Formatter(self.config["Instrument"]["logging"]["file"]["format"],datefmt="%Y-%m-%d-%H:%M:%S")
-            self.logfile.setFormatter(fileformatter)
-            self.log.addHandler(self.logfile)
-            # Finally, we should flush the old buffers
-            self.filebuffer.setTarget(self.logfile)
-        
-        self.filebuffer.close()
-        self.log.removeHandler(self.filebuffer)
-        self.log.debug("Configured Logging")
     
     
     # CONFIGURATION
-    def configure(self):
+    def _configure(self):
         """This is a wrapper function for a variety of private configuration steps. The configuration generall happnes in stages:
         
         - Default Values are initalized for the instrument configuration
@@ -269,7 +214,7 @@ class Instrument(ImageObject):
         
         You can force the script to ignore cached files in the runner script using the option `--no-cache`. To regenrate the cache manually, simply delete the contents of the Caches directory"""
         self._configureDefaults()
-        self._configureFile()
+        self.configure(configuration=self.defaultConfig)
         self._configureCaches()
         self._configureDynamic()
         fileName = "%(dir)sInstrument-Config.dat" % {'dir':self.config["System"]["Dirs"]["Partials"]}
@@ -279,57 +224,57 @@ class Instrument(ImageObject):
     def _configureDefaults(self):
         """Set up the default configure variable. If you change the default configuration variables in this function (instead of using a configuration file), the script will generally not detect the change, and so will not regenerate Cached files. You can force the script to ignore cached files in the runner script using the option `--no-cache`. To regenrate the cache manually, simply delete the contents of the Caches directory
         """
-        
+        self.defaultConfig = {}
         # Configuration Variables for The System
-        self.config["Instrument"] = {}
+        self.defaultConfig["Instrument"] = {}
         # Unit Conversion Defaults
-        self.config["Instrument"]["convert"] = {}
-        self.config["Instrument"]["convert"]["pxtomm"] = 0.0135
+        self.defaultConfig["Instrument"]["convert"] = {}
+        self.defaultConfig["Instrument"]["convert"]["pxtomm"] = 0.0135
         # CCD / Image Plane Information
-        self.config["Instrument"]["ccd_size"] = {}
-        self.config["Instrument"]["ccd_size"]["px"] = 2048 #pixels
-        self.config["Instrument"]["image_size"] = {}
-        self.config["Instrument"]["image_size"]["mm"] = 40.0 #mm
+        self.defaultConfig["Instrument"]["ccd_size"] = {}
+        self.defaultConfig["Instrument"]["ccd_size"]["px"] = 2048 #pixels
+        self.defaultConfig["Instrument"]["image_size"] = {}
+        self.defaultConfig["Instrument"]["image_size"]["mm"] = 40.0 #mm
         # Telescope Information
-        self.config["Instrument"]["tel_radii"] = {}
-        self.config["Instrument"]["tel_radii"]["px"] = 2.4 / 2.0
-        self.config["Instrument"]["tel_obsc"] = {}
-        self.config["Instrument"]["tel_obsc"]["px"] = 0.4 / 2.0
+        self.defaultConfig["Instrument"]["tel_radii"] = {}
+        self.defaultConfig["Instrument"]["tel_radii"]["px"] = 2.4 / 2.0
+        self.defaultConfig["Instrument"]["tel_obsc"] = {}
+        self.defaultConfig["Instrument"]["tel_obsc"]["px"] = 0.4 / 2.0
         # PSF Information
-        self.config["Instrument"]["psf_size"] = {}
-        self.config["Instrument"]["psf_size"]["px"] = 0
+        self.defaultConfig["Instrument"]["psf_size"] = {}
+        self.defaultConfig["Instrument"]["psf_size"]["px"] = 0
         # For a gaussian PSF
-        self.config["Instrument"]["psf_stdev"] = {}
-        self.config["Instrument"]["psf_stdev"]["px"] = 1.0
+        self.defaultConfig["Instrument"]["psf_stdev"] = {}
+        self.defaultConfig["Instrument"]["psf_stdev"]["px"] = 1.0
         # Image Generation Density
-        self.config["Instrument"]["density"] = 5
-        self.config["Instrument"]["padding"] = 5
+        self.defaultConfig["Instrument"]["density"] = 5
+        self.defaultConfig["Instrument"]["padding"] = 5
         # Default Gain Value
-        self.config["Instrument"]["gain"] = 1e10
+        self.defaultConfig["Instrument"]["gain"] = 1e10
         # Noise Information
-        self.config["Instrument"]["dark"] = 20 # counts per pixel per second at some fixed degree c
-        self.config["Instrument"]["bias"] = 20 # counts per pixel at some fixed degree c
-        self.config["Instrument"]["exposure"] = 120 #Seconds
+        self.defaultConfig["Instrument"]["dark"] = 20 # counts per pixel per second at some fixed degree c
+        self.defaultConfig["Instrument"]["bias"] = 20 # counts per pixel at some fixed degree c
+        self.defaultConfig["Instrument"]["exposure"] = 120 #Seconds
         # File Information for data and Caches
-        self.config["Instrument"]["files"] = {}
-        self.config["Instrument"]["files"]["lenslets"] = "Data/xy_17nov2011_v57.TXT"
-        self.config["Instrument"]["files"]["dispersion"] = "Data/dispersion_12-10-2011.txt"
-        self.config["Instrument"]["files"]["encircledenergy"] = "Data/encircled_energy_4nov11.TXT"
+        self.defaultConfig["Instrument"]["files"] = {}
+        self.defaultConfig["Instrument"]["files"]["lenslets"] = "Data/xy_17nov2011_v57.TXT"
+        self.defaultConfig["Instrument"]["files"]["dispersion"] = "Data/dispersion_12-10-2011.txt"
+        self.defaultConfig["Instrument"]["files"]["encircledenergy"] = "Data/encircled_energy_4nov11.TXT"
         # MPL Plotting Save Format
-        self.config["Instrument"]["plot_format"] = ".pdf"
+        self.defaultConfig["Instrument"]["plot_format"] = ".pdf"
         
         # Logging Configuration
-        self.config["Instrument"]["logging"] = {}
-        self.config["Instrument"]["logging"]["console"] = {}
-        self.config["Instrument"]["logging"]["console"]["enable"] = True
-        self.config["Instrument"]["logging"]["console"]["format"] = "......%(message)s"
-        self.config["Instrument"]["logging"]["console"]["level"] = False
-        self.config["Instrument"]["logging"]["file"] = {}
-        self.config["Instrument"]["logging"]["file"]["enable"] = True
-        self.config["Instrument"]["logging"]["file"]["filename"] = "SEDInstrument"
-        self.config["Instrument"]["logging"]["file"]["format"] = "%(asctime)s : %(levelname)-8s : %(funcName)-20s : %(message)s"
+        self.defaultConfig["Instrument"]["logging"] = {}
+        self.defaultConfig["Instrument"]["logging"]["console"] = {}
+        self.defaultConfig["Instrument"]["logging"]["console"]["enable"] = True
+        self.defaultConfig["Instrument"]["logging"]["console"]["format"] = "......%(message)s"
+        self.defaultConfig["Instrument"]["logging"]["console"]["level"] = False
+        self.defaultConfig["Instrument"]["logging"]["file"] = {}
+        self.defaultConfig["Instrument"]["logging"]["file"]["enable"] = True
+        self.defaultConfig["Instrument"]["logging"]["file"]["filename"] = "SEDInstrument"
+        self.defaultConfig["Instrument"]["logging"]["file"]["format"] = "%(asctime)s : %(levelname)-8s : %(funcName)-20s : %(message)s"
         
-        self.defaults += [copy.deepcopy(self.config)]
+        self.defaults += [copy.deepcopy(self.defaultConfig)]
         
         self.log.debug("Set Instrument Configuration Defaults")
     
@@ -369,6 +314,11 @@ class Instrument(ImageObject):
         
         self.log.debug("Configured Cache Variables")
         self.defaults += [copy.deepcopy(self.config)]
+        self.Caches.directory = "."
+        self.Caches.registerNPY("TEL",self.get_tel_kern,filename=self.config["System"]["CacheFiles"]["telescope"])
+        self.Caches.registerNPY("PSF",self.get_psf_kern,filename=self.config["System"]["CacheFiles"]["psf"])
+        self.Caches.registerNPY("CONV",lambda : sp.signal.convolve(self.Caches.get("PSF"),self.Caches.get("TEL"),mode='same'),filename=self.config["System"]["CacheFiles"]["conv"])
+        self.Caches.load()
         
         # Load the Cached Configuration
         FileName = self.config["System"]["CacheFiles"]["config"]
@@ -461,28 +411,6 @@ class Instrument(ImageObject):
         self.log.debug("Regenerating Cached Files")
         with open(self.config["System"]["CacheFiles"]["config"],'w') as stream:
             yaml.dump(self.defaults[-1]["Instrument"],stream,default_flow_style=False)
-        
-        np.save(self.config["System"]["CacheFiles"]["telescope"],self.TELIMG)
-        np.save(self.config["System"]["CacheFiles"]["psf"],self.PSFIMG)
-        np.save(self.config["System"]["CacheFiles"]["conv"],self.FINIMG)
-    
-    def cachedKernel(self):
-        """Load cached kernels from the Caches directory. If any file is missing, it will attempt to trigger regeneration of the cache.
-        You can force the script to ignore cached files in the runner script using the option `--no-cache`. To regenrate the cache manually, simply delete the contents of the Caches directory
-        """
-        try:
-            # Telescope Image Setup
-            self.TELIMG = np.load(self.config["System"]["CacheFiles"]["telescope"])
-            # PSF Setup
-            self.PSFIMG = np.load(self.config["System"]["CacheFiles"]["psf"])
-            # Preconvolved System
-            self.FINIMG = np.load(self.config["System"]["CacheFiles"]["conv"])
-        except IOError as e:
-            self.log.warning("Cached files not found, regenerating. Error: %s" % e )
-            self.regenerate = True
-        else:
-            self.log.debug("Loaded Telescope Images for Numpy Files")
-        
     
     def cachedWL(self):
         """Load cached wavelengths from the Caches directory. If any file is missing, it will attempt to trigger regeneration of the cache.
@@ -524,15 +452,6 @@ class Instrument(ImageObject):
         
         """
         
-        if self.cache:
-            self.cachedKernel()
-            self.cachedWL()
-        if self.regenerate:
-            self.regenerateKernel()
-            self.resetWLCache()
-        if self.cache and self.regenerate:
-            self.regenerateCache()
-        
         if self.log.getEffectiveLevel() <= logging.DEBUG and self.plot:
             self.plotKernalPartials()
         
@@ -549,32 +468,21 @@ class Instrument(ImageObject):
         """Plots the kernel data partials"""
         self.log.debug("Generating Kernel Plots and Images")
         plt.clf()
-        plt.imshow(self.TELIMG)
+        plt.imshow(self.Caches.get("TEL"))
         plt.title("Telescope Image")
         plt.colorbar()
         plt.savefig("%sInstrument-TEL-Kernel%s" % (self.config["System"]["Dirs"]["Partials"],self.config["Instrument"]["plot_format"]))
         plt.clf()
-        plt.imshow(self.PSFIMG)
+        plt.imshow(self.Caches.get("PSF"))
         plt.title("PSF Image")
         plt.colorbar()
         plt.savefig("%sInstrument-PSF-Kernel%s" % (self.config["System"]["Dirs"]["Partials"],self.config["Instrument"]["plot_format"]))
         plt.clf()
-        plt.imshow(self.FINIMG)
+        plt.imshow(self.Caches.get("CONV"))
         plt.title("Convolved Tel + PSF Image")
         plt.colorbar()
         plt.savefig("%sInstrument-FIN-Kernel%s" % (self.config["System"]["Dirs"]["Partials"],self.config["Instrument"]["plot_format"]))
         plt.clf()
-    
-    # Kernel Creation for Image Manipulation
-    def regenerateKernel(self):
-        """Regenerate a kernel from the configuration values."""
-        self.log.info("Generating Kernels for Image System")
-        # Telescope Image Setup
-        self.TELIMG = self.get_tel_kern()
-        # PSF Setup
-        self.PSFIMG = self.get_psf_kern()
-        # Preconvolved System
-        self.FINIMG = sp.signal.convolve(self.PSFIMG,self.TELIMG,mode='same')
     
     def psf_kern(self,filename,size=0,truncate=False,header_lines=18):
         """Generates a PSF Kernel from a file with micron-encircled energy conversions. The file should have two columns, first, microns from the center of the PSF, and second, the fraction of encircled energy at that distance from the PSF.
@@ -1074,7 +982,7 @@ class Instrument(ImageObject):
         
         if fast:
             # Convolve with the PSF and Telescope Image simultaneously
-            img2 = sp.signal.convolve(img,self.FINIMG,mode='same')
+            img2 = sp.signal.convolve(img,self.Caches.get("CONV"),mode='same')
             self.log.debug("Convolved Dense Image with PSF and Telescope for %4d" % lenslet)
             # Bin the image back down to the final pixel size
             small = bin(img2,self.config["Instrument"]["density"]).astype(np.int16)
@@ -1082,10 +990,10 @@ class Instrument(ImageObject):
             return small,corner
         else:
             # Convolve this spectrum with an appropriate image of the telescope
-            img_tel = sp.signal.convolve(img,self.TELIMG,mode='same')
+            img_tel = sp.signal.convolve(img,self.Caches.get("TEL"),mode='same')
             self.log.debug("Convolved Dense Image with Telescope for %4d" % lenslet)
             # Convolve again with an appropriate PSF
-            img_tel_psf = sp.signal.convolve(img_tel,self.PSFIMG,mode='same')
+            img_tel_psf = sp.signal.convolve(img_tel,self.Caches.get("PSF"),mode='same')
             self.log.debug("Convolved Dense Image with PSF for %4d" % lenslet)
             # Bin the image back down to the final pixel size
             small = bin(img_tel_psf,self.config["Instrument"]["density"]).astype(np.int16)
