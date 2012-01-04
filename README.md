@@ -18,4 +18,7 @@ This Program contains SEDMachine Simulation and plotting scripts. They are writt
 	- Creation of SEDSource module to handle source manipulation
 	- Cleanup of Nick's spectrum simulations in SEDSpec
 	- Basic Utlity additions
-
+* 0.2.0a1
+	- This alpha is simply a port to the new simulator framework. Only the main simulator has been ported at this point.
+	- All modules will now use the framework-based logging system. This still produces slightly odd results.
+	
