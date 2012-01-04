@@ -42,9 +42,9 @@ class Source(object):
     def __init__(self,config):
         super(Source, self).__init__()
         self.config = config
-        self.debug = self.config["System"]["Debug"]
-        self.cache = self.config["System"]["Cache"]
-        self.plot = self.config["System"]["Plot"]
+        self.debug = self.config["Debug"]
+        self.cache = self.config["Cache"]
+        self.plot = self.config["Plot"]
         self.defaults = []
         self.initLog()
     
@@ -63,31 +63,31 @@ class Source(object):
     
     def _configureDefaults(self):
         """Sets up the default configuration for the source routines"""
-        self.config["Source"] = {}
-        self.config["Source"]["Type"] = None
-        self.config["Source"]["PreAmp"] = 1.0
-        self.config["Source"]["ExpTime"] = 1200
+        self.dconfig = {}
+        self.dconfig["Type"] = None
+        self.dconfig["PreAmp"] = 1.0
+        self.dconfig["ExpTime"] = 1200
         
-        self.config["Source"]["plot_format"] = ".pdf"
+        self.dconfig["plot_format"] = ".pdf"
         
-        self.config["Source"]["Fill"] = {}
-        self.config["Source"]["Fill"]["Type"] = "Flat"
-        self.config["Source"]["Fill"]["PreAmp"] = 1.0
+        self.dconfig["Fill"] = {}
+        self.dconfig["Fill"]["Type"] = "Flat"
+        self.dconfig["Fill"]["PreAmp"] = 1.0
         
-        self.config["Source"]["Object"] = {}
-        self.config["Source"]["Object"]["Type"] = None
-        self.config["Source"]["Object"]["PreAmp"] = 1.0 
+        self.dconfig["Object"] = {}
+        self.dconfig["Object"]["Type"] = None
+        self.dconfig["Object"]["PreAmp"] = 1.0 
         
         # Logging Configuration
-        self.config["Source"]["logging"] = {}
-        self.config["Source"]["logging"]["console"] = {}
-        self.config["Source"]["logging"]["console"]["enable"] = True
-        self.config["Source"]["logging"]["console"]["format"] = "......%(message)s"
-        self.config["Source"]["logging"]["console"]["level"] = False
-        self.config["Source"]["logging"]["file"] = {}
-        self.config["Source"]["logging"]["file"]["enable"] = True
-        self.config["Source"]["logging"]["file"]["filename"] = "SEDSource"
-        self.config["Source"]["logging"]["file"]["format"] = "%(asctime)s : %(levelname)-8s : %(funcName)-20s : %(message)s"
+        self.dconfig["logging"] = {}
+        self.dconfig["logging"]["console"] = {}
+        self.dconfig["logging"]["console"]["enable"] = True
+        self.dconfig["logging"]["console"]["format"] = "......%(message)s"
+        self.dconfig["logging"]["console"]["level"] = False
+        self.dconfig["logging"]["file"] = {}
+        self.dconfig["logging"]["file"]["enable"] = True
+        self.dconfig["logging"]["file"]["filename"] = "SEDSource"
+        self.dconfig["logging"]["file"]["format"] = "%(asctime)s : %(levelname)-8s : %(funcName)-20s : %(message)s"
         
         self.defaults += [copy.deepcopy(self.config)]
         self.log.debug("Set default configuration values.")
@@ -127,20 +127,20 @@ class Source(object):
     def _configureSystem(self):
         """Configure the source based on the system configuration of the soure"""
         
-        self.update(self.config["Source"],self.config["System"]["Source"])
+        self.update(self.config,self.dconfig)
         
         self.defaults += [copy.deepcopy(self.config)]
         
     
     def _configureFile(self):
         """Setup the configuration, validating the configuration provided"""
-        FileName = self.config["System"]["Configs"]["Source"]
+        FileName = self.config["Configs"]["Source"]
         try:
             stream = open(FileName,'r')
         except IOError:
             self.log.warning("Configuration File Not Found: %s" % FileName)
         else:
-            self.update(self.config["Source"],yaml.load(stream))
+            self.update(self.config,yaml.load(stream))
             stream.close()
             self.log.debug("Loaded Configuration from %s" % FileName)
         finally:
@@ -149,19 +149,19 @@ class Source(object):
     def _require(self,element):
         """Require an element"""
         msg = "Configure fails to validate, missing key self.config[\"Source\"][\"%s\"]"
-        assert element in self.config["Source"], msg % element
+        assert element in self.config, msg % element
     
     def _configureValidate(self):
         """Validation features for the configuration setup"""
         
-        if self.config["Source"]["Type"] == "BlackBody":
+        if self.config["Type"] == "BlackBody":
             self._require("Temp")
-        elif self.config["Source"]["Type"] == "Flat":
+        elif self.config["Type"] == "Flat":
             self._require("Value")
-        elif self.config["Source"]["Type"] == "File":
+        elif self.config["Type"] == "File":
             self._require("Filename")
         else:
-            raise AssertionError("Invalid Type of Source: %s" % self.config["Source"]["Type"])
+            raise AssertionError("Invalid Type of Source: %s" % self.config["Type"])
         
     
     def setupLog(self):
@@ -171,16 +171,16 @@ class Source(object):
         """
 
         self.console = logging.StreamHandler()
-        consoleFormat = self.config["Source"]["logging"]["console"]["format"]
-        if self.config["Source"]["logging"]["console"]["level"]:
-            self.console.setLevel(self.config["Source"]["logging"]["console"]["level"])
+        consoleFormat = self.config["logging"]["console"]["format"]
+        if self.config["logging"]["console"]["level"]:
+            self.console.setLevel(self.config["logging"]["console"]["level"])
         elif self.debug:
             self.console.setLevel(logging.DEBUG)
         else:
             self.console.setLevel(logging.ERROR)
         consoleFormatter = logging.Formatter(consoleFormat)
         self.console.setFormatter(consoleFormatter)
-        if self.config["Source"]["logging"]["console"]["enable"]:
+        if self.config["logging"]["console"]["enable"]:
             self.log.addHandler(self.console)
             self.consolebuffer.setTarget(self.console)
         self.consolebuffer.close()
@@ -188,11 +188,11 @@ class Source(object):
         
         self.logfile = None
         # Only set up the file log handler if we can actually access the folder
-        if os.access(self.config["System"]["Dirs"]["Logs"],os.F_OK) and self.config["Source"]["logging"]["file"]["enable"]:
-            filename = self.config["System"]["Dirs"]["Logs"] + self.config["Source"]["logging"]["file"]["filename"]+".log"
+        if os.access(self.config["Dirs"]["Logs"],os.F_OK) and self.config["logging"]["file"]["enable"]:
+            filename = self.config["Dirs"]["Logs"] + self.config["logging"]["file"]["filename"]+".log"
             self.logfile = logging.handlers.TimedRotatingFileHandler(filename,when='midnight')
             self.logfile.setLevel(logging.DEBUG)
-            fileformatter = logging.Formatter(self.config["Source"]["logging"]["file"]["format"],datefmt="%Y-%m-%d-%H:%M:%S")
+            fileformatter = logging.Formatter(self.config["logging"]["file"]["format"],datefmt="%Y-%m-%d-%H:%M:%S")
             self.logfile.setFormatter(fileformatter)
             self.log.addHandler(self.logfile)
             # Finally, we should flush the old buffers
@@ -205,12 +205,12 @@ class Source(object):
     
     def setupSource(self):
         """A switch function to setup the correct source"""
-        self.log.info("Setting up source type '%s'" % self.config["Source"]["Type"])
-        if self.config["Source"]["Type"] == "BlackBody":
+        self.log.info("Setting up source type '%s'" % self.config["Type"])
+        if self.config["Type"] == "BlackBody":
             self._setupBlackbody()
-        elif self.config["Source"]["Type"] == "Flat":
+        elif self.config["Type"] == "Flat":
             self._setupFlat()
-        elif self.config["Source"]["Type"] == "File":
+        elif self.config["Type"] == "File":
             self._setupFile()
 
     def getSpectrum(self,i):
@@ -221,22 +221,22 @@ class Source(object):
     def _setupBlackbody(self):
         """Set up a blackbody spectrum"""
         
-        self.Spectrum = BlackBodySpectrum(self.config["Source"]["Temp"])
-        self.Spectrum *= self.config["Source"]["PreAmp"]
+        self.Spectrum = BlackBodySpectrum(self.config["Temp"])
+        self.Spectrum *= self.config["PreAmp"]
         
     def _setupFlat(self):
         """Sets up a flat spectrum"""
-        self.Spectrum = FlatSpectrum(self.config["Source"]["Value"])
-        self.Spectrum *= self.config["Source"]["PreAmp"]
+        self.Spectrum = FlatSpectrum(self.config["Value"])
+        self.Spectrum *= self.config["PreAmp"]
         
     
     def _setupFile(self):
         """Sets up a uniform source file based spectrum"""
-        WL,Flux = np.genfromtxt(self.config["Source"]["Filename"]).T
+        WL,Flux = np.genfromtxt(self.config["Filename"]).T
         WL *= 1e-10
         Flux /= np.max(Flux) 
-        self.R_Spectrum = ResampledSpectrum(np.array([WL,Flux]),self.config["Source"]["Filename"])
-        self.D_Spectrum = self.R_Spectrum * self.config["Source"]["PreAmp"]
+        self.R_Spectrum = ResampledSpectrum(np.array([WL,Flux]),self.config["Filename"])
+        self.D_Spectrum = self.R_Spectrum * self.config["PreAmp"]
         
     def setupNoiseandThruput(self):
         """Sets up the model for sky, throughput etc for the isntrument, using Nick's simulation"""
@@ -244,7 +244,7 @@ class Source(object):
         
         self.log.info("Simulating Noise, Sky and Throughput for System")
         
-        lambdas, nsource_photon, shot_noise = SEDSpec.sim.calculate(self.config["Source"]["ExpTime"],"PI",plot=False,verbose=False)
+        lambdas, nsource_photon, shot_noise = SEDSpec.sim.calculate(self.config["ExpTime"],"PI",plot=False,verbose=False)
         
         lambdas = lambdas * 1e-10
         
@@ -286,7 +286,7 @@ class Source(object):
         FL = RenderedSpectrum.data()[1]
         self.log.debug(AOU.npArrayInfo(FL,"RAll"))
         
-        filename = "%(directory)sSource-Spectrum%(format)s" % { "directory": self.config["System"]["Dirs"]["Partials"], "format": self.config["Source"]["plot_format"] }
+        filename = "%(directory)sSource-Spectrum%(format)s" % { "directory": self.config["Dirs"]["Partials"], "format": self.config["plot_format"] }
         
         RenderedSpectrum.show()
         plt.title("Source at R=100 constant")
@@ -295,7 +295,7 @@ class Source(object):
         plt.savefig(filename)
         plt.clf()
         
-        filename = "%(directory)sSource-All-Spectra%(format)s" % { "directory": self.config["System"]["Dirs"]["Partials"], "format": self.config["Source"]["plot_format"] }
+        filename = "%(directory)sSource-All-Spectra%(format)s" % { "directory": self.config["Dirs"]["Partials"], "format": self.config["plot_format"] }
         RenderedSpectrum.show("Original")
         RenderedSpectrum.show("Sky")
         RenderedSpectrum.show("Throughput")
@@ -310,17 +310,17 @@ class Source(object):
         plt.savefig(filename)
         plt.clf()
         
-        filename = "%(directory)sSource-Spectrum%(format)s" % { "directory": self.config["System"]["Dirs"]["Partials"], "format": ".dat" }
+        filename = "%(directory)sSource-Spectrum%(format)s" % { "directory": self.config["Dirs"]["Partials"], "format": ".dat" }
         
         np.savetxt(filename,RenderedSpectrum.data("Source"))
         
-        filename = "%(directory)sThroughput-Spectrum%(format)s" % { "directory": self.config["System"]["Dirs"]["Partials"], "format": ".fits" }
+        filename = "%(directory)sThroughput-Spectrum%(format)s" % { "directory": self.config["Dirs"]["Partials"], "format": ".fits" }
         
         RenderedSpectrum.write(filename,clobber=True)
     
     def dumpConfig(self):
         """Dumps a valid configuration file on top of any old configuration files. This is useful for examining the default configuration fo the system, and providing modifications through this interface."""
-        with open(self.config["System"]["Configs"]["Source"].rstrip(".yaml")+".dump.yaml",'w') as stream:
+        with open(self.config["Configs"]["Source"].rstrip(".yaml")+".dump.yaml",'w') as stream:
             yaml.dump(self.defaults[2]["Source"],stream,default_flow_style=False)
 
 

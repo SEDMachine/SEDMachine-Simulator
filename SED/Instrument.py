@@ -179,9 +179,9 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         super(Instrument, self).__init__(name="Instrument")
         self.dataClasses = [SubImage]
         self.config = config
-        self.debug = self.config["System"]["Debug"]
-        self.cache = self.config["System"]["Cache"]
-        self.plot = self.config["System"]["Plot"]
+        self.debug = self.config["Debug"]
+        self.cache = self.config["Cache"]
+        self.plot = self.config["Plot"]
         self.defaults = []
         self.regenerate = not self.cache
         self.WLS = {}
@@ -217,7 +217,7 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         self.configure(configuration=self.defaultConfig)
         self._configureCaches()
         self._configureDynamic()
-        fileName = "%(dir)sInstrument-Config.dat" % {'dir':self.config["System"]["Dirs"]["Partials"]}
+        fileName = "%(dir)sInstrument-Config.dat" % {'dir':self.config["Dirs"]["Partials"]}
         with open(fileName,'w') as stream:
             yaml.dump(self.config,stream,default_flow_style=False)
     
@@ -226,53 +226,52 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         """
         self.defaultConfig = {}
         # Configuration Variables for The System
-        self.defaultConfig["Instrument"] = {}
         # Unit Conversion Defaults
-        self.defaultConfig["Instrument"]["convert"] = {}
-        self.defaultConfig["Instrument"]["convert"]["pxtomm"] = 0.0135
+        self.defaultConfig["convert"] = {}
+        self.defaultConfig["convert"]["pxtomm"] = 0.0135
         # CCD / Image Plane Information
-        self.defaultConfig["Instrument"]["ccd_size"] = {}
-        self.defaultConfig["Instrument"]["ccd_size"]["px"] = 2048 #pixels
-        self.defaultConfig["Instrument"]["image_size"] = {}
-        self.defaultConfig["Instrument"]["image_size"]["mm"] = 40.0 #mm
+        self.defaultConfig["ccd_size"] = {}
+        self.defaultConfig["ccd_size"]["px"] = 2048 #pixels
+        self.defaultConfig["image_size"] = {}
+        self.defaultConfig["image_size"]["mm"] = 40.0 #mm
         # Telescope Information
-        self.defaultConfig["Instrument"]["tel_radii"] = {}
-        self.defaultConfig["Instrument"]["tel_radii"]["px"] = 2.4 / 2.0
-        self.defaultConfig["Instrument"]["tel_obsc"] = {}
-        self.defaultConfig["Instrument"]["tel_obsc"]["px"] = 0.4 / 2.0
+        self.defaultConfig["tel_radii"] = {}
+        self.defaultConfig["tel_radii"]["px"] = 2.4 / 2.0
+        self.defaultConfig["tel_obsc"] = {}
+        self.defaultConfig["tel_obsc"]["px"] = 0.4 / 2.0
         # PSF Information
-        self.defaultConfig["Instrument"]["psf_size"] = {}
-        self.defaultConfig["Instrument"]["psf_size"]["px"] = 0
+        self.defaultConfig["psf_size"] = {}
+        self.defaultConfig["psf_size"]["px"] = 0
         # For a gaussian PSF
-        self.defaultConfig["Instrument"]["psf_stdev"] = {}
-        self.defaultConfig["Instrument"]["psf_stdev"]["px"] = 1.0
+        self.defaultConfig["psf_stdev"] = {}
+        self.defaultConfig["psf_stdev"]["px"] = 1.0
         # Image Generation Density
-        self.defaultConfig["Instrument"]["density"] = 5
-        self.defaultConfig["Instrument"]["padding"] = 5
+        self.defaultConfig["density"] = 5
+        self.defaultConfig["padding"] = 5
         # Default Gain Value
-        self.defaultConfig["Instrument"]["gain"] = 1e10
+        self.defaultConfig["gain"] = 1e10
         # Noise Information
-        self.defaultConfig["Instrument"]["dark"] = 20 # counts per pixel per second at some fixed degree c
-        self.defaultConfig["Instrument"]["bias"] = 20 # counts per pixel at some fixed degree c
-        self.defaultConfig["Instrument"]["exposure"] = 120 #Seconds
+        self.defaultConfig["dark"] = 20 # counts per pixel per second at some fixed degree c
+        self.defaultConfig["bias"] = 20 # counts per pixel at some fixed degree c
+        self.defaultConfig["exposure"] = 120 #Seconds
         # File Information for data and Caches
-        self.defaultConfig["Instrument"]["files"] = {}
-        self.defaultConfig["Instrument"]["files"]["lenslets"] = "Data/xy_17nov2011_v57.TXT"
-        self.defaultConfig["Instrument"]["files"]["dispersion"] = "Data/dispersion_12-10-2011.txt"
-        self.defaultConfig["Instrument"]["files"]["encircledenergy"] = "Data/encircled_energy_4nov11.TXT"
+        self.defaultConfig["files"] = {}
+        self.defaultConfig["files"]["lenslets"] = "Data/xy_17nov2011_v57.TXT"
+        self.defaultConfig["files"]["dispersion"] = "Data/dispersion_12-10-2011.txt"
+        self.defaultConfig["files"]["encircledenergy"] = "Data/encircled_energy_4nov11.TXT"
         # MPL Plotting Save Format
-        self.defaultConfig["Instrument"]["plot_format"] = ".pdf"
+        self.defaultConfig["plot_format"] = ".pdf"
         
         # Logging Configuration
-        self.defaultConfig["Instrument"]["logging"] = {}
-        self.defaultConfig["Instrument"]["logging"]["console"] = {}
-        self.defaultConfig["Instrument"]["logging"]["console"]["enable"] = True
-        self.defaultConfig["Instrument"]["logging"]["console"]["format"] = "......%(message)s"
-        self.defaultConfig["Instrument"]["logging"]["console"]["level"] = False
-        self.defaultConfig["Instrument"]["logging"]["file"] = {}
-        self.defaultConfig["Instrument"]["logging"]["file"]["enable"] = True
-        self.defaultConfig["Instrument"]["logging"]["file"]["filename"] = "SEDInstrument"
-        self.defaultConfig["Instrument"]["logging"]["file"]["format"] = "%(asctime)s : %(levelname)-8s : %(funcName)-20s : %(message)s"
+        self.defaultConfig["logging"] = {}
+        self.defaultConfig["logging"]["console"] = {}
+        self.defaultConfig["logging"]["console"]["enable"] = True
+        self.defaultConfig["logging"]["console"]["format"] = "......%(message)s"
+        self.defaultConfig["logging"]["console"]["level"] = False
+        self.defaultConfig["logging"]["file"] = {}
+        self.defaultConfig["logging"]["file"]["enable"] = True
+        self.defaultConfig["logging"]["file"]["filename"] = "SEDInstrument"
+        self.defaultConfig["logging"]["file"]["format"] = "%(asctime)s : %(levelname)-8s : %(funcName)-20s : %(message)s"
         
         self.defaults += [copy.deepcopy(self.defaultConfig)]
         
@@ -280,13 +279,13 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
     
     def _configureFile(self):
         """Attempt to load the default configuration from the working directory"""
-        FileName = self.config["System"]["Configs"]["Instrument"]
+        FileName = self.config["Configs"]["Instrument"]
         try:
             stream = open(FileName,'r')
         except IOError:
             self.log.warning("Configuration File Not Found: %s" % FileName)
         else:
-            self.update(self.config["Instrument"],yaml.load(stream))
+            self.update(self.config,yaml.load(stream))
             stream.close()
             self.log.debug("Loaded Configuration from %s" % FileName)
         finally:
@@ -303,28 +302,28 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         # Default Cache Variables
         CacheFiles = {}
         CacheFileBase = "SED.Instrument"
-        CacheFiles["telescope"] = self.config["System"]["Dirs"]["Caches"] + CacheFileBase + ".tel"    + ".npy"
-        CacheFiles["psf"]       = self.config["System"]["Dirs"]["Caches"] + CacheFileBase + ".psf"    + ".npy"
-        CacheFiles["conv"]      = self.config["System"]["Dirs"]["Caches"] + CacheFileBase + ".conv"   + ".npy"
-        CacheFiles["config"]    = self.config["System"]["Dirs"]["Caches"] + CacheFileBase + ".config" + ".yaml"
-        CacheFiles["wls"]       = self.config["System"]["Dirs"]["Caches"] + CacheFileBase + ".wls"    + ".npz"
+        CacheFiles["telescope"] = self.config["Dirs"]["Caches"] + CacheFileBase + ".tel"    + ".npy"
+        CacheFiles["psf"]       = self.config["Dirs"]["Caches"] + CacheFileBase + ".psf"    + ".npy"
+        CacheFiles["conv"]      = self.config["Dirs"]["Caches"] + CacheFileBase + ".conv"   + ".npy"
+        CacheFiles["config"]    = self.config["Dirs"]["Caches"] + CacheFileBase + ".config" + ".yaml"
+        CacheFiles["wls"]       = self.config["Dirs"]["Caches"] + CacheFileBase + ".wls"    + ".npz"
         
-        CacheFiles = self.update(CacheFiles,self.config["System"]["CacheFiles"])
-        self.config["System"]["CacheFiles"] = CacheFiles
+        CacheFiles = self.update(CacheFiles,self.config["CacheFiles"])
+        self.config["CacheFiles"] = CacheFiles
         
         self.log.debug("Configured Cache Variables")
         self.defaults += [copy.deepcopy(self.config)]
         self.Caches.directory = "."
-        self.Caches.registerNPY("TEL",self.get_tel_kern,filename=self.config["System"]["CacheFiles"]["telescope"])
-        self.Caches.registerNPY("PSF",self.get_psf_kern,filename=self.config["System"]["CacheFiles"]["psf"])
-        self.Caches.registerNPY("CONV",lambda : sp.signal.convolve(self.Caches.get("PSF"),self.Caches.get("TEL"),mode='same'),filename=self.config["System"]["CacheFiles"]["conv"])
+        self.Caches.registerNPY("TEL",self.get_tel_kern,filename=self.config["CacheFiles"]["telescope"])
+        self.Caches.registerNPY("PSF",self.get_psf_kern,filename=self.config["CacheFiles"]["psf"])
+        self.Caches.registerNPY("CONV",lambda : sp.signal.convolve(self.Caches.get("PSF"),self.Caches.get("TEL"),mode='same'),filename=self.config["CacheFiles"]["conv"])
         self.Caches.load()
         
         # Load the Cached Configuration
-        FileName = self.config["System"]["CacheFiles"]["config"]
+        FileName = self.config["CacheFiles"]["config"]
         try:
             stream = file(FileName,'r')
-            self.update(self.config["Instrument"],yaml.load(stream))
+            self.update(self.config,yaml.load(stream))
         except IOError:
             self.log.info("Cached Configuration File Not Found: %s" % FileName)
         except TypeError:
@@ -334,16 +333,16 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
             stream.close()
         
         # If the cache is different from the generated configuration, then don't trust any caches
-        if self.defaults[-1]["Instrument"] == self.config["Instrument"]:
+        if self.defaults[-1] == self.config:
             self.regenearte = False
             self.log.debug("Configuration has not changed, will not regenerate data.")
         else:
             self.regenearte = True
-            with open("%sCaching-Configurations.dat" % self.config["System"]["Dirs"]["Partials"],'w') as stream:
-                stream.write(str(self.config["Instrument"]))
+            with open("%sCaching-Configurations.dat" % self.config["Dirs"]["Partials"],'w') as stream:
+                stream.write(str(self.config))
                 stream.write("\n")
-                stream.write(str(self.defaults[-1]["Instrument"]))
-            self.config["Instrument"] = self.defaults[-1]["Instrument"]
+                stream.write(str(self.defaults[-1]))
+            self.config = self.defaults[-1]
             self.log.info("Configuration appears to have changed, will regenerate data.")
 
         
@@ -367,17 +366,17 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         """
         self.defaults += [copy.deepcopy(self.config)]
         
-        if "calc" not in self.config["Instrument"]["convert"]:
-            if "mmtopx" not in self.config["Instrument"]["convert"] and "pxtomm" in self.config["Instrument"]["convert"]:
-                self.config["Instrument"]["convert"]["mmtopx"] = 1.0 / self.config["Instrument"]["convert"]["pxtomm"]
-                self.config["Instrument"]["convert"]["calc"] = True
+        if "calc" not in self.config["convert"]:
+            if "mmtopx" not in self.config["convert"] and "pxtomm" in self.config["convert"]:
+                self.config["convert"]["mmtopx"] = 1.0 / self.config["convert"]["pxtomm"]
+                self.config["convert"]["calc"] = True
             else:
-                self.config["Instrument"]["convert"]["pxtomm"] = 1.0 / self.config["Instrument"]["convert"]["mmtopx"]
-                self.config["Instrument"]["convert"]["calc"] = True
+                self.config["convert"]["pxtomm"] = 1.0 / self.config["convert"]["mmtopx"]
+                self.config["convert"]["calc"] = True
         
-        self.config["Instrument"] = self._setUnits(self.config["Instrument"],None)
+        self.config = self._setUnits(self.config,None)
         
-        self.config["Instrument"]["image_size"]["px"] = np.round( self.config["Instrument"]["image_size"]["px"] , 0 )
+        self.config["image_size"]["px"] = np.round( self.config["image_size"]["px"] , 0 )
     
     def _setUnits(self,config,parent):
         """docstring for _setUnits"""
@@ -389,7 +388,7 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
                 if ("calc" in r) and ("px" in r):
                     pass
                 elif ("calc" not in config):
-                    r["px"] = v * self.config["Instrument"]["convert"]["mmtopx"]
+                    r["px"] = v * self.config["convert"]["mmtopx"]
                     r["calc"] = True
                 else:
                     self.log.warning("Value for %s set in both px and mm." % parent)
@@ -397,7 +396,7 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
                 if ("calc" in r) and ("mm" in r):
                     pass
                 elif ("calc" not in r):
-                    r["mm"] = v * self.config["Instrument"]["convert"]["pxtomm"]
+                    r["mm"] = v * self.config["convert"]["pxtomm"]
                     r["calc"] = True
                 else:
                     self.log.warning("Value for %s set in both px and mm." % parent)
@@ -409,8 +408,8 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         """Cache calculated components of the system, including the telescope image and encircled energy image. Caches are stored to speed up system initalization. This function regenerates all cached files, including the configuration file. You can force the script to ignore cached files in the runner script using the option `--no-cache`. To regenrate the cache manually, simply delete the contents of the Caches directory
         """
         self.log.debug("Regenerating Cached Files")
-        with open(self.config["System"]["CacheFiles"]["config"],'w') as stream:
-            yaml.dump(self.defaults[-1]["Instrument"],stream,default_flow_style=False)
+        with open(self.config["CacheFiles"]["config"],'w') as stream:
+            yaml.dump(self.defaults[-1],stream,default_flow_style=False)
     
     def cachedWL(self):
         """Load cached wavelengths from the Caches directory. If any file is missing, it will attempt to trigger regeneration of the cache.
@@ -419,7 +418,7 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         try:
             # Cached Wavelengths
             self.WLS = {}
-            ZIPFile = np.load(self.config["System"]["CacheFiles"]["wls"])
+            ZIPFile = np.load(self.config["CacheFiles"]["wls"])
             for label in ZIPFile:
                 self.WLS[label] = ZIPFile[label]
         except IOError as e:
@@ -427,7 +426,7 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
             self.regenerate = True
         else:
             self.log.debug("Loaded Wavelengths from Numpy Files")
-            with open("%s%s%s" % (self.config["System"]["Dirs"]["Partials"],"Instrument-CachedWls-Keys-Loaded",".dat"),'w') as stream:
+            with open("%s%s%s" % (self.config["Dirs"]["Partials"],"Instrument-CachedWls-Keys-Loaded",".dat"),'w') as stream:
                 stream.write("\n".join(self.WLS.keys()))
     
     def resetWLCache(self):
@@ -438,8 +437,8 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
     
     def dumpConfig(self):
         """Dumps a valid configuration file on top of any old configuration files. This is useful for examining the default configuration fo the system, and providing modifications through this interface."""
-        with open(self.config["System"]["Configs"]["Instrument"].rstrip(".yaml")+".dump.yaml",'w') as stream:
-            yaml.dump(self.defaults[1]["Instrument"],stream,default_flow_style=False)
+        with open(self.config["Configs"]["Instrument"].rstrip(".yaml")+".dump.yaml",'w') as stream:
+            yaml.dump(self.defaults[1],stream,default_flow_style=False)
     
     def setup(self):
         """After the object has been initialized, it must be setup. Setup relies on an established configuration to determine what fixed parts of the system should be generated. Actions taken in the setup phase are:
@@ -456,7 +455,7 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
             self.plotKernalPartials()
         
         # Get layout data from files
-        self.loadOpticsData(self.config["Instrument"]["files"]["lenslets"],self.config["Instrument"]["files"]["dispersion"])
+        self.loadOpticsData(self.config["files"]["lenslets"],self.config["files"]["dispersion"])
         # TODO: We could cache this...
         
         self.generate_blank()
@@ -471,17 +470,17 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         plt.imshow(self.Caches.get("TEL"))
         plt.title("Telescope Image")
         plt.colorbar()
-        plt.savefig("%sInstrument-TEL-Kernel%s" % (self.config["System"]["Dirs"]["Partials"],self.config["Instrument"]["plot_format"]))
+        plt.savefig("%sInstrument-TEL-Kernel%s" % (self.config["Dirs"]["Partials"],self.config["plot_format"]))
         plt.clf()
         plt.imshow(self.Caches.get("PSF"))
         plt.title("PSF Image")
         plt.colorbar()
-        plt.savefig("%sInstrument-PSF-Kernel%s" % (self.config["System"]["Dirs"]["Partials"],self.config["Instrument"]["plot_format"]))
+        plt.savefig("%sInstrument-PSF-Kernel%s" % (self.config["Dirs"]["Partials"],self.config["plot_format"]))
         plt.clf()
         plt.imshow(self.Caches.get("CONV"))
         plt.title("Convolved Tel + PSF Image")
         plt.colorbar()
-        plt.savefig("%sInstrument-FIN-Kernel%s" % (self.config["System"]["Dirs"]["Partials"],self.config["Instrument"]["plot_format"]))
+        plt.savefig("%sInstrument-FIN-Kernel%s" % (self.config["Dirs"]["Partials"],self.config["plot_format"]))
         plt.clf()
     
     def psf_kern(self,filename,size=0,truncate=False,header_lines=18):
@@ -495,7 +494,7 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         
         uM,FR = np.genfromtxt(filename,skip_header=header_lines).T
         # Convert microns to milimeters, then pixels, then dense pixels
-        PX = uM * 1e-3 * self.config["Instrument"]["convert"]["mmtopx"] * self.config["Instrument"]["density"]
+        PX = uM * 1e-3 * self.config["convert"]["mmtopx"] * self.config["density"]
         # Set the frame size for the PSF
         if np.max(PX) <= size or truncate:
             size = np.int(size)
@@ -562,9 +561,9 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
     
     def get_tel_kern(self):
         """Returns the telescope kernel. This kernel is built by creating a circle mask for the size of the telescope mirror, and then subtracting a telescope obscuration from the center of the mirror image. The values for all of these items are set in the configuration file."""
-        TELIMG = self.circle_kern( self.config["Instrument"]["tel_radii"]["px"] * self.config["Instrument"]["density"] )
-        center = self.circle_kern( self.config["Instrument"]["tel_obsc"]["px"] * self.config["Instrument"]["density"] ,
-            self.config["Instrument"]["tel_radii"]["px"] * self.config["Instrument"]["density"] , False )
+        TELIMG = self.circle_kern( self.config["tel_radii"]["px"] * self.config["density"] )
+        center = self.circle_kern( self.config["tel_obsc"]["px"] * self.config["density"] ,
+            self.config["tel_radii"]["px"] * self.config["density"] , False )
         TELIMG -= center
         TELIMG = TELIMG / np.sum(TELIMG)
         self.log.debug("Generated a Telescpe Kernel with shape %s" % (str(TELIMG.shape)))
@@ -572,25 +571,25 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
     
     def get_psf_kern(self):
         """Returns the PSF Kernel. The function first tries to read the encircled energy file. In this case, if a `psf_size` is set in the instrument configuration, this value will be used to truncate the size of the encircled energy function. If the encircled energy function cannot be loaded, the system will fall back on to a gaussian psf as configured by the instrument."""
-        if self.config["Instrument"]["psf_size"]["px"] != 0:
-            size = self.config["Instrument"]["psf_size"]["px"] * self.config["Instrument"]["density"]
+        if self.config["psf_size"]["px"] != 0:
+            size = self.config["psf_size"]["px"] * self.config["density"]
             truncate = True
         else:
             size = 0
             truncate = False
         try:
-            PSFIMG = self.psf_kern( self.config["Instrument"]["files"]["encircledenergy"],size,truncate)
+            PSFIMG = self.psf_kern( self.config["files"]["encircledenergy"],size,truncate)
         except IOError as e:
             self.log.warning("Could not access encircled energy file: %s" % e)
-            PSFIMG = self.gauss_kern( (self.config["Instrument"]["psf_stdev"]["px"] * self.config["Instrument"]["density"]) )
+            PSFIMG = self.gauss_kern( (self.config["psf_stdev"]["px"] * self.config["density"]) )
         else:
-            self.log.debug("Loaded Encircled Energy from %s" % self.config["Instrument"]["files"]["encircledenergy"])
+            self.log.debug("Loaded Encircled Energy from %s" % self.config["files"]["encircledenergy"])
         return PSFIMG
     
     
     def get_blank_img(self):
         """Returns an image of the correct size to use for spectrum placement. Set by the `image_size` value."""
-        return np.zeros((self.config["Instrument"]["image_size"]["px"],self.config["Instrument"]["image_size"]["px"]))
+        return np.zeros((self.config["image_size"]["px"],self.config["image_size"]["px"]))
     
     
     # Wavelength Functions
@@ -620,7 +619,7 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
             self.log.info(npArrayInfo(results,"WL Retrieved Results"))
             raise Exception
         
-        filename = "%(dir)s%(file)s%(fmt)s" % { 'dir' : self.config["System"]["Dirs"]["Partials"],
+        filename = "%(dir)s%(file)s%(fmt)s" % { 'dir' : self.config["Dirs"]["Partials"],
             'file' : 'Instrument-Cached-WL-Points', 'fmt' : '.dat'}
         with open(filename,'w') as stream:
             stream.write(npArrayInfo(results[0],"Points") + "\n")
@@ -634,8 +633,8 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
     def positionCaching(self):
         """Save the wavelength and position cache. This must be done after all wavelengths have been collected."""
         if self.cache and self.regenerate:
-            np.savez(self.config["System"]["CacheFiles"]["wls"],**self.WLS)
-        with open("%s%s%s" % (self.config["System"]["Dirs"]["Partials"],"Instrument-CachedWls-Keys-Saved",".dat"),'w') as stream:
+            np.savez(self.config["CacheFiles"]["wls"],**self.WLS)
+        with open("%s%s%s" % (self.config["Dirs"]["Partials"],"Instrument-CachedWls-Keys-Saved",".dat"),'w') as stream:
             stream.write("\n".join(self.WLS.keys()))
         
     
@@ -674,7 +673,7 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
             raise SEDLimits
         
         # Find the length in units of (int) pixels
-        npix = (distance * self.config["Instrument"]["convert"]["mmtopx"]).astype(np.int) * self.config["Instrument"]["density"]
+        npix = (distance * self.config["convert"]["mmtopx"]).astype(np.int) * self.config["density"]
         
         # Create a data array one hundred times as dense as the number of pixels
         #   This is the super dense array which will use the above interpolation
@@ -689,8 +688,8 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         superDense_distance = np.cumsum(superDense_interval)
         
         # Adjust the density of our points. This rounds all values to only full pixel values.
-        superDense_pts = np.round(superDense_pts * self.config["Instrument"]["density"]) / self.config["Instrument"]["density"]
-        superDense_int = (superDense_pts * self.config["Instrument"]["density"]).astype(np.int)
+        superDense_pts = np.round(superDense_pts * self.config["density"]) / self.config["density"]
+        superDense_int = (superDense_pts * self.config["density"]).astype(np.int)
         
         # We can identify unique points using the points when the integer position ratchets up or down.
         unique_x,unique_y = np.diff(superDense_int).astype(np.bool)
@@ -704,7 +703,7 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         
         # An array of distances to the origin of this spectrum, can be used to find wavelength
         # of light at each distance
-        distance = superDense_distance[unique_idx] * self.config["Instrument"]["convert"]["pxtomm"]
+        distance = superDense_distance[unique_idx] * self.config["convert"]["pxtomm"]
         
 
         
@@ -739,8 +738,8 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
             plt.title("$\Delta$Distance Along Arc")
             plt.xlabel("x (px)")
             plt.ylabel("$\Delta$Distance along arc (px)")
-            plt.plot(points[:-1,1],np.diff(distance) * self.config["Instrument"]["convert"]["mmtopx"],'g.')
-            plt.savefig("%sInstrument-%04d-Delta-Distances%s" % (self.config["System"]["Dirs"]["Partials"],lenslet_num,self.config["Instrument"]["plot_format"]))
+            plt.plot(points[:-1,1],np.diff(distance) * self.config["convert"]["mmtopx"],'g.')
+            plt.savefig("%sInstrument-%04d-Delta-Distances%s" % (self.config["Dirs"]["Partials"],lenslet_num,self.config["plot_format"]))
             plt.clf()
         
         return points,wl,np.diff(wl)
@@ -792,11 +791,11 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         ix = ix.astype(np.int) #Indicies should always be integers
         
         # Center xs and ys on detector with a corner at 0,0
-        xs += (self.config["Instrument"]["image_size"]["mm"]/2)
-        ys += (self.config["Instrument"]["image_size"]["mm"]/2)
+        xs += (self.config["image_size"]["mm"]/2)
+        ys += (self.config["image_size"]["mm"]/2)
         
         # Find the xs and ys that are not within 0.1 mm of the edge of the detector...
-        ok = (xs > 0.1) & (xs < self.config["Instrument"]["image_size"]["mm"]-0.1) & (ys > 0.1) & (ys < self.config["Instrument"]["image_size"]["mm"]-0.1)
+        ok = (xs > 0.1) & (xs < self.config["image_size"]["mm"]-0.1) & (ys > 0.1) & (ys < self.config["image_size"]["mm"]-0.1)
         ix, p1, p2, lams, xs, ys = ix[ok], p1[ok], p2[ok], lams[ok], xs[ok], ys[ok]
         # We remove these positions because we don't want to generate spectra for them.
         
@@ -804,15 +803,15 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         self.lenslets = np.unique(ix)
         
         # Convert the xs and ys to pixel positions
-        xpix = np.round(xs * self.config["Instrument"]["convert"]["mmtopx"],0).astype(np.int)
-        ypix = np.round(ys * self.config["Instrument"]["convert"]["mmtopx"],0).astype(np.int)
+        xpix = np.round(xs * self.config["convert"]["mmtopx"],0).astype(np.int)
+        ypix = np.round(ys * self.config["convert"]["mmtopx"],0).astype(np.int)
         
         # Determine the center of the whole system by finding the x position that is closest to 0,0 in pupil position
         cntix = np.argmin(p1**2 + p2**2)
-        self.center = (xs[cntix] * self.config["Instrument"]["convert"]["mmtopx"], ys[cntix] * self.config["Instrument"]["convert"]["mmtopx"])
+        self.center = (xs[cntix] * self.config["convert"]["mmtopx"], ys[cntix] * self.config["convert"]["mmtopx"])
         
         self.lensletObjects = {}
-        FileName = self.config["System"]["Dirs"]["Partials"] + "Lenslets-raw" + ".dat"
+        FileName = self.config["Dirs"]["Partials"] + "Lenslets-raw" + ".dat"
         with open(FileName,'w') as stream:
             for idx in self.lenslets:
                 select = idx == ix
@@ -828,13 +827,13 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         if self.debug and self.plot:
             self.log.info("Generating Lenslet Plots")
             plt.clf()
-            FileName = "%(dir)sLenslet-xy%(fmt)s" % { 'dir' : self.config["System"]["Dirs"]["Partials"], 'fmt':self.config["Instrument"]["plot_format"]}
+            FileName = "%(dir)sLenslet-xy%(fmt)s" % { 'dir' : self.config["Dirs"]["Partials"], 'fmt':self.config["plot_format"]}
             for lenslet in self.lensletObjects.values():
                 plt.plot(lenslet.xs,lenslet.ys,linestyle='-')
             plt.title("Lenslet x-y positions")
             plt.savefig(FileName)
             plt.clf()
-            FileName = "%(dir)sLenslet-pxy%(fmt)s" % { 'dir' : self.config["System"]["Dirs"]["Partials"], 'fmt':self.config["Instrument"]["plot_format"]}
+            FileName = "%(dir)sLenslet-pxy%(fmt)s" % { 'dir' : self.config["Dirs"]["Partials"], 'fmt':self.config["plot_format"]}
             for lenslet in self.lensletObjects.values():
                 x,y = lenslet.ps.T
                 plt.plot(x,y,marker='.')
@@ -873,8 +872,8 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         
         
         # Take our points out. Note from the above that we multiply by the density in order to do this
-        xorig,yorig = (points * self.config["Instrument"]["density"])[:-1].T.astype(np.int)
-        x,y = (points * self.config["Instrument"]["density"])[:-1].T.astype(np.int)
+        xorig,yorig = (points * self.config["density"])[:-1].T.astype(np.int)
+        x,y = (points * self.config["density"])[:-1].T.astype(np.int)
         # Get the way in which those points correspond to actual pixels.
         # As such, this array of points should have duplicates
         xint,yint = points.T.astype(np.int)
@@ -890,26 +889,26 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         
         # Convert this size into an integer number of pixels for our subimage. This makes it
         # *much* easier to register our sub-image to the master, larger pixel image
-        xdist += (self.config["Instrument"]["density"] - xdist % self.config["Instrument"]["density"])
-        ydist += (self.config["Instrument"]["density"] - ydist % self.config["Instrument"]["density"])
+        xdist += (self.config["density"] - xdist % self.config["density"])
+        ydist += (self.config["density"] - ydist % self.config["density"])
         
         # Move our x and y coordinates to the middle of our sub image by applying padding below each one.
-        x += self.config["Instrument"]["padding"] * self.config["Instrument"]["density"]
-        y += self.config["Instrument"]["padding"] * self.config["Instrument"]["density"]
+        x += self.config["padding"] * self.config["density"]
+        y += self.config["padding"] * self.config["density"]
         
         # Find the first (by the flatten method) corner of the subimage,
         # useful for placing the sub-image into the full image.
         corner = np.array([ xint[np.argmax(x)], yint[np.argmin(y)]])
         self.log.debug("Corner Position in Integer Space: %s" % corner)
-        corner *= self.config["Instrument"]["density"]
+        corner *= self.config["density"]
         realcorner = np.array([ xorig[np.argmax(x)], yorig[np.argmin(y)]])
         offset = corner - realcorner
-        corner /= self.config["Instrument"]["density"]
+        corner /= self.config["density"]
         self.log.debug("Corner Position Offset in Dense Space: %s" % (offset))
         if self.log.getEffectiveLevel() <= logging.DEBUG:
-            with open(self.config["System"]["Dirs"]["Partials"]+"Instrument-Offsets.dat",'a') as handle:
+            with open(self.config["Dirs"]["Partials"]+"Instrument-Offsets.dat",'a') as handle:
                 np.savetxt(handle,offset)
-        corner -= np.array([-self.config["Instrument"]["padding"],self.config["Instrument"]["padding"]])
+        corner -= np.array([-self.config["padding"],self.config["padding"]])
         
         x += offset[0]
         y += offset[1]
@@ -917,12 +916,12 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         # Create our sub-image, using the x and y width of the spectrum, plus 2 padding widths.
         # Padding is specified in full-size pixels to ensure that the final image is an integer
         # number of full-size pixels across.
-        xsize = xdist+2*self.config["Instrument"]["padding"]*self.config["Instrument"]["density"]
-        ysize = ydist+2*self.config["Instrument"]["padding"]*self.config["Instrument"]["density"]
+        xsize = xdist+2*self.config["padding"]*self.config["density"]
+        ysize = ydist+2*self.config["padding"]*self.config["density"]
         
-        self.log.debug("Scailing by %g" % self.config["Instrument"]["gain"])
+        self.log.debug("Scailing by %g" % self.config["gain"])
         radiance = spectrum(wavelengths=WLS,resolution=RS) 
-        radiance *= self.config["Instrument"]["gain"]
+        radiance *= self.config["gain"]
         self.log.debug(npArrayInfo(radiance,"Generated Spectrum"))
         self.log.debug(npArrayInfo(deltawl,"DeltaWL Rescaling"))
         flux = radiance[1,:] * deltawl *1e-6
@@ -936,26 +935,26 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
             plt.title("Retrieved Spectra")
             plt.xlabel("Wavelength ($\mu m$)")
             plt.ylabel("Radiance (Units undefined)")
-            plt.savefig("%sInstrument-%04d-Radiance%s" % (self.config["System"]["Dirs"]["Partials"],lenslet,self.config["Instrument"]["plot_format"]))
+            plt.savefig("%sInstrument-%04d-Radiance%s" % (self.config["Dirs"]["Partials"],lenslet,self.config["plot_format"]))
             plt.clf()
             plt.clf()
             plt.plot(wl[:-1]*1e-6,flux,"b.")
             plt.title("Generated, Fluxed Spectra")
             plt.xlabel("Wavelength ($\mu m$)")
             plt.ylabel("Flux (Units undefined)")
-            plt.savefig("%sInstrument-%04d-Flux%s" % (self.config["System"]["Dirs"]["Partials"],lenslet,self.config["Instrument"]["plot_format"]))
+            plt.savefig("%sInstrument-%04d-Flux%s" % (self.config["Dirs"]["Partials"],lenslet,self.config["plot_format"]))
             plt.clf()
             plt.plot(wl[:-1]*1e-6,deltawl*1e-6,"g.")
             plt.title("$\Delta\lambda$ for each pixel")
             plt.xlabel("Wavelength ($\mu m$)")
             plt.ylabel("$\Delta\lambda$ per pixel")
-            plt.savefig("%sInstrument-%04d-DeltaWL%s" % (self.config["System"]["Dirs"]["Partials"],lenslet,self.config["Instrument"]["plot_format"]))
+            plt.savefig("%sInstrument-%04d-DeltaWL%s" % (self.config["Dirs"]["Partials"],lenslet,self.config["plot_format"]))
             plt.clf()
             plt.semilogy(WLS,RS,"g.")
             plt.title("$R = \\frac{\lambda}{\Delta\lambda}$ for each pixel")
             plt.xlabel("Wavelength ($\mu m$)")
             plt.ylabel("Resolution $R = \\frac{\Delta\lambda}{\lambda}$ per pixel")
-            plt.savefig("%sInstrument-%04d-Resolution%s" % (self.config["System"]["Dirs"]["Partials"],lenslet,self.config["Instrument"]["plot_format"]))
+            plt.savefig("%sInstrument-%04d-Resolution%s" % (self.config["Dirs"]["Partials"],lenslet,self.config["plot_format"]))
             plt.clf()
         
         
@@ -968,7 +967,7 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
             % (flux.shape,lenslet,img.shape))
         
         if self.log.getEffectiveLevel() <= logging.DEBUG:
-            np.savetxt(self.config["System"]["Dirs"]["Partials"]+"Instrument-Subimage-Values.dat",np.array([x,y,wl[:-1],deltawl,flux]).T)
+            np.savetxt(self.config["Dirs"]["Partials"]+"Instrument-Subimage-Values.dat",np.array([x,y,wl[:-1],deltawl,flux]).T)
         
         return img, corner
     
@@ -985,7 +984,7 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
             img2 = sp.signal.convolve(img,self.Caches.get("CONV"),mode='same')
             self.log.debug("Convolved Dense Image with PSF and Telescope for %4d" % lenslet)
             # Bin the image back down to the final pixel size
-            small = bin(img2,self.config["Instrument"]["density"]).astype(np.int16)
+            small = bin(img2,self.config["density"]).astype(np.int16)
             self.log.debug("Binned Dense Image to Actual Size for %4d" % lenslet)
             return small,corner
         else:
@@ -996,7 +995,7 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
             img_tel_psf = sp.signal.convolve(img_tel,self.Caches.get("PSF"),mode='same')
             self.log.debug("Convolved Dense Image with PSF for %4d" % lenslet)
             # Bin the image back down to the final pixel size
-            small = bin(img_tel_psf,self.config["Instrument"]["density"]).astype(np.int16)
+            small = bin(img_tel_psf,self.config["density"]).astype(np.int16)
             self.log.debug("Binned Dense Image for %4d" % lenslet)
             return small,corner,(img,img_tel,img_tel_psf)
     
@@ -1034,7 +1033,7 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
                 frame.header.update(dict(SEDstg=Stages[i]))
                 plt.imshow(step)
                 plt.title("%s Image Generation Steps for Lenslet %4d" % (Stages[i],lenslet))
-                plt.savefig("%sInstrument-%04d-Subimage-%s%s" % (self.config["System"]["Dirs"]["Partials"],lenslet,StagesF[i],self.config["Instrument"]["plot_format"]))
+                plt.savefig("%sInstrument-%04d-Subimage-%s%s" % (self.config["Dirs"]["Partials"],lenslet,StagesF[i],self.config["plot_format"]))
                 plt.clf()
         
         # We only write the sub-image if the function is called to write sub images
@@ -1042,7 +1041,7 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
             toSave = [label]
             if self.debug and self.plot:
                 toSave += ["%04d-Intermediate-%d: %s" % (lenslet,i,Stages[i]) for i in range(len(steps))]
-            self.write("%sSubimage-%4d%s" % (self.config["System"]["Dirs"]["Caches"],lenslet,".fits"),toSave,label,clobber=True)
+            self.write("%sSubimage-%4d%s" % (self.config["Dirs"]["Caches"],lenslet,".fits"),toSave,label,clobber=True)
             self.remove(label)
             if self.debug and self.plot:
                 for i,step in enumerate(steps):
@@ -1061,7 +1060,7 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         subframe = False
         if fromfile:
             try:
-                filename = "%sSubimage-%4d%s" % (self.config["System"]["Dirs"]["Caches"],lenslet,".fits")
+                filename = "%sSubimage-%4d%s" % (self.config["Dirs"]["Caches"],lenslet,".fits")
                 slabel = self.read(filename)[0]
                 subframe = self.frame(slabel)
             except IOError as e:
@@ -1117,7 +1116,7 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
     # Basic Manipulation Functions
     def generate_blank(self):
         """Generates a blank SEDMachine Image"""
-        self.save(np.zeros((self.config["Instrument"]["image_size"]["px"],self.config["Instrument"]["image_size"]["px"])).astype(np.int16),"Blank")
+        self.save(np.zeros((self.config["image_size"]["px"],self.config["image_size"]["px"])).astype(np.int16),"Blank")
     
     def crop(self,x,y,xsize,ysize=None,label=None):
         """Crops the provided image to twice the specified size, centered around the x and y coordinates provided."""
@@ -1133,7 +1132,7 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
     def generateGaussNoise(self,label=None,mean=10,std=2.0):
         """Generates a gaussian noise mask, saving to this object"""
         distribution = np.random.normal
-        shape = (self.config["Instrument"]["ccd_size"]["px"],self.config["Instrument"]["ccd_size"]["px"])
+        shape = (self.config["ccd_size"]["px"],self.config["ccd_size"]["px"])
         if label == None:
             label = "Gaussian Noise Mask (%2g,%2g)" % (mean,std)
         arguments = (mean,std,shape)
@@ -1144,7 +1143,7 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
     def generatePoissNoise(self,label=None,lam=2.0):
         """Generates a poisson noise mask, saving to this object"""
         distribution = np.random.poisson
-        shape = (self.config["Instrument"]["ccd_size"]["px"],self.config["Instrument"]["ccd_size"]["px"])
+        shape = (self.config["ccd_size"]["px"],self.config["ccd_size"]["px"])
         if label == None:
             label = "Poisson Noise Mask (%2g)" % (lam)
         arguments = (lam,shape)
@@ -1155,13 +1154,13 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
     def ccdCrop(self):
         """Crops the image to the appropriate ccd size"""
         x,y = self.center
-        size = self.config["Instrument"]["ccd_size"]["px"] / 2.0
+        size = self.config["ccd_size"]["px"] / 2.0
         self.crop(x,y,size,label=self.statename)
     
     def setupNoise(self):
         """Makes noise masks"""
-        self.generatePoissNoise("Dark",self.config["Instrument"]["dark"]*self.config["Instrument"]["exposure"])
-        self.generatePoissNoise("Bias",self.config["Instrument"]["bias"])
+        self.generatePoissNoise("Dark",self.config["dark"]*self.config["exposure"])
+        self.generatePoissNoise("Bias",self.config["bias"])
     
     def applyNoise(self,target):
         """Apply the noise masks to the target image label"""

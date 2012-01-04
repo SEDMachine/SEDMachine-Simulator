@@ -64,58 +64,56 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
     
     def initStages(self):
         """Set up the options for the command line interface."""
-        self.registerStage(self.setupModel,"instinit",description="Set up the Instrument Object")
+        self.registerStage(self.setupModel,"instinit",description="Set up the instrument object")
         self.registerStage(self.setupLenslets,"lensinit",description="Load and verify lenslet objects")
         self.registerMacro("instrument","instinit","lensinit",help="Test the initialization of the instrument model")
-        self.registerStage(self.setupNoise,"noisemask",description="Generate Noise Masks")
+        self.registerStage(self.setupNoise,"noisemask",description="Generate noise masks")
         self.registerStage(self.setupSource,"sourceinit",description="Set up the source model")
         self.registerMacro("source","sourceinit",help="Test the initialization of the source model")
-        self.registerStage(self.generateAllLenslets,"gensubimg",description="Generate Subimages for all Lenslets")
-        self.registerStage(self.positionCaches,"cachesubimg",description="Caches Lenslets")
-        self.registerStage(self.placeAllLenslets,"placesubimg",description="Places the lenslets into the image")
-        self.registerStage(self.cropImage,"crop",description="Crops the image down to size")
-        self.registerStage(self.applyNoise,"addnoise")
-        self.registerStage(self.saveFile,"save")
+        self.registerStage(self.generateAllLenslets,"gensubimg",description="Generate subimages for all lenslets")
+        self.registerStage(self.positionCaches,"cachesubimg",description="Cache lenslets")
+        self.registerStage(self.placeAllLenslets,"placesubimg",description="Place the lenslets into the image")
+        self.registerStage(self.cropImage,"crop",description="Crop the image down to size")
+        self.registerStage(self.applyNoise,"addnoise",description="Add noise frames")
+        self.registerStage(self.saveFile,"save",description="Save the final image")
         
         
     def defaultConfig(self):
         """Default configuration values from the program"""
         config = {}
-        
-        config["System"] = {}
-        
+                
         # Caching and Logging
-        config["System"]["Cache"] = True
-        config["System"]["Debug"] = False
-        config["System"]["Plot"]  = False
+        config["Cache"] = True
+        config["Debug"] = False
+        config["Plot"]  = False
         
-        config["System"]["Output"] = {}
-        config["System"]["Output"]["Label"] = "Generated"
-        config["System"]["Output"]["Format"] = "fits"
+        config["Output"] = {}
+        config["Output"]["Label"] = "Generated"
+        config["Output"]["Format"] = "fits"
         
-        config["System"]["CacheFiles"] = {}
-        config["System"]["CacheFiles"]["Instrument"] = "SED.instrument"
-        config["System"]["CacheFiles"]["Source"] = "SED.source"
+        config["CacheFiles"] = {}
+        config["CacheFiles"]["Instrument"] = "SED.instrument"
+        config["CacheFiles"]["Source"] = "SED.source"
         
         # Configuration Files
-        config["System"]["Configs"] = {}
-        config["System"]["Configs"]["Instrument"] = "SED.instrument.config.yaml"
-        config["System"]["Configs"]["Source"] = "SED.source.config.yaml"
-        config["System"]["Configs"]["Main"] = "SED.script.config.yaml"
+        config["Configs"] = {}
+        config["Configs"]["Instrument"] = "SED.instrument.config.yaml"
+        config["Configs"]["Source"] = "SED.source.config.yaml"
+        config["Configs"]["Main"] = "SED.script.config.yaml"
         
         # Directory Configuration
-        config["System"]["Dirs"] = {}
-        config["System"]["Dirs"]["Logs"] = "Logs/"
-        config["System"]["Dirs"]["Partials"] = "Partials/"
-        config["System"]["Dirs"]["Caches"] = "Caches/"
-        config["System"]["Dirs"]["Images"] = "Images/"
+        config["Dirs"] = {}
+        config["Dirs"]["Logs"] = "Logs/"
+        config["Dirs"]["Partials"] = "Partials/"
+        config["Dirs"]["Caches"] = "Caches/"
+        config["Dirs"]["Images"] = "Images/"
         
         
         # Lenslet Configuration
-        config["System"]["Lenslets"] = {}
+        config["Lenslets"] = {}
         
         # Source Configuration
-        config["System"]["Source"] = {}
+        config["Source"] = {}
         
         # Logging Configuration
         config["logging"] = {}
@@ -130,7 +128,7 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
         
         self.defaults += [copy.deepcopy(config)]
         
-        self.debug = config["System"]["Debug"]
+        self.debug = config["Debug"]
         
         update(self.config,config)
         self.log.debug("Set up default configutaion")
@@ -154,7 +152,7 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
                 sourceCfg["Filename"] = self.options.Filename
         
         
-        update(self.config["System"]["Source"],sourceCfg)
+        update(self.config["Source"],sourceCfg)
         import Source
         
         self.Source = Source.Source(self.config)
@@ -184,7 +182,7 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
             msg = "Setup took %1.5gs with caches %s." % (dur,"enabled" if self.options.cache else "disabled")
             self.log.debug(msg)
         
-        with open("%(dir)s%(fname)s%(fmt)s" % {'dir': self.config["System"]["Dirs"]["Partials"], 'fname': "Instrument-Audit", 'fmt':".dat" },'w') as stream:
+        with open("%(dir)s%(fname)s%(fmt)s" % {'dir': self.config["Dirs"]["Partials"], 'fname': "Instrument-Audit", 'fmt':".dat" },'w') as stream:
             stream.write("State Audit File %s\n" % (time.strftime("%Y-%m-%d-%H:%M:%S")))
         
     
@@ -192,10 +190,10 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
         """Establish the list of lenslets for use in the system"""
         self.lenslets = self.Model.lenslets
         
-        if "start" in self.config["System"]["Lenslets"]:
-            self.lenslets = self.lenslets[self.config["System"]["Lenslets"]["start"]:]
-        if "number" in self.config["System"]["Lenslets"]:
-            self.lenslets = self.lenslets[:self.config["System"]["Lenslets"]["number"]]
+        if "start" in self.config["Lenslets"]:
+            self.lenslets = self.lenslets[self.config["Lenslets"]["start"]:]
+        if "number" in self.config["Lenslets"]:
+            self.lenslets = self.lenslets[:self.config["Lenslets"]["number"]]
         
         self.total = len(self.lenslets)
     
@@ -210,11 +208,11 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
     def generateLenslet(self,i,spectrum):
         """Generate a single lenslet spectrum"""
         try:
-            self.Model.cache_sed_subimage(i,spectrum,write=self.config["System"]["Cache"])
+            self.Model.cache_sed_subimage(i,spectrum,write=self.config["Cache"])
             
             if self.debug:
                 self.Model.show()
-                self.plt.savefig(self.config["System"]["Dirs"]["Partials"] + "Subimage-%04d-Final.pdf" % i)
+                self.plt.savefig(self.config["Dirs"]["Partials"] + "Subimage-%04d-Final.pdf" % i)
                 self.plt.clf()
         
         except self.Limits:
@@ -226,7 +224,7 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
         finally:
             self.prog.value += 1.0
             States = self.Model.list()
-            with open("%(dir)s%(fname)s%(fmt)s" % {'dir': self.config["System"]["Dirs"]["Partials"], 'fname': "Instrument-Audit", 'fmt':".dat" },'a') as stream:
+            with open("%(dir)s%(fname)s%(fmt)s" % {'dir': self.config["Dirs"]["Partials"], 'fname': "Instrument-Audit", 'fmt':".dat" },'a') as stream:
                 stream.write("%4d: %s\n" % (len(States),States))
             self.log.debug("Memory Status: %d states saved in object" % len(States))
             
@@ -249,10 +247,10 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
     def placeLenslet(self,i):
         """Place a single lenslet into the model"""
         try:
-            self.Model.place_cached_sed(i,"Included Spectrum %d" % i,"Final",fromfile=self.config["System"]["Cache"])
+            self.Model.place_cached_sed(i,"Included Spectrum %d" % i,"Final",fromfile=self.config["Cache"])
             if self.debug:
                 self.Model.show()
-                self.plt.savefig(self.config["System"]["Dirs"]["Partials"] + "FullImage-%04d-Final.pdf" % i)
+                self.plt.savefig(self.config["Dirs"]["Partials"] + "FullImage-%04d-Final.pdf" % i)
                 self.plt.clf()
         except self.Limits:
             msg = "Encoutered Spectrum outside image boundaries %d" % i
@@ -263,7 +261,7 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
         finally:
             self.prog.value += 1
             States = self.Model.list()
-            with open("%(dir)s%(fname)s%(fmt)s" % {'dir': self.config["System"]["Dirs"]["Partials"], 'fname': "Instrument-Audit", 'fmt':".dat" },'a') as stream:
+            with open("%(dir)s%(fname)s%(fmt)s" % {'dir': self.config["Dirs"]["Partials"], 'fname': "Instrument-Audit", 'fmt':".dat" },'a') as stream:
                 stream.write("%4d: %s\n" % (len(States),States))
             self.log.debug("Memory Status: %d states saved in object" % len(States))
             
@@ -292,8 +290,8 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
     
     def saveFile(self):
         """Saves the file"""
-        self.Filename = "%(label)s-%(date)s.%(fmt)s" % { 'label': self.config["System"]["Output"]["Label"], 'date': time.strftime("%Y-%m-%d"), 'fmt':self.config["System"]["Output"]["Format"] }
-        self.Fullname = self.config["System"]["Dirs"]["Images"] + self.Filename
+        self.Filename = "%(label)s-%(date)s.%(fmt)s" % { 'label': self.config["Output"]["Label"], 'date': time.strftime("%Y-%m-%d"), 'fmt':self.config["Output"]["Format"] }
+        self.Fullname = self.config["Dirs"]["Images"] + self.Filename
         self.Model.keep(self.Model.statename)
         self.Model.write(self.Fullname,clobber=True)
         self.log.info("Wrote %s" % self.Fullname)
