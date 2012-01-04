@@ -214,7 +214,8 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         
         You can force the script to ignore cached files in the runner script using the option `--no-cache`. To regenrate the cache manually, simply delete the contents of the Caches directory"""
         self._configureDefaults()
-        self.configure(configuration=self.defaultConfig)
+        self.config["Configs"]["This"] = self.config["Configs"]["Instrument"]
+        self.configure()
         self._configureCaches()
         self._configureDynamic()
         fileName = "%(dir)sInstrument-Config.dat" % {'dir':self.config["Dirs"]["Partials"]}
@@ -275,6 +276,8 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         
         self.defaults += [copy.deepcopy(self.defaultConfig)]
         
+        self.update(self.config,self.defaultConfig)
+        
         self.log.debug("Set Instrument Configuration Defaults")
     
     def _configureFile(self):
@@ -302,48 +305,54 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         # Default Cache Variables
         CacheFiles = {}
         CacheFileBase = "SED.Instrument"
-        CacheFiles["telescope"] = self.config["Dirs"]["Caches"] + CacheFileBase + ".tel"    + ".npy"
-        CacheFiles["psf"]       = self.config["Dirs"]["Caches"] + CacheFileBase + ".psf"    + ".npy"
-        CacheFiles["conv"]      = self.config["Dirs"]["Caches"] + CacheFileBase + ".conv"   + ".npy"
-        CacheFiles["config"]    = self.config["Dirs"]["Caches"] + CacheFileBase + ".config" + ".yaml"
-        CacheFiles["wls"]       = self.config["Dirs"]["Caches"] + CacheFileBase + ".wls"    + ".npz"
+        CacheFiles["telescope"] = CacheFileBase + ".tel"    + ".npy"
+        CacheFiles["psf"]       = CacheFileBase + ".psf"    + ".npy"
+        CacheFiles["conv"]      = CacheFileBase + ".conv"   + ".npy"
+        CacheFiles["config"]    = CacheFileBase + ".config" + ".yaml"
+        CacheFiles["wls"]       = CacheFileBase + ".wls"    + ".npz"
         
         CacheFiles = self.update(CacheFiles,self.config["CacheFiles"])
         self.config["CacheFiles"] = CacheFiles
         
         self.log.debug("Configured Cache Variables")
         self.defaults += [copy.deepcopy(self.config)]
-        self.Caches.directory = "."
+        self.Caches.directory = self.config["Dirs"]["Caches"]
         self.Caches.registerNPY("TEL",self.get_tel_kern,filename=self.config["CacheFiles"]["telescope"])
         self.Caches.registerNPY("PSF",self.get_psf_kern,filename=self.config["CacheFiles"]["psf"])
         self.Caches.registerNPY("CONV",lambda : sp.signal.convolve(self.Caches.get("PSF"),self.Caches.get("TEL"),mode='same'),filename=self.config["CacheFiles"]["conv"])
-        self.Caches.load()
+        self.Caches.registerCustom("CONFIG",kind=AstroObject.AstroSimulator.YAMLCache,generate=lambda : self.config,filename=self.config["CacheFiles"]["config"])
+        
+        if self.Caches.check(master="CONFIG"):
+            self.log.info("Caches appear out of date, regenerating")
+        self.Caches.get("CONFIG")
+        
+                
         
         # Load the Cached Configuration
-        FileName = self.config["CacheFiles"]["config"]
-        try:
-            stream = file(FileName,'r')
-            self.update(self.config,yaml.load(stream))
-        except IOError:
-            self.log.info("Cached Configuration File Not Found: %s" % FileName)
-        except TypeError:
-            self.log.critical("Cached Configuration File has a Problem... skipping.")
-            stream.close()
-        else:
-            stream.close()
-        
-        # If the cache is different from the generated configuration, then don't trust any caches
-        if self.defaults[-1] == self.config:
-            self.regenearte = False
-            self.log.debug("Configuration has not changed, will not regenerate data.")
-        else:
-            self.regenearte = True
-            with open("%sCaching-Configurations.dat" % self.config["Dirs"]["Partials"],'w') as stream:
-                stream.write(str(self.config))
-                stream.write("\n")
-                stream.write(str(self.defaults[-1]))
-            self.config = self.defaults[-1]
-            self.log.info("Configuration appears to have changed, will regenerate data.")
+        # FileName = self.config["CacheFiles"]["config"]
+        #         try:
+        #             stream = file(FileName,'r')
+        #             self.update(self.config,yaml.load(stream))
+        #         except IOError:
+        #             self.log.info("Cached Configuration File Not Found: %s" % FileName)
+        #         except TypeError:
+        #             self.log.critical("Cached Configuration File has a Problem... skipping.")
+        #             stream.close()
+        #         else:
+        #             stream.close()
+        #         
+        #         # If the cache is different from the generated configuration, then don't trust any caches
+        #         if self.defaults[-1] == self.config:
+        #             self.regenearte = False
+        #             self.log.debug("Configuration has not changed, will not regenerate data.")
+        #         else:
+        #             self.regenearte = True
+        #             with open("%sCaching-Configurations.dat" % self.config["Dirs"]["Partials"],'w') as stream:
+        #                 stream.write(str(self.config))
+        #                 stream.write("\n")
+        #                 stream.write(str(self.defaults[-1]))
+        #             self.config = self.defaults[-1]
+        #             self.log.info("Configuration appears to have changed, will regenerate data.")
 
         
         return
