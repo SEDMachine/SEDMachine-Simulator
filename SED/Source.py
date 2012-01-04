@@ -27,6 +27,7 @@ try:
     from AstroObject.AnalyticSpectra import BlackBodySpectrum,FlatSpectrum,ResampledSpectrum
     from AstroObject.AstroSpectra import SpectraObject
     import AstroObject.Utilities as AOU
+    import AstroObject.AstroSimulator
 except ImportError:
     print "Ensure you have AstroObject installed: please run get-AstroObject.sh"
     raise
@@ -37,17 +38,18 @@ import scipy.signal
 
 __version__ = AOU.getVersion(__name__)
 
-class Source(object):
+class Source(AstroObject.AstroSimulator.Simulator):
     """An SED Machine Source wrapping class"""
     def __init__(self,config):
-        super(Source, self).__init__()
+        super(Source, self).__init__(name="Source")
         self.config = config
         self.debug = self.config["Debug"]
         self.cache = self.config["Cache"]
         self.plot = self.config["Plot"]
         self.defaults = []
-        self.initLog()
-    
+        self._configureDefaults()
+        self.initStages()
+        
     def update(self, d, u):
         """A deep update command for dictionaries.
         This is because the normal dictionary.update() command does not handle nested dictionaries."""
@@ -90,46 +92,24 @@ class Source(object):
         self.dconfig["logging"]["file"]["format"] = "%(asctime)s : %(levelname)-8s : %(funcName)-20s : %(message)s"
         
         self.defaults += [copy.deepcopy(self.config)]
+        self.update(self.config,self.dconfig)
+        self.config["Configs"]["This"] = self.config["Configs"]["Source"]
         self.log.debug("Set default configuration values.")
         
-    def initLog(self):
-        """Initializes the system logger. This logger starts with only a buffer, no actual logging output. The buffer is used to hold log messages before a logging output location has been specified."""
-        self.log = logging.getLogger(__name__)
-        self.log.setLevel(logging.DEBUG)
-        logging.captureWarnings(True)
-        self.filebuffer = logging.handlers.MemoryHandler(1e6) 
-        #Our handler will only handle 1-million messages... lets not go that far
-        self.consolebuffer = logging.handlers.MemoryHandler(1e6)
-        self.consolebuffer.setLevel(logging.INFO)
-        self.log.addHandler(self.filebuffer)
-        self.log.addHandler(self.consolebuffer)
-        
-        self.log.info("--------------------------------------")
-        self.log.info("Welcome to the SEDMachine Source model")
-        self.log.debug("Version %s" % __version__ )
+    def initStages(self):
+        """Initialize simulator stages"""
+        self.registerStage(self.setupSource,"sourinit",description="Calculate and resample source")
+        self.registerStage(self.setupNoiseandThruput,"thptinit",description="Calculate noise and throughput")
+        self.registerMacro("setup","sourinit","thptinit",help="Source initialization functions")
     
     def setup(self):
         """Setup the simulation system"""
-        
-        self._configureDefaults()
-        self._configureSystem()
-        self._configureFile()
-        
-        self.setupLog()
-        
-        self.setupSource()
-        
-        self.setupNoiseandThruput()
-        
+        self.commandLine = False
+        self.startup()
+        self.do("*setup")        
         if self.debug:
             self._plotSpectrum()
-    
-    def _configureSystem(self):
-        """Configure the source based on the system configuration of the soure"""
-        
-        self.update(self.config,self.dconfig)
-        
-        self.defaults += [copy.deepcopy(self.config)]
+
         
     
     def _configureFile(self):
@@ -163,44 +143,6 @@ class Source(object):
         else:
             raise AssertionError("Invalid Type of Source: %s" % self.config["Type"])
         
-    
-    def setupLog(self):
-        """Setup Logging Functions for the SEDMachine Model.
-
-        This configures the logging system, including a possible console and file log. It then reads the logging buffer into the logfile.
-        """
-
-        self.console = logging.StreamHandler()
-        consoleFormat = self.config["logging"]["console"]["format"]
-        if self.config["logging"]["console"]["level"]:
-            self.console.setLevel(self.config["logging"]["console"]["level"])
-        elif self.debug:
-            self.console.setLevel(logging.DEBUG)
-        else:
-            self.console.setLevel(logging.ERROR)
-        consoleFormatter = logging.Formatter(consoleFormat)
-        self.console.setFormatter(consoleFormatter)
-        if self.config["logging"]["console"]["enable"]:
-            self.log.addHandler(self.console)
-            self.consolebuffer.setTarget(self.console)
-        self.consolebuffer.close()
-        self.log.removeHandler(self.consolebuffer)
-        
-        self.logfile = None
-        # Only set up the file log handler if we can actually access the folder
-        if os.access(self.config["Dirs"]["Logs"],os.F_OK) and self.config["logging"]["file"]["enable"]:
-            filename = self.config["Dirs"]["Logs"] + self.config["logging"]["file"]["filename"]+".log"
-            self.logfile = logging.handlers.TimedRotatingFileHandler(filename,when='midnight')
-            self.logfile.setLevel(logging.DEBUG)
-            fileformatter = logging.Formatter(self.config["logging"]["file"]["format"],datefmt="%Y-%m-%d-%H:%M:%S")
-            self.logfile.setFormatter(fileformatter)
-            self.log.addHandler(self.logfile)
-            # Finally, we should flush the old buffers
-            self.filebuffer.setTarget(self.logfile)
-        
-        self.filebuffer.close()
-        self.log.removeHandler(self.filebuffer)
-        self.log.debug("Configured Logging")
         
     
     def setupSource(self):
