@@ -1,7 +1,7 @@
 ---
 Title: Simulation Scripts for SED Machine
 Author: Alexander Rudy
-  Version 0.2.0a1a1a1a1
+  Version 0.2.0a1
 ---
 
 # Introduction
