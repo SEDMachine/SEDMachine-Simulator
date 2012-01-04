@@ -6,7 +6,7 @@
 #
 #  Created by Alexander Rudy on 2011-11-04.
 #  Copyright 2011 Alexander Rudy. All rights reserved.
-#  Version 0.1.3p2p1
+#  Version 0.2.0a1
 #
 
 

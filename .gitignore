@@ -57,9 +57,3 @@ TODO/*
 experiment.py
 
 
-# Buildout Components
-bin/
-develop-eggs/
-eggs/
-parts/
-
