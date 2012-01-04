@@ -5,28 +5,57 @@
 #  Created by Alexander Rudy on 2011-10-04.
 #  Copyright 2011 Alexander Rudy. All rights reserved.
 # 
+.DS_Store
 
+# Generated File Directories
 Logs/*
 Caches/*
 Images/*
 Partials/*
-Docs/_build/*
-SEDSpec/*.pdf
-Logs.tar.gz
-*.npy
-.fits
+# Generated Files
 *.pyc
+*.npy
 *.log
-TODO/*
+*config.yaml
+*dump.yaml
+*.cache
+
+# Documentation
+Docs/_build/*
+
+# Nick's Cruft
+SEDSpec/*.pdf
+
+# Files we really would rather never see!
+Logs.tar.gz
 *.png
 *.fits
 *.TXT
 *OLD.py
-*config.yaml
-*dump.yaml
-experiment.py
+
+# Distribution
 *.egg-info
-dist/
+*.egg
+dist/*
+build/*
+SEDMachineSimulator-*/
+
+# Buildout
+bin/*
+develop-eggs/*
+parts/*
+eggs/*
+.installed.cfg
+
+
+# Development stuff
+TODO/*
+
+# TESTS
+.noseids
+.coverage
+experiment.py
+
 
 # Buildout Components
 bin/
