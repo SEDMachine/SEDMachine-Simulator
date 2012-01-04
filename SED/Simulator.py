@@ -77,6 +77,8 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
         self.registerStage(self.applyNoise,"addnoise",description="Add noise frames")
         self.registerStage(self.saveFile,"save",description="Save the final image")
         
+        self.Caches.registerCustom("Config",kind=AstroObject.AstroSimulator.YAMLCache,filename="Simulator.cache.yaml",generate=lambda : self.config)
+                
         
     def defaultConfig(self):
         """Default configuration values from the program"""
@@ -100,6 +102,7 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
         config["Configs"]["Instrument"] = "SED.instrument.config.yaml"
         config["Configs"]["Source"] = "SED.source.config.yaml"
         config["Configs"]["Main"] = "SED.script.config.yaml"
+        config["Configs"]["This"] = config["Configs"]["Main"]
         
         # Directory Configuration
         config["Dirs"] = {}
@@ -111,9 +114,6 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
         
         # Lenslet Configuration
         config["Lenslets"] = {}
-        
-        # Source Configuration
-        config["Source"] = {}
         
         # Logging Configuration
         config["logging"] = {}
@@ -152,7 +152,7 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
                 sourceCfg["Filename"] = self.options.Filename
         
         
-        update(self.config["Source"],sourceCfg)
+        update(self.config,sourceCfg)
         import Source
         
         self.Source = Source.Source(self.config)
