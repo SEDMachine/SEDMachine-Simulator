@@ -352,23 +352,7 @@ class Lenslet(ImageObject):
         self.log.debug(npArrayInfo(deltawl,"DeltaWL Rescaling"))
         flux = radiance[1,:] * deltawl
         self.log.debug(npArrayInfo(flux,"Final Flux"))
-        
-        img = np.zeros((xsize,ysize))
-        
-        # imshape = self.Caches.get("CONV").shape
-        #        
-        #        for x,y,flux in zip(x,y,flux,WLS):
-        #            tinyImage = np.zeros(imshape)
-        #            corner = [ x + imshape[0]/2.0, y + imshape[0]/2.0]
-        #            self.log.debug("Corner of super-small image: %s" % corner)
-        #            tinyImage[x,y] = flux
-        #            PSF = self.get_psf(wl)
-        #            tinyImage = sp.convolve(tinyImage,PSF,mode="same")
-        
-        
-        # Place the spectrum into the sub-image
- 
-        
+         
         if self.log.getEffectiveLevel() <= logging.DEBUG:
             np.savetxt(self.config["Dirs"]["Partials"]+"Instrument-Subimage-Values.dat",np.array([x,y,self.dwl[:-1],deltawl,flux]).T)
         
@@ -378,6 +362,26 @@ class Lenslet(ImageObject):
         self.twl = self.dwl[:-1]
         self.subshape = (xsize,ysize)
         self.subcorner = corner        
+        
+    def place_trace(self,get_psf):
+        """Place the trace on the image"""
+        
+        img = np.zeros(self.subshape)
+        
+        for x,y,wl,flux in zip(self.txs,self.tys,self.twl,self.tfl):
+            psf = get_psf(wl)
+            tiny_image = np.zeros(psf.shape) + psf * flux
+            tl_corner = [ x - tiny_image.shape[0]/2.0, y - tiny_image.shape[0]/2.0 ]
+            br_corner = [ x + tiny_image.shape[0]/2.0, y + tiny_image.shape[0]/2.0 ]
+            self.log.debug("Corner of tiny image is %s" % (tl_corner))
+            img[ tl_corner[0]:br_corner[0] , tl_corner[1]:br_corner[1] ] += tiny_image
+        self.log.debug(npArrayInfo(img,"DenseSubImage"))
+        self.save(img,"Raw Spectrum")
+        filename = "%(dir)s/Lenslet%(num)4d.fits" % { 'dir' : self.config["Dirs"]["Partials"] , 'num': self.num }
+        self.write(filename,clobber=True)
+        
+        
+            
         
         
     def _debug_dispersion(self):
@@ -778,6 +782,13 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         return PSFIMG
     
     
+    def get_psf(self,wl):
+        """Return a PSF for a given wavelength"""
+        if wl > 5 * 1e-7:
+            return self.Caches.get("CONV")
+        else:
+            return self.gauss_kern( (self.config["psf_stdev"]["px"] * self.config["density"] / 2) )
+        
     def get_blank_img(self):
         """Returns an image of the correct size to use for spectrum placement. Set by the `image_size` value."""
         return np.zeros((self.config["image_size"]["px"],self.config["image_size"]["px"]))
@@ -794,7 +805,7 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         self.log.info("Calculating Wavelength Dispersion for %d lenslets" % total)
         
         self.log.useConsole(False)
-        PBar.render(0,"L:%4d %4d/%4d" % (0,finished,total))
+        PBar.render(0,"L:%4d %4d/%-4d" % (0,finished,total))
         
         for index in self.lenslets:
             self.lensletObjects[index].find_dispersion()
@@ -814,7 +825,7 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         self.log.info("Calculating Wavelength Trace for %d lenslets" % total)
         
         self.log.useConsole(False)
-        PBar.render(0,"L:%4d %4d/%4d" % (0,finished,total))
+        PBar.render(0,"L:%4d %4d/%-4d" % (0,finished,total))
         
         for index in self.lenslets:
             self.lensletObjects[index].get_trace(spectrum(index))
@@ -828,6 +839,27 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
             
         
 
+    def lenslet_image(self):
+        """Creates an image for each lenslet in desnse space"""
+        PBar = arpytools.progressbar.ProgressBar(color="blue")
+        finished = 0.0
+        total = len(self.lenslets)
+        
+        self.log.info("Placing Wavelength Dependent PSFs for %d lenslets" % total)
+        
+        self.log.useConsole(False)
+        PBar.render(0,"L:%4d %4d/%4d" % (0,finished,total))
+        
+        for index in self.lenslets:
+            self.lensletObjects[index].place_trace(self.get_psf)
+            finished += 1.0
+            progress = int((finished/float(total)) * 100)
+            PBar.render(progress,"L:%4d %4d/%-4d" % (index,finished,total))
+        
+        self.log.useConsole(True)
+        
+    
+    
     def get_wavelengths(self,lenslet_num):
         """Returns a tuple of ([x,y],wavelength,delta wavelength). Thus, this function calculates the x,y pixel positions of the spectra, the wavelength at each pixel, and the delta wavelength for each pixel.
         

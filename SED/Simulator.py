@@ -73,8 +73,8 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
         self.registerMacro("dispersion","instrument","dispers",help="Generate dispersions for all lenslets")
         self.registerStage(self.trace,"tracer",description="Get Trace for all lenslets")
         self.registerMacro("trace","instrument","dispers","tracer","source",help="Generate dispersions for all lenslets")
-        self.registerStage(self.generateAllLenslets,"gensubimg",description="Generate subimages for all lenslets")
-        self.registerMacro("subimages","instinit","lensinit","sourceinit","dispers","gensubimg",help="Generate Sub Images")
+        self.registerStage(self.lenslet_image,"subimg",description="Generate subimages for all lenslets")
+        self.registerMacro("subimages","instinit","lensinit","sourceinit","dispers","tracer","subimg",help="Generate Sub Images")
         self.registerStage(self.positionCaches,"cachesubimg",description="Cache lenslets")
         self.registerStage(self.placeAllLenslets,"placesubimg",description="Place the lenslets into the image")
         self.registerStage(self.cropImage,"crop",description="Crop the image down to size")
@@ -237,6 +237,10 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
     def generateAllLenslets(self):
         """Generate all lenslet spectra"""
         self.Model.cache_images(self.Source.getSpectrum)    
+    
+    def lenslet_image(self):
+        """docstring for generateSubimages"""
+        self.Model.lenslet_image()
     
     def placeLenslet(self,i):
         """Place a single lenslet into the model"""
