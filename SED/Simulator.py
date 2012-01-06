@@ -65,12 +65,16 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
     def initStages(self):
         """Set up the options for the command line interface."""
         self.registerStage(self.setupModel,"instinit",description="Set up the instrument object")
-        self.registerStage(self.setupLenslets,"lensinit",description="Load and verify lenslet objects")
-        self.registerMacro("instrument","instinit","lensinit",help="Test the initialization of the instrument model")
+        self.registerMacro("instrument","instinit",help="Test the initialization of the instrument model")
         self.registerStage(self.setupNoise,"noisemask",description="Generate noise masks")
         self.registerStage(self.setupSource,"sourceinit",description="Set up the source model")
         self.registerMacro("source","sourceinit",help="Test the initialization of the source model")
+        self.registerStage(self.dispersion,"dispers",description="Get Dispersion for all lenslets")
+        self.registerMacro("dispersion","instrument","dispers",help="Generate dispersions for all lenslets")
+        self.registerStage(self.trace,"tracer",description="Get Trace for all lenslets")
+        self.registerMacro("trace","instrument","dispers","tracer","source",help="Generate dispersions for all lenslets")
         self.registerStage(self.generateAllLenslets,"gensubimg",description="Generate subimages for all lenslets")
+        self.registerMacro("subimages","instinit","lensinit","sourceinit","dispers","gensubimg",help="Generate Sub Images")
         self.registerStage(self.positionCaches,"cachesubimg",description="Cache lenslets")
         self.registerStage(self.placeAllLenslets,"placesubimg",description="Place the lenslets into the image")
         self.registerStage(self.cropImage,"crop",description="Crop the image down to size")
@@ -182,20 +186,6 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
             msg = "Setup took %1.5gs with caches %s." % (dur,"enabled" if self.options.cache else "disabled")
             self.log.debug(msg)
         
-        with open("%(dir)s%(fname)s%(fmt)s" % {'dir': self.config["Dirs"]["Partials"], 'fname': "Instrument-Audit", 'fmt':".dat" },'w') as stream:
-            stream.write("State Audit File %s\n" % (time.strftime("%Y-%m-%d-%H:%M:%S")))
-        
-    
-    def setupLenslets(self):
-        """Establish the list of lenslets for use in the system"""
-        self.lenslets = self.Model.lenslets
-        
-        if "start" in self.config["Lenslets"]:
-            self.lenslets = self.lenslets[self.config["Lenslets"]["start"]:]
-        if "number" in self.config["Lenslets"]:
-            self.lenslets = self.lenslets[:self.config["Lenslets"]["number"]]
-        
-        self.total = len(self.lenslets)
     
     def setupNoise(self):
         """Sets up the noise masks in the model"""
@@ -204,6 +194,15 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
     def positionCaches(self):
         """Caches the positions"""
         self.Model.positionCaching()
+    
+    def dispersion(self):
+        """Gets the dispersion for each lenslet"""
+        self.Model.lenslet_dispersion()
+
+    def trace(self):
+        """Calculate the trace for all lenslets"""
+        self.Model.lenslet_trace(self.Source.getSpectrum)
+        
     
     def generateLenslet(self,i,spectrum):
         """Generate a single lenslet spectrum"""
@@ -237,12 +236,7 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
     
     def generateAllLenslets(self):
         """Generate all lenslet spectra"""
-        self.log.info("Generating Spectra in %d Lenslets" % len(self.lenslets))
-        if not self.debug:
-            self.bar.render(0,"L:%4d" % 0)
-        map(lambda i: self.generateLenslet(i,self.Source.getSpectrum(i)),self.lenslets)
-        self.bar.lines = 0
-    
+        self.Model.cache_images(self.Source.getSpectrum)    
     
     def placeLenslet(self,i):
         """Place a single lenslet into the model"""
@@ -274,10 +268,14 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
         """Place all lenslets into the image file"""
         self.Model.save(self.Model.data("Blank"),"Final")
         self.log.info("Placing Spectra in %d Lenslets" % len(self.lenslets))
+        self.bar = arpytools.progressbar.ProgressBar(color="Red")
         if not self.debug:
             self.bar.render(0,"L:%4d" % 0)
         self.prog.value = 0
+        self.log.toggleConsole(value=False)
         map(lambda i: self.placeLenslet(i),self.lenslets)
+        self.log.toggleConsole(value=True)
+        
         self.bar.lines = 0
     
     def cropImage(self):

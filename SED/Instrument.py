@@ -20,6 +20,8 @@ import scipy.signal
 import scipy.interpolate
 import yaml
 
+import arpytools.progressbar
+
 import os,logging,time,copy,collections
 
 import logging.handlers
@@ -113,11 +115,12 @@ class SubImage(ImageFrame):
     
 
 
-class Lenslet(object):
+
+class Lenslet(ImageObject):
     """An object-representation of a lenslet"""
-    def __init__(self, xs,ys,xpixs,ypixs,p1s,p2s,ls,ix):
+    def __init__(self,xs,ys,xpixs,ypixs,p1s,p2s,ls,ix,config):
         super(Lenslet, self).__init__()
-        self.log = logging.getLogger(__name__)
+        self.log = logging.getLogger("Instrument")
         self.num = ix
         self.xs = xs
         self.ys = ys
@@ -127,7 +130,11 @@ class Lenslet(object):
         self.pixs = np.array([xpixs,ypixs]).T
         self.ps = np.array([p1s,p2s]).T
         self.ls = np.array(ls)
+        self.config = config
         
+        self.dispersion = False
+        self.checked = False
+        self.passed = False
     
     def introspect(self):
         """Show all sorts of fun data about this lenslet"""
@@ -140,19 +147,33 @@ class Lenslet(object):
     
     def valid(self):
         """Returns true if this is a valid lenslet, false if it fails any of the tests"""
+        if self.checked:
+            return self.passed
+        
+        self.checked = True
+        self.passed = False
+        
+        # Data consistency
         if len(self.points) != len(self.ps) or len(self.points) != len(self.ls) or len(self.points) != len(self.pixs):
             self.log.warning("Lenslet %d failed b/c the data had inconsistent points" % self.num)
-            return False
+            return self.passed
+        
+        # Data utility
         if len(self.points) < 3:
             self.log.debug("Lenslet %d failed b/c there were fewer than three data points" % self.num)
-            return False
+            return self.passed
         if np.any(self.pixs.flatten == 0):
             self.log.debug("Lenslet %d failed b/c some (x,y) were exactly zero" % self.num)
             return False
+        
+        # X distance calculation (all spectra should be roughly constant in x, as they are fairly well aligned)
+        # NOTE: There really isn't a whole lot to this requriement
         dist = 30
         if np.any(np.abs(np.diff(self.xpixs)) > dist):
             self.log.debug("Lenslet %d failed b/c x distance was more than %d" % (self.num,dist))
-            return False
+            return self.passed
+        
+        # The spectrum should span some finite distance
         startix = np.argmin(self.ls)
         endix = np.argmax(self.ls)
         start = np.array([self.xs[startix],self.ys[startix]])
@@ -163,9 +184,219 @@ class Lenslet(object):
         
         if self.distance == 0:
             self.log.debug("Lenslet %d failed b/c the points have no separating distance" % self.num)
-            return False
+            return self.passed
+        
+        self.passed = True
+        
+        # Warnings about our data go here.
+        if np.any(self.ls < 1e-12) or np.any(self.ls > 1e-3):
+            self.log.warning("The wavelengths provided for lenslet %d appear as if they aren't SI units." % self.num)
+            self.log.debug(npArrayInfo(self.ls,"Lenslet %d Wavelengths" % self.num))
+                
+        return self.passed
+        
+    def find_dispersion(self):
+        """Find the dispersion (dense, pixel aligned wavelength values) for this lenslet"""
+        assert self.valid(), "Lenslet must contain valid data."
+        # Interpolation to convert from wavelength to pixels.
+        #   The accuracy of this interpolation is not important.
+        #   Rather, it is used to find the pixels where the light will fall
+        #   and is fed an array that is very dense, used on this dense interpolation
+        #   and then binned back onto pixels. Thus it will be used to get a list
+        #   of all illuminated pixels.
+        fx = np.poly1d(np.polyfit(self.ls, self.xpixs, 2))
+        fy = np.poly1d(np.polyfit(self.ls, self.ypixs, 2))
+        
+        # Find the starting and ending position of the spectra
+        startix = np.argmin(self.ls)
+        endix = np.argmax(self.ls)
+        start = np.array([self.xs[startix],self.ys[startix]])
+        end = np.array([self.xs[endix],self.ys[endix]])
+        
+        # Get the total length of the spectra
+        distance = np.sqrt(np.sum(end-start)**2)
+        
+        # This should have been checkd in the validity function.
+        if distance == 0:
+            raise SEDLimits
+        
+        # Find the length in units of (int) pixels
+        npix = (distance * self.config["convert"]["mmtopx"]).astype(np.int) * self.config["density"]
+        
+        # Create a data array one hundred times as dense as the number of pixels
+        #   This is the super dense array which will use the above interpolation
+        superDense_lam = np.linspace(np.min(self.ls),np.max(self.ls),npix*100)
+        
+        # Interpolate along our really dense set of wavelengths to find all possible
+        # illuminated pixel positions in this spectrum
+        superDense_pts = np.array([fx(superDense_lam),fy(superDense_lam)])
+        
+        # Measure the distance along our really dense set of points
+        superDense_interval = np.sqrt(np.sum(np.power(np.diff(superDense_pts,axis=1),2),axis=0))
+        superDense_distance = np.cumsum(superDense_interval)
+        
+        # Adjust the density of our points. This rounds all values to only full pixel values.
+        superDense_pts = np.round(superDense_pts * self.config["density"]) / self.config["density"]
+        superDense_int = (superDense_pts * self.config["density"]).astype(np.int)
+        
+        # We can identify unique points using the points when the integer position ratchets up or down.
+        unique_x,unique_y = np.diff(superDense_int).astype(np.bool)
+        
+        # We want unique index to include points where either 'y' or 'x' ratchets up or down
+        unique_idx = np.logical_or(unique_x,unique_y)
+        
+        # Remove any duplicate points. This does not do so in order, so we must
+        # sort the array of unique points afterwards...
+        unique_pts = superDense_pts[:,1:][:,unique_idx]
+        
+        # An array of distances to the origin of this spectrum, can be used to find wavelength
+        # of light at each distance
+        distance = superDense_distance[unique_idx] * self.config["convert"]["pxtomm"]
+        
+        # Re sort everything by distnace along the trace.
+        # Strictly, this shouldn't be necessary if all of the above functions preserved order.
+        sorted_idx = np.argsort(distance)
+        
+        # Pull out sorted valuses
+        distance = distance[sorted_idx]
+        points = unique_pts[:,sorted_idx].T
+        self.log.debug(npArrayInfo(points,"Points"))
+        
+        
+        # Pull out the original wavelengths
+        wl_orig = superDense_lam[unique_idx][sorted_idx]
+        wl = wl_orig
+        self.log.debug(npArrayInfo(wl,"Wavelengths"))
+        # We are getting some odd behavior, where the dispersion function seems to not cover the whole
+        # arc length and instead covers only part of it. This causes much of our arc to leave the desired
+        # and available wavelength boundaries. As such, I'm disabling the more accurate dispersion mode.
+        
+        # Convert to wavelength space along the dispersion spline.
+        # wl = self.spline(distance)
+        xs,ys = points.T
+        self.dxs = xs
+        self.dys = ys
+        self.dwl = wl
+        self.drs = distance
+        self.dispersion = True
+        
+        self._debug_dispersion()
         
         return True
+                
+    def get_trace(self,spectrum):
+        """Returns a trace of this """
+        # Variables taken from the dispersion calculation
+        points = np.array([self.dxs,self.dys]).T
+        deltawl = np.diff(self.dwl)
+        
+        
+        # Take our points out. Note from the above that we multiply by the density in order to do this
+        xorig,yorig = (points * self.config["density"])[:-1].T.astype(np.int)
+        x,y = (points * self.config["density"])[:-1].T.astype(np.int)
+        # Get the way in which those points correspond to actual pixels.
+        # As such, this array of points should have duplicates
+        xint,yint = points.T.astype(np.int)
+        
+        # Zero-adjust our x and y points. They will go into a fake subimage anyways, so we don't care
+        # for now where they would be on the real image
+        x -= np.min(x)
+        y -= np.min(y)
+        
+        # Get the approximate size of our spectra
+        xdist = np.max(x)-np.min(x)
+        ydist = np.max(y)-np.min(y)
+        
+        # Convert this size into an integer number of pixels for our subimage. This makes it
+        # *much* easier to register our sub-image to the master, larger pixel image
+        xdist += (self.config["density"] - xdist % self.config["density"])
+        ydist += (self.config["density"] - ydist % self.config["density"])
+        
+        # Move our x and y coordinates to the middle of our sub image by applying padding below each one.
+        x += self.config["padding"] * self.config["density"]
+        y += self.config["padding"] * self.config["density"]
+        
+        # Find the first (by the flatten method) corner of the subimage,
+        # useful for placing the sub-image into the full image.
+        corner = np.array([ xint[np.argmax(x)], yint[np.argmin(y)]])
+        self.log.debug("Corner Position in Integer Space: %s" % corner)
+        corner *= self.config["density"]
+        realcorner = np.array([ xorig[np.argmax(x)], yorig[np.argmin(y)]])
+        offset = corner - realcorner
+        corner /= self.config["density"]
+        self.log.debug("Corner Position Offset in Dense Space: %s" % (offset))
+        if self.log.getEffectiveLevel() <= logging.DEBUG:
+            with open(self.config["Dirs"]["Partials"]+"Instrument-Offsets.dat",'a') as handle:
+                np.savetxt(handle,offset)
+        corner -= np.array([-self.config["padding"],self.config["padding"]])
+        
+        x += offset[0]
+        y += offset[1]
+        
+        # Create our sub-image, using the x and y width of the spectrum, plus 2 padding widths.
+        # Padding is specified in full-size pixels to ensure that the final image is an integer
+        # number of full-size pixels across.
+        xsize = xdist+2*self.config["padding"]*self.config["density"]
+        ysize = ydist+2*self.config["padding"]*self.config["density"]
+        
+        # Calculate the resolution inherent to the pixels asked for
+        WLS = self.dwl
+        DWL = np.diff(WLS) 
+        WLS = WLS[:-1]
+        RS = WLS/DWL
+        
+        self.log.debug("Scailing by %g" % self.config["gain"])
+        radiance = spectrum(wavelengths=WLS,resolution=RS) 
+        radiance *= self.config["gain"]
+        self.log.debug(npArrayInfo(radiance,"Generated Spectrum"))
+        self.log.debug(npArrayInfo(deltawl,"DeltaWL Rescaling"))
+        flux = radiance[1,:] * deltawl
+        self.log.debug(npArrayInfo(flux,"Final Flux"))
+        
+        img = np.zeros((xsize,ysize))
+        
+        # imshape = self.Caches.get("CONV").shape
+        #        
+        #        for x,y,flux in zip(x,y,flux,WLS):
+        #            tinyImage = np.zeros(imshape)
+        #            corner = [ x + imshape[0]/2.0, y + imshape[0]/2.0]
+        #            self.log.debug("Corner of super-small image: %s" % corner)
+        #            tinyImage[x,y] = flux
+        #            PSF = self.get_psf(wl)
+        #            tinyImage = sp.convolve(tinyImage,PSF,mode="same")
+        
+        
+        # Place the spectrum into the sub-image
+ 
+        
+        if self.log.getEffectiveLevel() <= logging.DEBUG:
+            np.savetxt(self.config["Dirs"]["Partials"]+"Instrument-Subimage-Values.dat",np.array([x,y,self.dwl[:-1],deltawl,flux]).T)
+        
+        self.txs = x
+        self.tys = y
+        self.tfl = flux
+        self.twl = self.dwl[:-1]
+        self.subshape = (xsize,ysize)
+        self.subcorner = corner        
+        
+        
+    def _debug_dispersion(self):
+        """Debugging for the dispersion process"""
+        if self.log.getEffectiveLevel() > logging.DEBUG or not self.config["plot"]:
+            return
+        self.log.debug("Plotting Wavelength Information")
+        # This graph shows the change in distance along arc per pixel.
+        # The graph should produce all data points close to each other, except a variety of much lower
+        # data points which are caused by the arc crossing between pixels.
+        plt.figure()
+        plt.title("$\Delta$Distance Along Arc")
+        plt.xlabel("x (px)")
+        plt.ylabel("$\Delta$Distance along arc (px)")
+        plt.plot(self.dys[:-1],np.diff(distance) * self.config["convert"]["mmtopx"],'g.')
+        plt.savefig("%sInstrument-%04d-Delta-Distances%s" % (self.config["Dirs"]["Partials"],self.num,self.config["plot_format"]))
+        plt.clf()
+     
+        
 
 
 class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
@@ -215,7 +446,7 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         You can force the script to ignore cached files in the runner script using the option `--no-cache`. To regenrate the cache manually, simply delete the contents of the Caches directory"""
         self._configureDefaults()
         self.config["Configs"]["This"] = self.config["Configs"]["Instrument"]
-        self.configure()
+        self.configure(configuration=self.config)
         self._configureCaches()
         self._configureDynamic()
         fileName = "%(dir)sInstrument-Config.dat" % {'dir':self.config["Dirs"]["Partials"]}
@@ -262,6 +493,7 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         self.defaultConfig["files"]["encircledenergy"] = "Data/encircled_energy_4nov11.TXT"
         # MPL Plotting Save Format
         self.defaultConfig["plot_format"] = ".pdf"
+        self.defaultConfig["plot"] = False
         
         # Logging Configuration
         self.defaultConfig["logging"] = {}
@@ -279,20 +511,6 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         self.update(self.config,self.defaultConfig)
         
         self.log.debug("Set Instrument Configuration Defaults")
-    
-    def _configureFile(self):
-        """Attempt to load the default configuration from the working directory"""
-        FileName = self.config["Configs"]["Instrument"]
-        try:
-            stream = open(FileName,'r')
-        except IOError:
-            self.log.warning("Configuration File Not Found: %s" % FileName)
-        else:
-            self.update(self.config,yaml.load(stream))
-            stream.close()
-            self.log.debug("Loaded Configuration from %s" % FileName)
-        finally:
-            self.defaults += [copy.deepcopy(self.config)]
     
     def _configureCaches(self):
         """If we are using the caching system, set up the configuration cache.
@@ -322,38 +540,10 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         self.Caches.registerNPY("CONV",lambda : sp.signal.convolve(self.Caches.get("PSF"),self.Caches.get("TEL"),mode='same'),filename=self.config["CacheFiles"]["conv"])
         self.Caches.registerCustom("CONFIG",kind=AstroObject.AstroSimulator.YAMLCache,generate=lambda : self.config,filename=self.config["CacheFiles"]["config"])
         
+        
         if self.Caches.check(master="CONFIG"):
             self.log.info("Caches appear out of date, regenerating")
         self.Caches.get("CONFIG")
-        
-                
-        
-        # Load the Cached Configuration
-        # FileName = self.config["CacheFiles"]["config"]
-        #         try:
-        #             stream = file(FileName,'r')
-        #             self.update(self.config,yaml.load(stream))
-        #         except IOError:
-        #             self.log.info("Cached Configuration File Not Found: %s" % FileName)
-        #         except TypeError:
-        #             self.log.critical("Cached Configuration File has a Problem... skipping.")
-        #             stream.close()
-        #         else:
-        #             stream.close()
-        #         
-        #         # If the cache is different from the generated configuration, then don't trust any caches
-        #         if self.defaults[-1] == self.config:
-        #             self.regenearte = False
-        #             self.log.debug("Configuration has not changed, will not regenerate data.")
-        #         else:
-        #             self.regenearte = True
-        #             with open("%sCaching-Configurations.dat" % self.config["Dirs"]["Partials"],'w') as stream:
-        #                 stream.write(str(self.config))
-        #                 stream.write("\n")
-        #                 stream.write(str(self.defaults[-1]))
-        #             self.config = self.defaults[-1]
-        #             self.log.info("Configuration appears to have changed, will regenerate data.")
-
         
         return
     
@@ -411,15 +601,6 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
                     self.log.warning("Value for %s set in both px and mm." % parent)
         return r
     
-    
-    # Cacheing Functions
-    def regenerateCache(self):
-        """Cache calculated components of the system, including the telescope image and encircled energy image. Caches are stored to speed up system initalization. This function regenerates all cached files, including the configuration file. You can force the script to ignore cached files in the runner script using the option `--no-cache`. To regenrate the cache manually, simply delete the contents of the Caches directory
-        """
-        self.log.debug("Regenerating Cached Files")
-        with open(self.config["CacheFiles"]["config"],'w') as stream:
-            yaml.dump(self.defaults[-1],stream,default_flow_style=False)
-    
     def cachedWL(self):
         """Load cached wavelengths from the Caches directory. If any file is missing, it will attempt to trigger regeneration of the cache.
         You can force the script to ignore cached files in the runner script using the option `--no-cache`. To regenrate the cache manually, simply delete the contents of the Caches directory
@@ -460,11 +641,12 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         
         """
         
-        if self.log.getEffectiveLevel() <= logging.DEBUG and self.plot:
+        if self.log.getEffectiveLevel() <= logging.DEBUG and self.config["plot"]:
             self.plotKernalPartials()
         
         # Get layout data from files
         self.loadOpticsData(self.config["files"]["lenslets"],self.config["files"]["dispersion"])
+        self.setupLenslets()
         # TODO: We could cache this...
         
         self.generate_blank()
@@ -602,6 +784,50 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
     
     
     # Wavelength Functions
+    def lenslet_dispersion(self):
+        """Calculate the wavelengths for each lenslet"""
+        
+        PBar = arpytools.progressbar.ProgressBar(color="green")
+        finished = 0.0
+        total = len(self.lenslets)
+        
+        self.log.info("Calculating Wavelength Dispersion for %d lenslets" % total)
+        
+        self.log.useConsole(False)
+        PBar.render(0,"L:%4d %4d/%4d" % (0,finished,total))
+        
+        for index in self.lenslets:
+            self.lensletObjects[index].find_dispersion()
+            finished += 1.0
+            progress = int((finished/float(total)) * 100)
+            PBar.render(progress,"L:%4d %4d/%-4d" % (index,finished,total))
+        
+        self.log.useConsole(True)
+        
+        
+    def lenslet_trace(self,spectrum):
+        """Get trace for all lenslets"""
+        PBar = arpytools.progressbar.ProgressBar(color="blue")
+        finished = 0.0
+        total = len(self.lenslets)
+        
+        self.log.info("Calculating Wavelength Trace for %d lenslets" % total)
+        
+        self.log.useConsole(False)
+        PBar.render(0,"L:%4d %4d/%4d" % (0,finished,total))
+        
+        for index in self.lenslets:
+            self.lensletObjects[index].get_trace(spectrum(index))
+            finished += 1.0
+            progress = int((finished/float(total)) * 100)
+            PBar.render(progress,"L:%4d %4d/%-4d" % (index,finished,total))
+        
+        self.log.useConsole(True)
+        
+          
+            
+        
+
     def get_wavelengths(self,lenslet_num):
         """Returns a tuple of ([x,y],wavelength,delta wavelength). Thus, this function calculates the x,y pixel positions of the spectra, the wavelength at each pixel, and the delta wavelength for each pixel.
         
@@ -609,6 +835,8 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         
         .. Note:: The logic of this collection is in `_get_wavelengths()`, which is heavily documented in source code.
         """
+        
+        
         if str(lenslet_num) in self.WLS:
             self.log.debug("Using Cached WLs for %d" % lenslet_num)
             xs,ys,wls = self.WLS[str(lenslet_num)]
@@ -616,12 +844,12 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         else:
             self.log.debug("Regenerating WLs for %d" % lenslet_num)
             results = self._get_wavelengths(lenslet_num)
+            points,wls,wldiffs = results
+            xs,ys = points.T
+            self.WLS[str(lenslet_num)] = np.array([xs,ys,wls])
             if self.cache:
                 for item,label in zip(results,["Points,WLs,DeltaWLs"]):
                     self.log.debug(npArrayInfo(item,label))
-                points,wls,wldiffs = results
-                xs,ys = points.T
-                self.WLS[str(lenslet_num)] = np.array([xs,ys,wls]) 
                 self.regenerate |= True
         if len(results) != 3:
             self.log.critical("We have a problem with retrieved WLs")
@@ -738,7 +966,7 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         # wl = self.spline(distance)
         
         # This is a debugging area which will make a lot of graphs and annoying messages.
-        if self.log.getEffectiveLevel() <= logging.DEBUG and self.plot:
+        if self.log.getEffectiveLevel() <= logging.DEBUG and self.config["plot"]:
             self.log.debug("Plotting Wavelength Information")
             # This graph shows the change in distance along arc per pixel.
             # The graph should produce all data points close to each other, except a variety of much lower
@@ -751,7 +979,8 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
             plt.savefig("%sInstrument-%04d-Delta-Distances%s" % (self.config["Dirs"]["Partials"],lenslet_num,self.config["plot_format"]))
             plt.clf()
         
-        return points,wl,np.diff(wl)
+        xs,ys = points.T
+        return xs,ys,wl
     
     
     # Data Loading Functions
@@ -803,6 +1032,7 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         xs += (self.config["image_size"]["mm"]/2)
         ys += (self.config["image_size"]["mm"]/2)
         
+        lams *= 1e-6 # Convert wavelength to SI units (m)
         # Find the xs and ys that are not within 0.1 mm of the edge of the detector...
         ok = (xs > 0.1) & (xs < self.config["image_size"]["mm"]-0.1) & (ys > 0.1) & (ys < self.config["image_size"]["mm"]-0.1)
         ix, p1, p2, lams, xs, ys = ix[ok], p1[ok], p2[ok], lams[ok], xs[ok], ys[ok]
@@ -819,21 +1049,31 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         cntix = np.argmin(p1**2 + p2**2)
         self.center = (xs[cntix] * self.config["convert"]["mmtopx"], ys[cntix] * self.config["convert"]["mmtopx"])
         
+        PBar = arpytools.progressbar.ProgressBar(color="green")
+        finished = 0.0
+        total = len(self.lenslets)
+        self.log.useConsole(False)
+        PBar.render(0,"L:%4d %4d/%-4d" % (0,finished,total))
         self.lensletObjects = {}
         FileName = self.config["Dirs"]["Partials"] + "Lenslets-raw" + ".dat"
         with open(FileName,'w') as stream:
             for idx in self.lenslets:
                 select = idx == ix
-                aLenslet = Lenslet(xs[select],ys[select],xpix[select],ypix[select],p1[select],p2[select],lams[select],idx)
+                aLenslet = Lenslet(xs[select],ys[select],xpix[select],ypix[select],p1[select],p2[select],lams[select],idx,self.config)
                 if aLenslet.valid():
                     self.lensletObjects[idx] = aLenslet
                     stream.write(aLenslet.introspect())
+                progress = int((finished/float(total)) * 100)
+                finished += 1
+                PBar.render(progress,"L:%4d %4d/%-4d" % (idx,finished,total))
+        PBar.render(100,"L:%4d %4d/%-4d" % (idx,total,total))
         self.lenslets = self.lensletObjects.keys()
+        self.log.useConsole(True)
         self._plot_lenslet_data()
         
     def _plot_lenslet_data(self):
         """Outputs the lenslet data"""
-        if self.debug and self.plot:
+        if self.debug and self.config["plot"]:
             self.log.info("Generating Lenslet Plots")
             plt.clf()
             FileName = "%(dir)sLenslet-xy%(fmt)s" % { 'dir' : self.config["Dirs"]["Partials"], 'fmt':self.config["plot_format"]}
@@ -857,17 +1097,60 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         self.loadLensletData(laspec)
     
     
+    def setupLenslets(self):
+        """Establish the list of lenslets for use in the system"""        
+        if "start" in self.config["Lenslets"]:
+            self.lenslets = self.lenslets[self.config["Lenslets"]["start"]:]
+        if "number" in self.config["Lenslets"]:
+            self.lenslets = self.lenslets[:self.config["Lenslets"]["number"]]
+        self.total = len(self.lenslets)
+            
     # Image Tracing Function
-    def get_dense_image(self,lenslet,spectrum):
+    def cache_images(self,get_spec):
+        """Retrieve dense images for everything"""
+        PBar = arpytools.progressbar.ProgressBar(color="blue")
+        finished = 0.0
+        total = len(self.lenslets)
+        
+        self.log.info("Generating Subimages for %d lenslets" % total)
+        
+        self.log.toggleConsole(False)
+        PBar.render(0,"L:%4d %4d/%4d" % (0,finished,total))
+        
+        for index in self.lenslets:
+            self.cache_sed_subimage(index,get_spec(index),write=self.config["Cache"])
+            finished += 1.0
+            progress = int((finished/float(total)) * 100)
+            PBar.render(progress,"L:%4d %4d/%-4d" % (index,finished,total))
+        
+        self.log.toggleConsole(True)
+        
+    
+    def get_dense_image(self,lenslet_num,spectrum):
+        """docstring for get_dense_image"""
+        x,y,flux,wl,xsize,ysize,corner = self.get_trace(lenslet_num,spectrum)
+        
+        img = np.zeros((xsize,ysize))
+        
+        img[x,y] = flux
+        self.log.debug("Placing flux (shape: %s ) for spectrum %4d into a sub-image (shape: %s)."
+            % (flux.shape,lenslet_num,img.shape))
+        
+        return img,corner
+        
+    
+    def get_trace(self,lenslet_num,spectrum):
         """This function returns a dense image array, with flux placed into single pixels. The image returned is too dense for use on the final CCD, and must be also be convolved with the telescope image and spectral PSF. The image, and the numpy array first corner is returned by this function.
         
         .. Note:: The source code of this function is heavily documented."""
-        points, wl, deltawl = self.get_wavelengths(lenslet)
+        lenslet = self.lensletObjects[lenslet_num]
+        dx,dy,wl = lenslet.dxs,lenslet.dys,lenslet.dwl
+        points = np.array([dx,dy]).T
+        deltawl = np.diff(wl)
         # Some notes about this function:
         #  points:  These points are in normal CCD Pixel units, but are not integers,
         #           as they correspond to dense pixels on the overdense images
         #  wl:      A list of wavelengths that correspond to the points above
-        #  deltawl: The np.diff(wl) result, which can be used to handle the flux per pixel
         
         # Create the spectra, by calling the spectra with wavelength
         # (in meters, note the conversion from wl, which was originally in microns)
@@ -937,7 +1220,7 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         self.log.debug(npArrayInfo(flux,"Final Flux"))
         
         # This debugging area generates plots for us.
-        if self.log.getEffectiveLevel() <= logging.DEBUG and self.plot:
+        if self.log.getEffectiveLevel() <= logging.DEBUG and self.config["plot"]:
             self.log.debug("Generating Plots for Spectra...")
             plt.clf()
             plt.plot(WLS,radiance[1,:],"b.")
@@ -970,15 +1253,25 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         
         img = np.zeros((xsize,ysize))
         
+        # imshape = self.Caches.get("CONV").shape
+        #        
+        #        for x,y,flux in zip(x,y,flux,WLS):
+        #            tinyImage = np.zeros(imshape)
+        #            corner = [ x + imshape[0]/2.0, y + imshape[0]/2.0]
+        #            self.log.debug("Corner of super-small image: %s" % corner)
+        #            tinyImage[x,y] = flux
+        #            PSF = self.get_psf(wl)
+        #            tinyImage = sp.convolve(tinyImage,PSF,mode="same")
+        
+        
         # Place the spectrum into the sub-image
-        img[x,y] = flux
-        self.log.debug("Placing flux (shape: %s ) for spectrum %4d into a sub-image (shape: %s)."
-            % (flux.shape,lenslet,img.shape))
+ 
         
         if self.log.getEffectiveLevel() <= logging.DEBUG:
             np.savetxt(self.config["Dirs"]["Partials"]+"Instrument-Subimage-Values.dat",np.array([x,y,wl[:-1],deltawl,flux]).T)
         
-        return img, corner
+        return x,y,flux,wl[:-1],xsize,ysize,corner
+        
     
     
     # Image Convolution
@@ -1029,7 +1322,7 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         frame.config = hash(str(self.config))
         
 
-        if self.debug and self.plot:
+        if self.debug and self.config["plot"]:
             Stages = ["Raw Image","Convolved with Telescope","Convolved with Telescope and PSF"]
             StagesF = ["Raw","Tel","PSF"]
             for i,step in enumerate(steps):
@@ -1048,11 +1341,11 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         # We only write the sub-image if the function is called to write sub images
         if write:
             toSave = [label]
-            if self.debug and self.plot:
+            if self.debug and self.config["plot"]:
                 toSave += ["%04d-Intermediate-%d: %s" % (lenslet,i,Stages[i]) for i in range(len(steps))]
             self.write("%sSubimage-%4d%s" % (self.config["Dirs"]["Caches"],lenslet,".fits"),toSave,label,clobber=True)
             self.remove(label)
-            if self.debug and self.plot:
+            if self.debug and self.config["plot"]:
                 for i,step in enumerate(steps):
                     self.remove("%04d-Intermediate-%d: %s" % (lenslet,i,Stages[i]))
                     
