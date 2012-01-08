@@ -374,11 +374,9 @@ class Lenslet(ImageObject):
             tl_corner = [ x - tiny_image.shape[0]/2.0, y - tiny_image.shape[0]/2.0 ]
             br_corner = [ x + tiny_image.shape[0]/2.0, y + tiny_image.shape[0]/2.0 ]
             self.log.debug("Corner of tiny image is %s" % (tl_corner))
-            img[ tl_corner[0]:br_corner[0] , tl_corner[1]:br_corner[1] ] += tiny_image
+            img[tl_corner[0]:br_corner[0],tl_corner[1]:br_corner[1]] += tiny_image
         self.log.debug(npArrayInfo(img,"DenseSubImage"))
         self.save(img,"Raw Spectrum")
-        filename = "%(dir)s/Lenslet%(num)4d.fits" % { 'dir' : self.config["Dirs"]["Partials"] , 'num': self.num }
-        self.write(filename,clobber=True)
         
         
             
