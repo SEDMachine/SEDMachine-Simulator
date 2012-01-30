@@ -164,7 +164,7 @@ class Lenslet(ImageObject):
             return self.passed
         if np.any(self.pixs.flatten == 0):
             self.log.debug("Lenslet %d failed b/c some (x,y) were exactly zero" % self.num)
-            return False
+            return self.passed
         
         # X distance calculation (all spectra should be roughly constant in x, as they are fairly well aligned)
         # NOTE: There really isn't a whole lot to this requriement
@@ -1079,11 +1079,14 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         cntix = np.argmin(p1**2 + p2**2)
         self.center = (xs[cntix] * self.config["convert"]["mmtopx"], ys[cntix] * self.config["convert"]["mmtopx"])
         
+        # Progress bar for lenslet creation and validation
         PBar = arpytools.progressbar.ProgressBar(color="green")
         finished = 0.0
         total = len(self.lenslets)
         self.log.useConsole(False)
         PBar.render(0,"L:%4d %4d/%-4d" % (0,finished,total))
+        
+        # Variables for lenslet use
         self.lensletObjects = {}
         FileName = self.config["Dirs"]["Partials"] + "Lenslets-raw" + ".dat"
         with open(FileName,'w') as stream:
@@ -1092,33 +1095,31 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
                 aLenslet = Lenslet(xs[select],ys[select],xpix[select],ypix[select],p1[select],p2[select],lams[select],idx,self.config)
                 if aLenslet.valid():
                     self.lensletObjects[idx] = aLenslet
-                    stream.write(aLenslet.introspect())
+                stream.write(aLenslet.introspect())
                 progress = int((finished/float(total)) * 100)
                 finished += 1
                 PBar.render(progress,"L:%4d %4d/%-4d" % (idx,finished,total))
         PBar.render(100,"L:%4d %4d/%-4d" % (idx,total,total))
         self.lenslets = self.lensletObjects.keys()
         self.log.useConsole(True)
-        self._plot_lenslet_data()
         
-    def _plot_lenslet_data(self):
+    def plot_lenslet_data(self):
         """Outputs the lenslet data"""
-        if self.debug and self.config["plot"]:
-            self.log.info("Generating Lenslet Plots")
-            plt.clf()
-            FileName = "%(dir)sLenslet-xy%(fmt)s" % { 'dir' : self.config["Dirs"]["Partials"], 'fmt':self.config["plot_format"]}
-            for lenslet in self.lensletObjects.values():
-                plt.plot(lenslet.xs,lenslet.ys,linestyle='-')
-            plt.title("Lenslet x-y positions")
-            plt.savefig(FileName)
-            plt.clf()
-            FileName = "%(dir)sLenslet-pxy%(fmt)s" % { 'dir' : self.config["Dirs"]["Partials"], 'fmt':self.config["plot_format"]}
-            for lenslet in self.lensletObjects.values():
-                x,y = lenslet.ps.T
-                plt.plot(x,y,marker='.')
-            plt.title("Lenslet p-xy positions")
-            plt.savefig(FileName)
-            plt.clf()
+        self.log.info("Generating Lenslet Plots")
+        plt.clf()
+        FileName = "%(dir)sLenslet-xy%(fmt)s" % { 'dir' : self.config["Dirs"]["Partials"], 'fmt':self.config["plot_format"]}
+        for lenslet in self.lensletObjects.values():
+            plt.plot(lenslet.xs,lenslet.ys,linestyle='-')
+        plt.title("Lenslet x-y positions")
+        plt.savefig(FileName)
+        plt.clf()
+        FileName = "%(dir)sLenslet-pxy%(fmt)s" % { 'dir' : self.config["Dirs"]["Partials"], 'fmt':self.config["plot_format"]}
+        for lenslet in self.lensletObjects.values():
+            x,y = lenslet.ps.T
+            plt.plot(x,y,marker='.')
+        plt.title("Lenslet p-xy positions")
+        plt.savefig(FileName)
+        plt.clf()
     
     def loadOpticsData(self,laspec,dispspec):
         """Loads an optical conversion based on the lenslet array spec and dispersion spec files provided. This wrapper function handles both file loading functions. See `loadDispersionData` and `loadLensletData`."""
@@ -1440,7 +1441,7 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         self.save(data,label)
         self.remove(dlabel)
         self.save(data,dlabel)
-        self.log.debug("Placed a new image %s into %s at corner %s" % (label,dlabel,corner))
+        # self.log.debug("Placed a new image %s into %s at corner %s" % (label,dlabel,corner))
         self.remove(label)
         
     

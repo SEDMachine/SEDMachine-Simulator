@@ -64,9 +64,10 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
     
     def initStages(self):
         """Set up the options for the command line interface."""
-        self.registerStage(self.setupModel,"instinit",description="Set up the instrument object")
+        self.registerStage(self.setupModel,"instinit",help="Set up instrument object",description="Set up the instrument object")
         self.registerMacro("instrument","instinit",help="Test the initialization of the instrument model")
-        self.registerStage(self.setupNoise,"noisemask",description="Generate noise masks")
+        self.registerStage(self.debugLenslets,"lensdebug",description="Debugging Lenslets",include=False)
+        self.registerStage(self.setupNoise,"noisemask",help="Generate noise frames",description="Generate noise masks")
         self.registerStage(self.setupSource,"sourceinit",description="Set up the source model")
         self.registerMacro("source","sourceinit",help="Test the initialization of the source model")
         self.registerStage(self.dispersion,"dispers",description="Get Dispersion for all lenslets")
@@ -82,7 +83,8 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
         self.registerStage(self.saveFile,"save",description="Save the final image")
         
         self.Caches.registerCustom("Config",kind=AstroObject.AstroSimulator.YAMLCache,filename="Simulator.cache.yaml",generate=lambda : self.config)
-                
+        
+        self.registerStage(self.plotNoise,"noiseplot",help="3D Plot of Noise Levels",description="3D Plot of Noise Levels",include=False)
         
     def defaultConfig(self):
         """Default configuration values from the program"""
@@ -186,6 +188,8 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
             msg = "Setup took %1.5gs with caches %s." % (dur,"enabled" if self.options.cache else "disabled")
             self.log.debug(msg)
         
+    def debugLenslets(self):
+        self.Model.plot_lenslet_data()
     
     def setupNoise(self):
         """Sets up the noise masks in the model"""
@@ -266,19 +270,22 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
         if self.debug:
             self.log.info("=>Finished Placing Spectrum %d" % self.prog.value)
         else:
-            self.bar.render(int((self.prog.value/self.total) * 100),"L:%4d" % i)
+            self.bar.render(int((self.prog.value/len(self.Model.lenslets)) * 100),"L:%4d" % i)
     
     def placeAllLenslets(self):
         """Place all lenslets into the image file"""
         self.Model.save(self.Model.data("Blank"),"Final")
-        self.log.info("Placing Spectra in %d Lenslets" % len(self.lenslets))
+        self.log.info("Placing Spectra in %d Lenslets" % len(self.Model.lenslets))
         self.bar = arpytools.progressbar.ProgressBar(color="Red")
         if not self.debug:
             self.bar.render(0,"L:%4d" % 0)
         self.prog.value = 0
-        self.log.toggleConsole(value=False)
-        map(lambda i: self.placeLenslet(i),self.lenslets)
-        self.log.toggleConsole(value=True)
+        self.Model.log.useConsole(False)
+        self.log.useConsole(False)
+        map(lambda i: self.placeLenslet(i),self.Model.lenslets)
+        self.log.useConsole(True)
+        self.Model.log.useConsole(True)
+        
         
         self.bar.lines = 0
     
@@ -297,6 +304,18 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
         self.Model.keep(self.Model.statename)
         self.Model.write(self.Fullname,clobber=True)
         self.log.info("Wrote %s" % self.Fullname)
+        
+    def plotNoise(self):
+        """Plot noise"""
+        self.Model.show3D("Dark")
+        format = { 'dir': self.config["Dirs"]["Partials"], 'stage':"Dark", 'fmt':self.config["plot_format"]}
+        filename = "%(dir)s/%(stage)s.%(fmt)s" 
+        plt.savefig(filename % format)
+        plt.clf()
+        self.Model.show3D("Bias")
+        format["stage"] = "Bias"
+        plt.savefig(filename % format)
+        plt.clf()
     
 def run():
     """Run this simulator"""
