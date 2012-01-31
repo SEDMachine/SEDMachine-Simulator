@@ -189,7 +189,8 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
             self.log.debug(msg)
         
     def debugLenslets(self):
-        self.Model.plot_lenslet_data()
+        self.Model.show_hexagons()
+        # self.Model.plot_lenslet_data()
     
     def setupNoise(self):
         """Sets up the noise masks in the model"""
