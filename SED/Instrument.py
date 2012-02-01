@@ -566,7 +566,26 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
             PBar.render(progress,"L:%4d %4d/%-4d" % (index,finished,total))
         
         self.log.useConsole(True)
+      
+    def gen_hexagons(self):
+        """Plot the hexagons"""
+        PBar = arpytools.progressbar.ProgressBar(color="green")
+        finished = 0.0
+        total = len(self.lenslets)
         
+        self.log.info("Generating Hexagons for %d lenslets" % total)
+        
+        self.log.useConsole(False)
+        PBar.render(0,"L:%4d %4d/%4d" % (0,finished,total))
+        
+        for index in self.lenslets:
+            self.lensletObjects[index].make_hexagon()
+            finished += 1.0
+            progress = int((finished/float(total)) * 100)
+            PBar.render(progress,"L:%4d %4d/%-4d" % (index,finished,total))
+        self.log.useConsole(True)
+    
+       
     def show_hexagons(self):
         """Plot the hexagons"""
         PBar = arpytools.progressbar.ProgressBar(color="cyan")
@@ -582,7 +601,6 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         plt.title("Hexagons")
         
         for index in self.lenslets:
-            self.lensletObjects[index].make_hexagon()
             x, y = self.lensletObjects[index].shape.exterior.xy
             plt.fill(x, y, color='#cccccc', aa=True) 
             plt.plot(x, y, color='#666666', aa=True, lw=0.25)
