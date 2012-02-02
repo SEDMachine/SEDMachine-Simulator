@@ -50,7 +50,7 @@ class SubImage(ImageFrame):
         self.configHash = hash(0)
         self.spectrum = "NO SPEC"
         
-    def sync_header(self):
+    def extract_header(self):
         """Synchronizes the header dictionary with the HDU header"""
         # assert self.label == self.header['SEDlabel'], "Label does not match value specified in header: %s and %s" % (self.label,self.header['SEDlabel'])
         self.configHash = self.header['SEDconf']
@@ -143,7 +143,40 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
                 d[k] = u[k]
         return d
     
-    
+    defaultConfig = { 
+                    'files': {
+                        'dispersion': 'Data/dispersion_12-10-2011.txt',
+                        'encircledenergy': 'Data/encircled_energy_4nov11.TXT', 
+                        'lenslets': 'Data/xy_17nov2011_v57.TXT'
+                    }, 
+                    'dark': 20,
+                    'convert': { 'pxtomm': 0.0135 }, 
+                    'logging': {
+                        'console': {
+                            'level': False,
+                            'enable': True,
+                            'format': '......%(message)s'
+                        },
+                        'file': {
+                            'format': '%(asctime)s : %(levelname)-8s : %(funcName)-20s : %(message)s',
+                            'enable': True,
+                            'filename': 'SEDInstrument'
+                        }
+                    },
+                    'density': 5,
+                    'tel_obsc': {'px': 0.2 }, 
+                    'plot': False,
+                    'ccd_size': {'px': 2048 },
+                    'padding': 5,
+                    'psf_stdev': { 'px': 1.0 },
+                    'bias': 20,
+                    'psf_size': { 'px': 0 },
+                    'image_size': { 'mm': 40.0 },
+                    'tel_radii': {'px': 1.2}, 
+                    'plot_format': '.pdf',
+                    'exposure': 120,
+                    'gain': 10000000000.0
+                }
     
     # CONFIGURATION
     def _configure(self):
@@ -157,7 +190,7 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         To see what the default configuration file looks like, run the runner script with the --dump argument. The runner script will requrie a subcommand, but dump will cause the program to exit before recieving any subcommands for action.
         
         You can force the script to ignore cached files in the runner script using the option `--no-cache`. To regenrate the cache manually, simply delete the contents of the Caches directory"""
-        self._configureDefaults()
+        self.update(self.config,self.defaultConfig)
         self.config["Configs"]["This"] = self.config["Configs"]["Instrument"]
         self.configure(configuration=self.config)
         self._configureCaches()
@@ -165,66 +198,7 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         fileName = "%(dir)sInstrument-Config.dat" % {'dir':self.config["Dirs"]["Partials"]}
         with open(fileName,'w') as stream:
             yaml.dump(self.config,stream,default_flow_style=False)
-    
-    def _configureDefaults(self):
-        """Set up the default configure variable. If you change the default configuration variables in this function (instead of using a configuration file), the script will generally not detect the change, and so will not regenerate Cached files. You can force the script to ignore cached files in the runner script using the option `--no-cache`. To regenrate the cache manually, simply delete the contents of the Caches directory
-        """
-        self.defaultConfig = {}
-        # Configuration Variables for The System
-        # Unit Conversion Defaults
-        self.defaultConfig["convert"] = {}
-        self.defaultConfig["convert"]["pxtomm"] = 0.0135
-        # CCD / Image Plane Information
-        self.defaultConfig["ccd_size"] = {}
-        self.defaultConfig["ccd_size"]["px"] = 2048 #pixels
-        self.defaultConfig["image_size"] = {}
-        self.defaultConfig["image_size"]["mm"] = 40.0 #mm
-        # Telescope Information
-        self.defaultConfig["tel_radii"] = {}
-        self.defaultConfig["tel_radii"]["px"] = 2.4 / 2.0
-        self.defaultConfig["tel_obsc"] = {}
-        self.defaultConfig["tel_obsc"]["px"] = 0.4 / 2.0
-        # PSF Information
-        self.defaultConfig["psf_size"] = {}
-        self.defaultConfig["psf_size"]["px"] = 0
-        # For a gaussian PSF
-        self.defaultConfig["psf_stdev"] = {}
-        self.defaultConfig["psf_stdev"]["px"] = 1.0
-        # Image Generation Density
-        self.defaultConfig["density"] = 5
-        self.defaultConfig["padding"] = 5
-        # Default Gain Value
-        self.defaultConfig["gain"] = 1e10
-        # Noise Information
-        self.defaultConfig["dark"] = 20 # counts per pixel per second at some fixed degree c
-        self.defaultConfig["bias"] = 20 # counts per pixel at some fixed degree c
-        self.defaultConfig["exposure"] = 120 #Seconds
-        # File Information for data and Caches
-        self.defaultConfig["files"] = {}
-        self.defaultConfig["files"]["lenslets"] = "Data/xy_17nov2011_v57.TXT"
-        self.defaultConfig["files"]["dispersion"] = "Data/dispersion_12-10-2011.txt"
-        self.defaultConfig["files"]["encircledenergy"] = "Data/encircled_energy_4nov11.TXT"
-        # MPL Plotting Save Format
-        self.defaultConfig["plot_format"] = ".pdf"
-        self.defaultConfig["plot"] = False
         
-        # Logging Configuration
-        self.defaultConfig["logging"] = {}
-        self.defaultConfig["logging"]["console"] = {}
-        self.defaultConfig["logging"]["console"]["enable"] = True
-        self.defaultConfig["logging"]["console"]["format"] = "......%(message)s"
-        self.defaultConfig["logging"]["console"]["level"] = False
-        self.defaultConfig["logging"]["file"] = {}
-        self.defaultConfig["logging"]["file"]["enable"] = True
-        self.defaultConfig["logging"]["file"]["filename"] = "SEDInstrument"
-        self.defaultConfig["logging"]["file"]["format"] = "%(asctime)s : %(levelname)-8s : %(funcName)-20s : %(message)s"
-        
-        self.defaults += [copy.deepcopy(self.defaultConfig)]
-        
-        self.update(self.config,self.defaultConfig)
-        
-        self.log.debug("Set Instrument Configuration Defaults")
-    
     def _configureCaches(self):
         """If we are using the caching system, set up the configuration cache.
         

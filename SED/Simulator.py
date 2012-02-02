@@ -84,6 +84,8 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
         self.registerStage(self.applyNoise,"addnoise",description="Add noise frames",help="Including Noise")
         self.registerStage(self.saveFile,"save",description="Save the final image",help="Saving Image File")
         
+        self.registerConfigOpts("D",{"Lenslets":{"start":2150,"number":5}},help="Development Settings")
+        
         self.Caches.registerCustom("Config",kind=AstroObject.AstroSimulator.YAMLCache,filename="Simulator.cache.yaml",generate=lambda : self.config)
         
         self.registerStage(self.plotNoise,"noiseplot",help="3D Plot of Noise Levels",description="3D Plot of Noise Levels",include=False)
