@@ -192,7 +192,7 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         You can force the script to ignore cached files in the runner script using the option `--no-cache`. To regenrate the cache manually, simply delete the contents of the Caches directory"""
         self.update(self.config,self.defaultConfig)
         self.config["Configs"]["This"] = self.config["Configs"]["Instrument"]
-        self.configure(configuration=self.config)
+        self.configure(configuration=self.config,configFile=self.config["Configs"]["This"])
         self._configureCaches()
         self._configureDynamic()
         fileName = "%(dir)sInstrument-Config.dat" % {'dir':self.config["Dirs"]["Partials"]}

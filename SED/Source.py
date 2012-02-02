@@ -182,7 +182,7 @@ class Source(AstroObject.AstroSimulator.Simulator):
     def _setupFile(self):
         """Sets up a uniform source file based spectrum"""
         WL,Flux = np.genfromtxt(self.config["Filename"]).T
-        WL *= 1e-10
+        WL *= 1e-10 # Conversion from Angstroms to Meters
         Flux /= np.max(Flux) 
         self.R_Spectrum = ResampledSpectrum(np.array([WL,Flux]),self.config["Filename"])
         self.D_Spectrum = self.R_Spectrum * self.config["PreAmp"]
