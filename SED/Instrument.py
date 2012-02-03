@@ -105,7 +105,7 @@ class SubImage(ImageFrame):
             msg = "%s data did not validate: %s" % (cls.__name__,AE)
             raise AbstractError(msg)
         LOG.debug("Created %s" % Object)
-        Object.sync_header()
+        Object.extract_header()
         return Object
     
 

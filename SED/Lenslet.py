@@ -146,7 +146,7 @@ class Lenslet(ImageObject):
         # Get the total length of the spectra
         distance = np.sqrt(np.sum(end-start)**2)
         
-        # This should have been checkd in the validity function.
+        # This should have been checked in the validity function.
         if distance == 0:
             raise SEDLimits
         

@@ -206,6 +206,9 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
     def setupGeometry(self):
         """Set up model geometry"""
         self.Model.gen_hexagons()
+        self.Source.Lenslets = self.Model.lenslets
+        self.Source.LObjects = self.Model.lensletObjects
+        self.Source.geometry()
     
     def setupNoise(self):
         """Sets up the noise masks in the model"""

@@ -106,6 +106,7 @@ class Source(AstroObject.AstroSimulator.Simulator):
         self.registerStage(self.setupSource,"sourinit",description="Calculate and resample source")
         self.registerStage(self.setupNoiseandThruput,"thptinit",description="Calculate noise and throughput")
         self.registerStage(self._simple_source_geometry,"simplegeo",description="Make a simple mock gemoetry for the image",include=False)
+        self.registerStage(self.geometry,"geometry",description="Geometric Resampling")
         self.registerStage(self._plotSpectrum,"specplot",description="Plot the spectrum",include=False)
         
         self.registerMacro("setup","sourinit","thptinit","simplegeo",help="Source initialization functions")
@@ -163,9 +164,14 @@ class Source(AstroObject.AstroSimulator.Simulator):
         elif self.config["Type"] == "File":
             self._setupFile()
 
-    def getSpectrum(self,i):
+    def getSpectrum(self,lenslet):
         """Get spectrum for a particular lenslet"""
-        return self.Spectrum
+        result = 0
+        j = lenslet - 1
+        for spectra,coeff in zip(self.Spectra,self.Matrix[:,j]):
+            value = spectra * coeff
+            result = value + result
+        return result
     
     
     def _setupBlackbody(self):
@@ -212,13 +218,34 @@ class Source(AstroObject.AstroSimulator.Simulator):
     
     def _simple_source_geometry(self):
         """Make a simple source geometry"""
-        source_points = ((4e-2,-4e-2),(4e-2,4e-2),(-4e-2,4e-2),(-4e-2,-4e-2))
+        source_points = ((4.1e-2,-4.1e-2),(4.1e-2,4.1e-2),(-4.1e-2,4.1e-2),(-4.1e-2,-4.1e-2))
         source_area = sh.geometry.Polygon(source_points)
-        self.Shape = source_area
+        self.Shapes = np.array([source_area])
+        self.Spectra = np.array([self.Spectrum])
+    
+    def geometry(self):
+        self._simple_source_geometry()
+        self.geometricResampling(self.Lenslets,self.LObjects)
         
-    def fname(self):
-        """docstring for fname"""
-    pass
+    def geometricResampling(self,lenslets,lobjects):
+        """Create the geometric resampling matrix for all spectra"""
+        self.Matrix = np.zeros((len(self.Shapes),max(self.LObjects.keys())))
+        for i,shape in enumerate(self.Shapes):
+            for lenslet in self.LObjects.keys():
+                j = lenslet-1
+                coeff = 0.0                
+                if hasattr(self.LObjects[lenslet],"shape"):
+                    hexagon = self.LObjects[lenslet].shape
+                    if shape.intersects(hexagon):
+                        try:
+                            intersection = shape.intersection(hexagon)
+                            coeff = intersection.area / shape.area
+                        except sh.geos.TopologicalError as e:
+                            self.log.warning("%s" % e)
+                        
+                self.Matrix[i,j] = coeff
+        print AOU.npArrayInfo(self.Matrix,"Geometry Matrix")
+        
         
     def _plotSpectrum(self):
         """Plot the spectrum partials"""
