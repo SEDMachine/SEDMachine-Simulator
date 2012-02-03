@@ -33,18 +33,13 @@ from AstroObject.AstroImage import ImageObject,ImageFrame
 from AstroObject.AnalyticSpectra import BlackBodySpectrum, AnalyticSpectrum, FlatSpectrum
 from AstroObject.Utilities import *
 
+from Lenslet import *
 from Utilities import *
 
 __version__ = getVersion(__name__)
 __all__ = ["SEDLimits","Instrument"]
 LOG = logging.getLogger(__name__)
 
-
-class SEDLimits(Exception):
-    """A Basic Error-Differentiation Class.
-    This error is used to express the fact that the SEDModel has encountered a spectrum which can't be placed as some part of it falls outside of the limits of the SED system.
-    """
-    pass
 
 class SubImage(ImageFrame):
     """A custom frame type for SEDMachine Sub-Images"""
@@ -55,7 +50,7 @@ class SubImage(ImageFrame):
         self.configHash = hash(0)
         self.spectrum = "NO SPEC"
         
-    def sync_header(self):
+    def extract_header(self):
         """Synchronizes the header dictionary with the HDU header"""
         # assert self.label == self.header['SEDlabel'], "Label does not match value specified in header: %s and %s" % (self.label,self.header['SEDlabel'])
         self.configHash = self.header['SEDconf']
@@ -116,290 +111,6 @@ class SubImage(ImageFrame):
 
 
 
-class Lenslet(ImageObject):
-    """An object-representation of a lenslet"""
-    def __init__(self,xs,ys,xpixs,ypixs,p1s,p2s,ls,ix,config):
-        super(Lenslet, self).__init__()
-        self.log = logging.getLogger("Instrument")
-        self.num = ix
-        self.xs = xs
-        self.ys = ys
-        self.points = np.array([xs,ys]).T
-        self.xpixs = xpixs
-        self.ypixs = ypixs
-        self.pixs = np.array([xpixs,ypixs]).T
-        self.ps = np.array([p1s,p2s]).T
-        self.ls = np.array(ls)
-        self.config = config
-        
-        self.dispersion = False
-        self.checked = False
-        self.passed = False
-    
-    def introspect(self):
-        """Show all sorts of fun data about this lenslet"""
-        STR  = "--Lenslet %(index)04d is %(valid)s\n" % {'index':self.num, 'valid': 'valid' if self.valid() else 'invalid'}
-        STR += "|    x    |    y    |    xp    |    yp    |    p1    |    p2    |    wl    |\n"
-        for xy,pixs,p,wl in zip(self.points,self.pixs,self.ps,self.ls):
-            data = { 'x': xy[0], 'y': xy[1], 'pA': p[0], 'pB': p[1], 'wl': wl ,'pxA':pixs[0],'pxB':pixs[1]}
-            STR += "|%(x) 9.6g|%(y) 9.6g|%(pxA) 10.6g|%(pxB) 10.6g|%(pA) 10.6g|%(pB) 10.6g|%(wl) 10.6g|\n" % data
-        return STR
-    
-    def valid(self):
-        """Returns true if this is a valid lenslet, false if it fails any of the tests"""
-        if self.checked:
-            return self.passed
-        
-        self.checked = True
-        self.passed = False
-        
-        # Data consistency
-        if len(self.points) != len(self.ps) or len(self.points) != len(self.ls) or len(self.points) != len(self.pixs):
-            self.log.warning("Lenslet %d failed b/c the data had inconsistent points" % self.num)
-            return self.passed
-        
-        # Data utility
-        if len(self.points) < 3:
-            self.log.debug("Lenslet %d failed b/c there were fewer than three data points" % self.num)
-            return self.passed
-        if np.any(self.pixs.flatten == 0):
-            self.log.debug("Lenslet %d failed b/c some (x,y) were exactly zero" % self.num)
-            return self.passed
-        
-        # X distance calculation (all spectra should be roughly constant in x, as they are fairly well aligned)
-        # NOTE: There really isn't a whole lot to this requriement
-        dist = 30
-        if np.any(np.abs(np.diff(self.xpixs)) > dist):
-            self.log.debug("Lenslet %d failed b/c x distance was more than %d" % (self.num,dist))
-            return self.passed
-        
-        # The spectrum should span some finite distance
-        startix = np.argmin(self.ls)
-        endix = np.argmax(self.ls)
-        start = np.array([self.xs[startix],self.ys[startix]])
-        end = np.array([self.xs[endix],self.ys[endix]])
-
-        # Get the total length of the spectra
-        self.distance = np.sqrt(np.sum(end-start)**2)
-        
-        if self.distance == 0:
-            self.log.debug("Lenslet %d failed b/c the points have no separating distance" % self.num)
-            return self.passed
-        
-        self.passed = True
-        
-        # Warnings about our data go here.
-        if np.any(self.ls < 1e-12) or np.any(self.ls > 1e-3):
-            self.log.warning("The wavelengths provided for lenslet %d appear as if they aren't SI units." % self.num)
-            self.log.debug(npArrayInfo(self.ls,"Lenslet %d Wavelengths" % self.num))
-                
-        return self.passed
-        
-    def find_dispersion(self):
-        """Find the dispersion (dense, pixel aligned wavelength values) for this lenslet"""
-        assert self.valid(), "Lenslet must contain valid data."
-        # Interpolation to convert from wavelength to pixels.
-        #   The accuracy of this interpolation is not important.
-        #   Rather, it is used to find the pixels where the light will fall
-        #   and is fed an array that is very dense, used on this dense interpolation
-        #   and then binned back onto pixels. Thus it will be used to get a list
-        #   of all illuminated pixels.
-        fx = np.poly1d(np.polyfit(self.ls, self.xpixs, 2))
-        fy = np.poly1d(np.polyfit(self.ls, self.ypixs, 2))
-        
-        # Find the starting and ending position of the spectra
-        startix = np.argmin(self.ls)
-        endix = np.argmax(self.ls)
-        start = np.array([self.xs[startix],self.ys[startix]])
-        end = np.array([self.xs[endix],self.ys[endix]])
-        
-        # Get the total length of the spectra
-        distance = np.sqrt(np.sum(end-start)**2)
-        
-        # This should have been checkd in the validity function.
-        if distance == 0:
-            raise SEDLimits
-        
-        # Find the length in units of (int) pixels
-        npix = (distance * self.config["convert"]["mmtopx"]).astype(np.int) * self.config["density"]
-        
-        # Create a data array one hundred times as dense as the number of pixels
-        #   This is the super dense array which will use the above interpolation
-        superDense_lam = np.linspace(np.min(self.ls),np.max(self.ls),npix*100)
-        
-        # Interpolate along our really dense set of wavelengths to find all possible
-        # illuminated pixel positions in this spectrum
-        superDense_pts = np.array([fx(superDense_lam),fy(superDense_lam)])
-        
-        # Measure the distance along our really dense set of points
-        superDense_interval = np.sqrt(np.sum(np.power(np.diff(superDense_pts,axis=1),2),axis=0))
-        superDense_distance = np.cumsum(superDense_interval)
-        
-        # Adjust the density of our points. This rounds all values to only full pixel values.
-        superDense_pts = np.round(superDense_pts * self.config["density"]) / self.config["density"]
-        superDense_int = (superDense_pts * self.config["density"]).astype(np.int)
-        
-        # We can identify unique points using the points when the integer position ratchets up or down.
-        unique_x,unique_y = np.diff(superDense_int).astype(np.bool)
-        
-        # We want unique index to include points where either 'y' or 'x' ratchets up or down
-        unique_idx = np.logical_or(unique_x,unique_y)
-        
-        # Remove any duplicate points. This does not do so in order, so we must
-        # sort the array of unique points afterwards...
-        unique_pts = superDense_pts[:,1:][:,unique_idx]
-        
-        # An array of distances to the origin of this spectrum, can be used to find wavelength
-        # of light at each distance
-        distance = superDense_distance[unique_idx] * self.config["convert"]["pxtomm"]
-        
-        # Re sort everything by distnace along the trace.
-        # Strictly, this shouldn't be necessary if all of the above functions preserved order.
-        sorted_idx = np.argsort(distance)
-        
-        # Pull out sorted valuses
-        distance = distance[sorted_idx]
-        points = unique_pts[:,sorted_idx].T
-        self.log.debug(npArrayInfo(points,"Points"))
-        
-        
-        # Pull out the original wavelengths
-        wl_orig = superDense_lam[unique_idx][sorted_idx]
-        wl = wl_orig
-        self.log.debug(npArrayInfo(wl,"Wavelengths"))
-        # We are getting some odd behavior, where the dispersion function seems to not cover the whole
-        # arc length and instead covers only part of it. This causes much of our arc to leave the desired
-        # and available wavelength boundaries. As such, I'm disabling the more accurate dispersion mode.
-        
-        # Convert to wavelength space along the dispersion spline.
-        # wl = self.spline(distance)
-        xs,ys = points.T
-        self.dxs = xs
-        self.dys = ys
-        self.dwl = wl
-        self.drs = distance
-        self.dispersion = True
-        
-        self._debug_dispersion()
-        
-        return True
-                
-    def get_trace(self,spectrum):
-        """Returns a trace of this """
-        # Variables taken from the dispersion calculation
-        points = np.array([self.dxs,self.dys]).T
-        deltawl = np.diff(self.dwl)
-        
-        
-        # Take our points out. Note from the above that we multiply by the density in order to do this
-        xorig,yorig = (points * self.config["density"])[:-1].T.astype(np.int)
-        x,y = (points * self.config["density"])[:-1].T.astype(np.int)
-        # Get the way in which those points correspond to actual pixels.
-        # As such, this array of points should have duplicates
-        xint,yint = points.T.astype(np.int)
-        
-        # Zero-adjust our x and y points. They will go into a fake subimage anyways, so we don't care
-        # for now where they would be on the real image
-        x -= np.min(x)
-        y -= np.min(y)
-        
-        # Get the approximate size of our spectra
-        xdist = np.max(x)-np.min(x)
-        ydist = np.max(y)-np.min(y)
-        
-        # Convert this size into an integer number of pixels for our subimage. This makes it
-        # *much* easier to register our sub-image to the master, larger pixel image
-        xdist += (self.config["density"] - xdist % self.config["density"])
-        ydist += (self.config["density"] - ydist % self.config["density"])
-        
-        # Move our x and y coordinates to the middle of our sub image by applying padding below each one.
-        x += self.config["padding"] * self.config["density"]
-        y += self.config["padding"] * self.config["density"]
-        
-        # Find the first (by the flatten method) corner of the subimage,
-        # useful for placing the sub-image into the full image.
-        corner = np.array([ xint[np.argmax(x)], yint[np.argmin(y)]])
-        self.log.debug("Corner Position in Integer Space: %s" % corner)
-        corner *= self.config["density"]
-        realcorner = np.array([ xorig[np.argmax(x)], yorig[np.argmin(y)]])
-        offset = corner - realcorner
-        corner /= self.config["density"]
-        self.log.debug("Corner Position Offset in Dense Space: %s" % (offset))
-        if self.log.getEffectiveLevel() <= logging.DEBUG:
-            with open(self.config["Dirs"]["Partials"]+"Instrument-Offsets.dat",'a') as handle:
-                np.savetxt(handle,offset)
-        corner -= np.array([-self.config["padding"],self.config["padding"]])
-        
-        x += offset[0]
-        y += offset[1]
-        
-        # Create our sub-image, using the x and y width of the spectrum, plus 2 padding widths.
-        # Padding is specified in full-size pixels to ensure that the final image is an integer
-        # number of full-size pixels across.
-        xsize = xdist+2*self.config["padding"]*self.config["density"]
-        ysize = ydist+2*self.config["padding"]*self.config["density"]
-        
-        # Calculate the resolution inherent to the pixels asked for
-        WLS = self.dwl
-        DWL = np.diff(WLS) 
-        WLS = WLS[:-1]
-        RS = WLS/DWL
-        
-        self.log.debug("Scailing by %g" % self.config["gain"])
-        radiance = spectrum(wavelengths=WLS,resolution=RS) 
-        radiance *= self.config["gain"]
-        self.log.debug(npArrayInfo(radiance,"Generated Spectrum"))
-        self.log.debug(npArrayInfo(deltawl,"DeltaWL Rescaling"))
-        flux = radiance[1,:] * deltawl
-        self.log.debug(npArrayInfo(flux,"Final Flux"))
-         
-        if self.log.getEffectiveLevel() <= logging.DEBUG:
-            np.savetxt(self.config["Dirs"]["Partials"]+"Instrument-Subimage-Values.dat",np.array([x,y,self.dwl[:-1],deltawl,flux]).T)
-        
-        self.txs = x
-        self.tys = y
-        self.tfl = flux
-        self.twl = self.dwl[:-1]
-        self.subshape = (xsize,ysize)
-        self.subcorner = corner        
-        
-    def place_trace(self,get_psf):
-        """Place the trace on the image"""
-        
-        img = np.zeros(self.subshape)
-        
-        for x,y,wl,flux in zip(self.txs,self.tys,self.twl,self.tfl):
-            psf = get_psf(wl)
-            tiny_image = np.zeros(psf.shape) + psf * flux
-            tl_corner = [ x - tiny_image.shape[0]/2.0, y - tiny_image.shape[0]/2.0 ]
-            br_corner = [ x + tiny_image.shape[0]/2.0, y + tiny_image.shape[0]/2.0 ]
-            self.log.debug("Corner of tiny image is %s" % (tl_corner))
-            img[tl_corner[0]:br_corner[0],tl_corner[1]:br_corner[1]] += tiny_image
-        self.log.debug(npArrayInfo(img,"DenseSubImage"))
-        self.save(img,"Raw Spectrum")
-        
-        
-            
-        
-        
-    def _debug_dispersion(self):
-        """Debugging for the dispersion process"""
-        if self.log.getEffectiveLevel() > logging.DEBUG or not self.config["plot"]:
-            return
-        self.log.debug("Plotting Wavelength Information")
-        # This graph shows the change in distance along arc per pixel.
-        # The graph should produce all data points close to each other, except a variety of much lower
-        # data points which are caused by the arc crossing between pixels.
-        plt.figure()
-        plt.title("$\Delta$Distance Along Arc")
-        plt.xlabel("x (px)")
-        plt.ylabel("$\Delta$Distance along arc (px)")
-        plt.plot(self.dys[:-1],np.diff(distance) * self.config["convert"]["mmtopx"],'g.')
-        plt.savefig("%sInstrument-%04d-Delta-Distances%s" % (self.config["Dirs"]["Partials"],self.num,self.config["plot_format"]))
-        plt.clf()
-     
-        
-
 
 class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
     """This is a model container for the SEDMachine data simulator. This class is based on `AstroObject.ImageObject`, which it uses to provide some awareness of the way images are stored and retrieved. As such, this object has .save(), .select() and .show() etc. methods which can be used to examine the underlying data. It also means that this ImageObject subclass will contain the final, simulated image when the system is done.
@@ -432,7 +143,40 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
                 d[k] = u[k]
         return d
     
-    
+    defaultConfig = { 
+                    'files': {
+                        'dispersion': 'Data/dispersion_12-10-2011.txt',
+                        'encircledenergy': 'Data/encircled_energy_4nov11.TXT', 
+                        'lenslets': 'Data/xy_17nov2011_v57.TXT'
+                    }, 
+                    'dark': 20,
+                    'convert': { 'pxtomm': 0.0135 }, 
+                    'logging': {
+                        'console': {
+                            'level': False,
+                            'enable': True,
+                            'format': '......%(message)s'
+                        },
+                        'file': {
+                            'format': '%(asctime)s : %(levelname)-8s : %(funcName)-20s : %(message)s',
+                            'enable': True,
+                            'filename': 'SEDInstrument'
+                        }
+                    },
+                    'density': 5,
+                    'tel_obsc': {'px': 0.2 }, 
+                    'plot': False,
+                    'ccd_size': {'px': 2048 },
+                    'padding': 5,
+                    'psf_stdev': { 'px': 1.0 },
+                    'bias': 20,
+                    'psf_size': { 'px': 0 },
+                    'image_size': { 'mm': 40.0 },
+                    'tel_radii': {'px': 1.2}, 
+                    'plot_format': '.pdf',
+                    'exposure': 120,
+                    'gain': 10000000000.0
+                }
     
     # CONFIGURATION
     def _configure(self):
@@ -446,74 +190,15 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         To see what the default configuration file looks like, run the runner script with the --dump argument. The runner script will requrie a subcommand, but dump will cause the program to exit before recieving any subcommands for action.
         
         You can force the script to ignore cached files in the runner script using the option `--no-cache`. To regenrate the cache manually, simply delete the contents of the Caches directory"""
-        self._configureDefaults()
+        self.update(self.config,self.defaultConfig)
         self.config["Configs"]["This"] = self.config["Configs"]["Instrument"]
-        self.configure(configuration=self.config)
+        self.configure(configuration=self.config,configFile=self.config["Configs"]["This"])
         self._configureCaches()
         self._configureDynamic()
         fileName = "%(dir)sInstrument-Config.dat" % {'dir':self.config["Dirs"]["Partials"]}
         with open(fileName,'w') as stream:
             yaml.dump(self.config,stream,default_flow_style=False)
-    
-    def _configureDefaults(self):
-        """Set up the default configure variable. If you change the default configuration variables in this function (instead of using a configuration file), the script will generally not detect the change, and so will not regenerate Cached files. You can force the script to ignore cached files in the runner script using the option `--no-cache`. To regenrate the cache manually, simply delete the contents of the Caches directory
-        """
-        self.defaultConfig = {}
-        # Configuration Variables for The System
-        # Unit Conversion Defaults
-        self.defaultConfig["convert"] = {}
-        self.defaultConfig["convert"]["pxtomm"] = 0.0135
-        # CCD / Image Plane Information
-        self.defaultConfig["ccd_size"] = {}
-        self.defaultConfig["ccd_size"]["px"] = 2048 #pixels
-        self.defaultConfig["image_size"] = {}
-        self.defaultConfig["image_size"]["mm"] = 40.0 #mm
-        # Telescope Information
-        self.defaultConfig["tel_radii"] = {}
-        self.defaultConfig["tel_radii"]["px"] = 2.4 / 2.0
-        self.defaultConfig["tel_obsc"] = {}
-        self.defaultConfig["tel_obsc"]["px"] = 0.4 / 2.0
-        # PSF Information
-        self.defaultConfig["psf_size"] = {}
-        self.defaultConfig["psf_size"]["px"] = 0
-        # For a gaussian PSF
-        self.defaultConfig["psf_stdev"] = {}
-        self.defaultConfig["psf_stdev"]["px"] = 1.0
-        # Image Generation Density
-        self.defaultConfig["density"] = 5
-        self.defaultConfig["padding"] = 5
-        # Default Gain Value
-        self.defaultConfig["gain"] = 1e10
-        # Noise Information
-        self.defaultConfig["dark"] = 20 # counts per pixel per second at some fixed degree c
-        self.defaultConfig["bias"] = 20 # counts per pixel at some fixed degree c
-        self.defaultConfig["exposure"] = 120 #Seconds
-        # File Information for data and Caches
-        self.defaultConfig["files"] = {}
-        self.defaultConfig["files"]["lenslets"] = "Data/xy_17nov2011_v57.TXT"
-        self.defaultConfig["files"]["dispersion"] = "Data/dispersion_12-10-2011.txt"
-        self.defaultConfig["files"]["encircledenergy"] = "Data/encircled_energy_4nov11.TXT"
-        # MPL Plotting Save Format
-        self.defaultConfig["plot_format"] = ".pdf"
-        self.defaultConfig["plot"] = False
         
-        # Logging Configuration
-        self.defaultConfig["logging"] = {}
-        self.defaultConfig["logging"]["console"] = {}
-        self.defaultConfig["logging"]["console"]["enable"] = True
-        self.defaultConfig["logging"]["console"]["format"] = "......%(message)s"
-        self.defaultConfig["logging"]["console"]["level"] = False
-        self.defaultConfig["logging"]["file"] = {}
-        self.defaultConfig["logging"]["file"]["enable"] = True
-        self.defaultConfig["logging"]["file"]["filename"] = "SEDInstrument"
-        self.defaultConfig["logging"]["file"]["format"] = "%(asctime)s : %(levelname)-8s : %(funcName)-20s : %(message)s"
-        
-        self.defaults += [copy.deepcopy(self.defaultConfig)]
-        
-        self.update(self.config,self.defaultConfig)
-        
-        self.log.debug("Set Instrument Configuration Defaults")
-    
     def _configureCaches(self):
         """If we are using the caching system, set up the configuration cache.
         
@@ -855,8 +540,50 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
             PBar.render(progress,"L:%4d %4d/%-4d" % (index,finished,total))
         
         self.log.useConsole(True)
+      
+    def gen_hexagons(self):
+        """Plot the hexagons"""
+        PBar = arpytools.progressbar.ProgressBar(color="green")
+        finished = 0.0
+        total = len(self.lenslets)
         
+        self.log.info("Generating Hexagons for %d lenslets" % total)
+        
+        self.log.useConsole(False)
+        PBar.render(0,"L:%4d %4d/%4d" % (0,finished,total))
+        
+        for index in self.lenslets:
+            self.lensletObjects[index].make_hexagon()
+            finished += 1.0
+            progress = int((finished/float(total)) * 100)
+            PBar.render(progress,"L:%4d %4d/%-4d" % (index,finished,total))
+        self.log.useConsole(True)
     
+       
+    def show_hexagons(self):
+        """Plot the hexagons"""
+        PBar = arpytools.progressbar.ProgressBar(color="cyan")
+        finished = 0.0
+        total = len(self.lenslets)
+        
+        self.log.info("Plotting Hexagons for %d lenslets" % total)
+        
+        
+        self.log.useConsole(False)
+        PBar.render(0,"L:%4d %4d/%4d" % (0,finished,total))
+        plt.figure()
+        plt.title("Hexagons")
+        
+        for index in self.lenslets:
+            x, y = self.lensletObjects[index].shape.exterior.xy
+            plt.fill(x, y, color='#cccccc', aa=True) 
+            plt.plot(x, y, color='#666666', aa=True, lw=0.25)
+            finished += 1.0
+            progress = int((finished/float(total)) * 100)
+            PBar.render(progress,"L:%4d %4d/%-4d" % (index,finished,total))
+        plt.savefig("%sLenslets-Hexagon%s" % (self.config["Dirs"]["Partials"],self.config["plot_format"]))
+        self.log.useConsole(True)
+        
     
     def get_wavelengths(self,lenslet_num):
         """Returns a tuple of ([x,y],wavelength,delta wavelength). Thus, this function calculates the x,y pixel positions of the spectra, the wavelength at each pixel, and the delta wavelength for each pixel.

@@ -64,23 +64,27 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
     
     def initStages(self):
         """Set up the options for the command line interface."""
-        self.registerStage(self.setupModel,"instinit",help="Set up instrument object",description="Set up the instrument object")
-        self.registerMacro("instrument","instinit",help="Test the initialization of the instrument model")
-        self.registerStage(self.debugLenslets,"lensdebug",description="Debugging Lenslets",include=False)
-        self.registerStage(self.setupNoise,"noisemask",help="Generate noise frames",description="Generate noise masks")
-        self.registerStage(self.setupSource,"sourceinit",description="Set up the source model")
-        self.registerMacro("source","sourceinit",help="Test the initialization of the source model")
-        self.registerStage(self.dispersion,"dispers",description="Get Dispersion for all lenslets")
+        self.registerStage(self.setupModel,"instinit",help="Instrument Object Setup",description="Set up the instrument object")
+        self.registerMacro("instrument","instinit",help="Initialize instrument object")
+        self.registerStage(self.debugLenslets,"lensdebug",description="Debugging Lenslets",include=False,help="Lenslet Debugging Plots")
+        self.registerStage(self.setupNoise,"noisemask",description="Generate noise masks",help="Noise Base Images")
+        self.registerStage(self.setupSource,"sourceinit",description="Set up the source model",help="Source Initialization")
+        self.registerStage(self.setupGeometry,"sourcegeo",description="Set up the geometric matrix transform to extract sources",help="Geometry Remapping")
+        self.registerStage(self.debugLensletHex,'lenshexagon',description="Debugging Lenslet Hexagons",include=False,help="Lenslet Hexagon Debugging Plot")
+        self.registerMacro("source","sourceinit",help="Source Object Setup")
+        self.registerStage(self.dispersion,"dispers",description="Get Dispersion for all lenslets",help="Lenslet Dispersion Calculation")
         self.registerMacro("dispersion","instrument","dispers",help="Generate dispersions for all lenslets")
-        self.registerStage(self.trace,"tracer",description="Get Trace for all lenslets")
-        self.registerMacro("trace","instrument","dispers","tracer","source",help="Generate dispersions for all lenslets")
-        self.registerStage(self.lenslet_image,"subimg",description="Generate subimages for all lenslets")
-        self.registerMacro("subimages","instinit","lensinit","sourceinit","dispers","tracer","subimg",help="Generate Sub Images")
-        self.registerStage(self.positionCaches,"cachesubimg",description="Cache lenslets")
-        self.registerStage(self.placeAllLenslets,"placesubimg",description="Place the lenslets into the image")
-        self.registerStage(self.cropImage,"crop",description="Crop the image down to size")
-        self.registerStage(self.applyNoise,"addnoise",description="Add noise frames")
-        self.registerStage(self.saveFile,"save",description="Save the final image")
+        self.registerStage(self.trace,"tracer",description="Get Trace for all lenslets",help="Calculate Lenslet Trace")
+        self.registerMacro("trace","instrument","dispers","tracer","source",help="Generate traces for all lenslets")
+        self.registerStage(self.lenslet_image,"subimg",description="Generate subimages for all lenslets",help="Creating SubImages")
+        self.registerMacro("subimages","instinit","lensinit","sourceinit","dispers","tracer","subimg",help="Generate SubImages for all Lenslets")
+        self.registerStage(self.positionCaches,"cachesubimg",description="Cache lenslets",help="Caching of Lenslets")
+        self.registerStage(self.placeAllLenslets,"placesubimg",description="Place the lenslets into the image",help="Placing Lenslets onto full image")
+        self.registerStage(self.cropImage,"crop",description="Crop the image down to size",help="Cropping Images")
+        self.registerStage(self.applyNoise,"addnoise",description="Add noise frames",help="Including Noise")
+        self.registerStage(self.saveFile,"save",description="Save the final image",help="Saving Image File")
+        
+        self.registerConfigOpts("D",{"Lenslets":{"start":2150,"number":5}},help="Development Settings")
         
         self.Caches.registerCustom("Config",kind=AstroObject.AstroSimulator.YAMLCache,filename="Simulator.cache.yaml",generate=lambda : self.config)
         
@@ -168,6 +172,10 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
         self.log.debug("Set Spectrum to %s" % self.Source.Spectrum)
         
         
+    def setupGeometry(self):
+        """Sets up the source geometry"""
+        self.Source.geometry()
+        
     
     def setupModel(self):
         """Sets up the SED Module Model"""
@@ -190,6 +198,14 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
         
     def debugLenslets(self):
         self.Model.plot_lenslet_data()
+        
+    def debugLensletHex(self):
+        """Debugging actions for lenslet hexagons"""
+        self.Model.show_hexagons()
+        
+    def setupGeometry(self):
+        """Set up model geometry"""
+        self.Model.gen_hexagons()
     
     def setupNoise(self):
         """Sets up the noise masks in the model"""

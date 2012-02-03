@@ -18,6 +18,10 @@ import numpy as np
 import pyfits as pf
 import scipy as sp
 
+import shapely as sh
+import shapely.geometry
+
+
 import logging.handlers
 
 import arpytools.progressbar
@@ -101,7 +105,10 @@ class Source(AstroObject.AstroSimulator.Simulator):
         """Initialize simulator stages"""
         self.registerStage(self.setupSource,"sourinit",description="Calculate and resample source")
         self.registerStage(self.setupNoiseandThruput,"thptinit",description="Calculate noise and throughput")
-        self.registerMacro("setup","sourinit","thptinit",help="Source initialization functions")
+        self.registerStage(self._simple_source_geometry,"simplegeo",description="Make a simple mock gemoetry for the image",include=False)
+        self.registerStage(self._plotSpectrum,"specplot",description="Plot the spectrum",include=False)
+        
+        self.registerMacro("setup","sourinit","thptinit","simplegeo",help="Source initialization functions")
     
     def setup(self):
         """Setup the simulation system"""
@@ -109,7 +116,7 @@ class Source(AstroObject.AstroSimulator.Simulator):
         self.startup()
         self.do("*setup")        
         if self.debug:
-            self._plotSpectrum()
+            self.do("+specplot")
 
         
     
@@ -176,7 +183,7 @@ class Source(AstroObject.AstroSimulator.Simulator):
     def _setupFile(self):
         """Sets up a uniform source file based spectrum"""
         WL,Flux = np.genfromtxt(self.config["Filename"]).T
-        WL *= 1e-10
+        WL *= 1e-10 # Conversion from Angstroms to Meters
         Flux /= np.max(Flux) 
         self.R_Spectrum = ResampledSpectrum(np.array([WL,Flux]),self.config["Filename"])
         self.D_Spectrum = self.R_Spectrum * self.config["PreAmp"]
@@ -202,6 +209,16 @@ class Source(AstroObject.AstroSimulator.Simulator):
         
         self.D_Spectrum *= self.SourceFilter
         self.Spectrum = self.D_Spectrum + self.SkySpec
+    
+    def _simple_source_geometry(self):
+        """Make a simple source geometry"""
+        source_points = ((4e-2,-4e-2),(4e-2,4e-2),(-4e-2,4e-2),(-4e-2,-4e-2))
+        source_area = sh.geometry.Polygon(source_points)
+        self.Shape = source_area
+        
+    def fname(self):
+        """docstring for fname"""
+    pass
         
     def _plotSpectrum(self):
         """Plot the spectrum partials"""
