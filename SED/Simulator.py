@@ -71,7 +71,7 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
         self.registerStage(self.setupSource,"sourceinit",description="Set up the source model",help="Source Initialization")
         self.registerStage(self.setupGeometry,"sourcegeo",description="Set up the geometric matrix transform to extract sources",help="Geometry Remapping")
         self.registerStage(self.debugLensletHex,'lenshexagon',description="Debugging Lenslet Hexagons",include=False,help="Lenslet Hexagon Debugging Plot")
-        self.registerMacro("source","sourceinit",help="Source Object Setup")
+        self.registerMacro("source","sourceinit","sourcegeo",help="Source Object Setup")
         self.registerStage(self.dispersion,"dispers",description="Get Dispersion for all lenslets",help="Lenslet Dispersion Calculation")
         self.registerMacro("dispersion","instrument","dispers",help="Generate dispersions for all lenslets")
         self.registerStage(self.trace,"tracer",description="Get Trace for all lenslets",help="Calculate Lenslet Trace")
@@ -84,7 +84,7 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
         self.registerStage(self.applyNoise,"addnoise",description="Add noise frames",help="Including Noise")
         self.registerStage(self.saveFile,"save",description="Save the final image",help="Saving Image File")
         
-        self.registerConfigOpts("D",{"Lenslets":{"start":2150,"number":5}},help="Development Settings")
+        self.registerConfigOpts("D",{"Lenslets":{"start":2000,"number":500}},help="Development Settings")
         
         self.Caches.registerCustom("Config",kind=AstroObject.AstroSimulator.YAMLCache,filename="Simulator.cache.yaml",generate=lambda : self.config)
         
@@ -201,7 +201,9 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
         
     def debugLensletHex(self):
         """Debugging actions for lenslet hexagons"""
+        self.Source.show_geometry()
         self.Model.show_hexagons()
+        
         
     def setupGeometry(self):
         """Set up model geometry"""

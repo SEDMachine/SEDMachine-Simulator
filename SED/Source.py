@@ -218,10 +218,22 @@ class Source(AstroObject.AstroSimulator.Simulator):
     
     def _simple_source_geometry(self):
         """Make a simple source geometry"""
-        source_points = ((4.1e-2,-4.1e-2),(4.1e-2,4.1e-2),(-4.1e-2,4.1e-2),(-4.1e-2,-4.1e-2))
+        radius = 4.1e-2
+        xoffset = 0
+        yoffset = 0
+        source_points = ((1*radius+xoffset,-1*radius+yoffset),(1*radius+xoffset,1*radius+yoffset),(-1*radius+xoffset,1*radius+yoffset),(-1*radius+xoffset,-1*radius+yoffset))
         source_area = sh.geometry.Polygon(source_points)
         self.Shapes = np.array([source_area])
         self.Spectra = np.array([self.Spectrum])
+    
+    def show_geometry(self):
+        """Show the source geometry"""
+        plt.figure()
+        for shape in self.Shapes:
+            x, y = shape.exterior.xy
+            plt.fill(x, y, color='#cccc00', aa=True) 
+            plt.plot(x, y, color='#666600', aa=True, lw=0.25)
+        
     
     def geometry(self):
         self._simple_source_geometry()
@@ -239,7 +251,8 @@ class Source(AstroObject.AstroSimulator.Simulator):
                     if shape.intersects(hexagon):
                         try:
                             intersection = shape.intersection(hexagon)
-                            coeff = intersection.area / shape.area
+                            coeff = float(intersection.area) / float(shape.area) * 1e9
+                            print intersection.area,shape.area
                         except sh.geos.TopologicalError as e:
                             self.log.warning("%s" % e)
                         

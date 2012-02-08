@@ -571,7 +571,6 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
         
         self.log.useConsole(False)
         PBar.render(0,"L:%4d %4d/%4d" % (0,finished,total))
-        plt.figure()
         plt.title("Hexagons")
         
         for index in self.lenslets:
