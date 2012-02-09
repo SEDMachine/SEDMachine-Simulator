@@ -9,7 +9,7 @@
 # 
 
 import numpy as np
-import pyfits as pf
+# import pyfits as pf
 import scipy as sp
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -31,12 +31,11 @@ import collections
 
 import AstroObject
 import AstroObject.AstroSimulator
+from AstroObject.AstroCache import *
 from AstroObject.AstroSpectra import SpectraObject
 from AstroObject.AstroImage import ImageObject,ImageFrame
 from AstroObject.AnalyticSpectra import BlackBodySpectrum, AnalyticSpectrum, FlatSpectrum
 from AstroObject.Utilities import *
-
-from Utilities import *
 
 
 __version__ = getVersion(__name__)
@@ -51,7 +50,7 @@ class SEDLimits(Exception):
 
 class Lenslet(ImageObject):
     """An object-representation of a lenslet"""
-    def __init__(self,xs,ys,xpixs,ypixs,p1s,p2s,ls,ix,config):
+    def __init__(self,xs,ys,xpixs,ypixs,p1s,p2s,ls,ix,config,caches):
         super(Lenslet, self).__init__()
         self.log = logging.getLogger("Instrument")
         self.num = ix
@@ -64,7 +63,9 @@ class Lenslet(ImageObject):
         self.ps = np.array([p1s,p2s]).T
         self.ls = np.array(ls)
         self.config = config
-        
+        self.Caches = caches        
+        self.Caches.registerNPY("%dDispersion" % self.num,generate=self.return_dispersion,filename="Dispersion-%d.cache.npy" % self.num)
+                
         self.dispersion = False
         self.checked = False
         self.passed = False
@@ -136,6 +137,11 @@ class Lenslet(ImageObject):
             self.log.debug(npArrayInfo(self.ls,"Lenslet %d Wavelengths" % self.num))
                 
         return self.passed
+    
+    def return_dispersion(self):
+        """Return the dispersion"""
+        self.find_dispersion()
+        return self.dis
         
     def find_dispersion(self):
         """Find the dispersion (dense, pixel aligned wavelength values) for this lenslet"""
@@ -166,7 +172,7 @@ class Lenslet(ImageObject):
             raise SEDLimits
         
         # Find the length in units of (int) pixels
-        npix = (distance * self.config["convert"]["mmtopx"]).astype(np.int) * self.config["density"]
+        npix = (distance * self.config["Instrument"]["convert"]["mmtopx"]).astype(np.int) * self.config["Instrument"]["density"]
         
         # Create a data array one hundred times as dense as the number of pixels
         #   This is the super dense array which will use the above interpolation
@@ -181,8 +187,8 @@ class Lenslet(ImageObject):
         superDense_distance = np.cumsum(superDense_interval)
         
         # Adjust the density of our points. This rounds all values to only full pixel values.
-        superDense_pts = np.round(superDense_pts * self.config["density"]) / self.config["density"]
-        superDense_int = (superDense_pts * self.config["density"]).astype(np.int)
+        superDense_pts = np.round(superDense_pts * self.config["Instrument"]["density"]) / self.config["Instrument"]["density"]
+        superDense_int = (superDense_pts * self.config["Instrument"]["density"]).astype(np.int)
         
         # We can identify unique points using the points when the integer position ratchets up or down.
         unique_x,unique_y = np.diff(superDense_int).astype(np.bool)
@@ -196,7 +202,7 @@ class Lenslet(ImageObject):
         
         # An array of distances to the origin of this spectrum, can be used to find wavelength
         # of light at each distance
-        distance = superDense_distance[unique_idx] * self.config["convert"]["pxtomm"]
+        distance = superDense_distance[unique_idx] * self.config["Instrument"]["convert"]["pxtomm"]
         
         # Re sort everything by distnace along the trace.
         # Strictly, this shouldn't be necessary if all of the above functions preserved order.
@@ -223,6 +229,7 @@ class Lenslet(ImageObject):
         self.dys = ys
         self.dwl = wl
         self.drs = distance
+        self.dis = np.array([xs,ys,wl,distance])
         self.dispersion = True
         
         self._debug_dispersion()
@@ -234,15 +241,18 @@ class Lenslet(ImageObject):
         
         if self.traced:
             return self.traced
-        
+        if not self.dispersion:
+            self.dxs,self.dys,self.dwl,self.drs = self.Caches.get("%dDispersion" % self.num)
+            self.dispersion = True
+            
         # Variables taken from the dispersion calculation
         points = np.array([self.dxs,self.dys]).T
         deltawl = np.diff(self.dwl)
         
         
         # Take our points out. Note from the above that we multiply by the density in order to do this
-        xorig,yorig = (points * self.config["density"])[:-1].T.astype(np.int)
-        x,y = (points * self.config["density"])[:-1].T.astype(np.int)
+        xorig,yorig = (points * self.config["Instrument"]["density"])[:-1].T.astype(np.int)
+        x,y = (points * self.config["Instrument"]["density"])[:-1].T.astype(np.int)
         # Get the way in which those points correspond to actual pixels.
         # As such, this array of points should have duplicates
         xint,yint = points.T.astype(np.int)
@@ -258,26 +268,26 @@ class Lenslet(ImageObject):
         
         # Convert this size into an integer number of pixels for our subimage. This makes it
         # *much* easier to register our sub-image to the master, larger pixel image
-        xdist += (self.config["density"] - xdist % self.config["density"])
-        ydist += (self.config["density"] - ydist % self.config["density"])
+        xdist += (self.config["Instrument"]["density"] - xdist % self.config["Instrument"]["density"])
+        ydist += (self.config["Instrument"]["density"] - ydist % self.config["Instrument"]["density"])
         
         # Move our x and y coordinates to the middle of our sub image by applying padding below each one.
-        x += self.config["padding"] * self.config["density"]
-        y += self.config["padding"] * self.config["density"]
+        x += self.config["Instrument"]["padding"] * self.config["Instrument"]["density"]
+        y += self.config["Instrument"]["padding"] * self.config["Instrument"]["density"]
         
         # Find the first (by the flatten method) corner of the subimage,
         # useful for placing the sub-image into the full image.
         corner = np.array([ xint[np.argmax(x)], yint[np.argmin(y)]])
         self.log.debug("Corner Position in Integer Space: %s" % corner)
-        corner *= self.config["density"]
+        corner *= self.config["Instrument"]["density"]
         realcorner = np.array([ xorig[np.argmax(x)], yorig[np.argmin(y)]])
         offset = corner - realcorner
-        corner /= self.config["density"]
+        corner /= self.config["Instrument"]["density"]
         self.log.debug("Corner Position Offset in Dense Space: %s" % (offset))
         if self.log.getEffectiveLevel() <= logging.DEBUG:
             with open(self.config["Dirs"]["Partials"]+"Instrument-Offsets.dat",'a') as handle:
                 np.savetxt(handle,offset)
-        corner -= np.array([-self.config["padding"],self.config["padding"]])
+        corner -= np.array([-self.config["Instrument"]["padding"],self.config["Instrument"]["padding"]])
         
         x += offset[0]
         y += offset[1]
@@ -285,8 +295,8 @@ class Lenslet(ImageObject):
         # Create our sub-image, using the x and y width of the spectrum, plus 2 padding widths.
         # Padding is specified in full-size pixels to ensure that the final image is an integer
         # number of full-size pixels across.
-        xsize = xdist+2*self.config["padding"]*self.config["density"]
-        ysize = ydist+2*self.config["padding"]*self.config["density"]
+        xsize = xdist+2*self.config["Instrument"]["padding"]*self.config["Instrument"]["density"]
+        ysize = ydist+2*self.config["Instrument"]["padding"]*self.config["Instrument"]["density"]
         
         # Calculate the resolution inherent to the pixels asked for
         WLS = self.dwl
@@ -294,9 +304,9 @@ class Lenslet(ImageObject):
         WLS = WLS[:-1]
         RS = WLS/DWL
         
-        self.log.debug("Scailing by %g" % self.config["gain"])
+        self.log.debug("Scailing by %g" % self.config["Instrument"]["gain"])
         radiance = spectrum(wavelengths=WLS,resolution=RS) 
-        radiance *= self.config["gain"]
+        radiance *= self.config["Instrument"]["gain"]
         self.log.debug(npArrayInfo(radiance,"Generated Spectrum"))
         self.log.debug(npArrayInfo(deltawl,"DeltaWL Rescaling"))
         flux = radiance[1,:] * deltawl
@@ -333,7 +343,7 @@ class Lenslet(ImageObject):
         
     def _debug_dispersion(self):
         """Debugging for the dispersion process"""
-        if self.log.getEffectiveLevel() > logging.DEBUG or not self.config["plot"]:
+        if self.log.getEffectiveLevel() > logging.DEBUG or not self.config["Plot"]:
             return
         self.log.debug("Plotting Wavelength Information")
         # This graph shows the change in distance along arc per pixel.
@@ -343,7 +353,7 @@ class Lenslet(ImageObject):
         plt.title("$\Delta$Distance Along Arc")
         plt.xlabel("x (px)")
         plt.ylabel("$\Delta$Distance along arc (px)")
-        plt.plot(self.dys[:-1],np.diff(distance) * self.config["convert"]["mmtopx"],'g.')
+        plt.plot(self.dys[:-1],np.diff(distance) * self.config["Instrument"]["convert"]["mmtopx"],'g.')
         plt.savefig("%sInstrument-%04d-Delta-Distances%s" % (self.config["Dirs"]["Partials"],self.num,self.config["plot_format"]))
         plt.clf()
     
