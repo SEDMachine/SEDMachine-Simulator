@@ -9,7 +9,7 @@
 # 
 
 import numpy as np
-# import pyfits as pf
+import pyfits as pf
 import scipy as sp
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -39,7 +39,7 @@ from AstroObject.Utilities import *
 
 
 __version__ = getVersion(__name__)
-__all__ = ["SEDLimits","Lenslet"]
+__all__ = ["SEDLimits","Lenslet","SubImage"]
 
 class SEDLimits(Exception):
     """A Basic Error-Differentiation Class.
@@ -47,11 +47,82 @@ class SEDLimits(Exception):
     """
     pass
 
+class SubImage(ImageFrame):
+    """A custom frame type for SEDMachine Sub-Images"""
+    def __init__(self, array, label, header=None, metadata=None):
+        super(SubImage, self).__init__(array,label,header,metadata)
+        self.lensletNumber = 0
+        self.corner = [0,0]
+        self.configHash = hash(0)
+        self.spectrum = "NO SPEC"
+
+    log = logging.getLogger("Instrument")
+    
+        
+    def sync_header(self):
+        """Synchronizes the header dictionary with the HDU header"""
+        # assert self.label == self.header['SEDlabel'], "Label does not match value specified in header: %s and %s" % (self.label,self.header['SEDlabel'])
+        self.configHash = self.header['SEDconf']
+        self.corner = [self.header['SEDcrx'],self.header['SEDcry']]
+        self.spectrum = self.header['SEDspec']
+        self.lensletNumber = self.header['SEDlens']
+    
+    def __hdu__(self,primary=False):
+        """Retruns an HDU which represents this frame. HDUs are either ``pyfits.PrimaryHDU`` or ``pyfits.ImageHDU`` depending on the *primary* keyword."""
+        if primary:
+            self.log.log(5,"Generating a primary HDU for %s" % self)
+            HDU = pf.PrimaryHDU(self())
+        else:
+            self.log.log(5,"Generating an image HDU for %s" % self)
+            HDU = pf.ImageHDU(self())
+        HDU.header.update('object',self.label)
+        HDU.header.update('SEDlabel',self.label)
+        HDU.header.update('SEDconf',self.configHash)
+        HDU.header.update('SEDcrx',self.corner[0])
+        HDU.header.update('SEDcry',self.corner[1])
+        HDU.header.update('SEDspec',self.spectrum)
+        HDU.header.update('SEDlens',self.lensletNumber)
+        for key,value in self.header.iteritems():
+            HDU.header.update(key,value)
+        return HDU
+    
+    def __show__(self):
+        """Plots the image in this frame using matplotlib's ``imshow`` function. The color map is set to an inverted binary, as is often useful when looking at astronomical images. The figure object is returned, and can be manipulated further.
+        
+        .. Note::
+            This function serves as a quick view of the current state of the frame. It is not intended for robust plotting support, as that can be easily accomplished using ``matplotlib``. Rather, it attempts to do the minimum possible to create an acceptable image for immediate inspection.
+        """
+        self.log.debug("Plotting %s using matplotlib.pyplot.imshow" % self)
+        figure = plt.imshow(self())
+        figure.set_cmap('binary_r')
+        return figure
+    
+    @classmethod
+    def __read__(cls,HDU,label):
+        """Attempts to convert a given HDU into an object of type :class:`ImageFrame`. This method is similar to the :meth:`__save__` method, but instead of taking data as input, it takes a full HDU. The use of a full HDU allows this method to check for the correct type of HDU, and to gather header information from the HDU. When reading data from a FITS file, this is the prefered method to initialize a new frame.
+        """
+        cls.log.debug("Attempting to read as %s" % cls)
+        if not isinstance(HDU,(pf.ImageHDU,pf.PrimaryHDU)):
+            msg = "Must save a PrimaryHDU or ImageHDU to a %s, found %s" % (cls.__name__,type(HDU))
+            raise AbstractError(msg)
+        if not isinstance(HDU.data,np.ndarray):
+            msg = "HDU Data must be %s for %s, found data of %s" % (np.ndarray,cls.__name__,type(HDU.data))
+            raise AbstractError(msg)
+        try:
+            Object = cls(HDU.data,label,header=HDU.header)
+        except AssertionError as AE:
+            msg = "%s data did not validate: %s" % (cls.__name__,AE)
+            raise AbstractError(msg)
+        cls.log.debug("Created %s" % Object)
+        Object.sync_header()
+        return Object
+
 
 class Lenslet(ImageObject):
     """An object-representation of a lenslet"""
     def __init__(self,xs,ys,xpixs,ypixs,p1s,p2s,ls,ix,config,caches):
         super(Lenslet, self).__init__()
+        self.dataClasses = [SubImage]
         self.log = logging.getLogger("Instrument")
         self.num = ix
         self.xs = xs
@@ -232,8 +303,6 @@ class Lenslet(ImageObject):
         self.dis = np.array([xs,ys,wl,distance])
         self.dispersion = True
         
-        self._debug_dispersion()
-        
         return self.dispersion
                 
     def get_trace(self,spectrum):
@@ -302,7 +371,7 @@ class Lenslet(ImageObject):
         WLS = self.dwl
         DWL = np.diff(WLS) 
         WLS = WLS[:-1]
-        RS = WLS/DWL
+        RS = WLS/DWL/self.config["Instrument"]["density"]
         
         self.log.debug("Scailing by %g" % self.config["Instrument"]["gain"])
         radiance = spectrum(wavelengths=WLS,resolution=RS) 
@@ -313,12 +382,15 @@ class Lenslet(ImageObject):
         self.log.debug(npArrayInfo(flux,"Final Flux"))
          
         if self.log.getEffectiveLevel() <= logging.DEBUG:
-            np.savetxt(self.config["Dirs"]["Partials"]+"Instrument-Subimage-Values.dat",np.array([x,y,self.dwl[:-1],deltawl,flux]).T)
+            np.savetxt("%s/Instrument-Subimage-Values.dat" % self.config["Dirs"]["Partials"],np.array([x,y,self.dwl[:-1],deltawl,flux]).T)
         
         self.txs = x
         self.tys = y
+        self.trd = radiance
         self.tfl = flux
         self.twl = self.dwl[:-1]
+        self.tdw = deltawl
+        self.trs = RS
         self.subshape = (xsize,ysize)
         self.subcorner = corner
         self.traced = True
@@ -339,13 +411,30 @@ class Lenslet(ImageObject):
             img[tl_corner[0]:br_corner[0],tl_corner[1]:br_corner[1]] += tiny_image
         self.log.debug(npArrayInfo(img,"DenseSubImage"))
         self.save(img,"Raw Spectrum")
+        frame = self.frame()
+        frame.lensletNumber = self.num
+        frame.corner = self.subcorner
+        frame.configHash = hash(str(self.config.extract()))
+    
+    def write_subimage(self):
+        """Writes a subimage to file"""
+        self.write("%s/Subimage-%4d%s" % (self.config["Dirs"]["Caches"],self.num,".fits"),primaryState="Raw Spectrum",states=["Raw Spectrum"],clobber=True)
+        self.clear(delete=True)
         
+    def read_subimage(self):
+        """Read a subimage from file"""
+        self.read("%s/Subimage-%4d%s" % (self.config["Dirs"]["Caches"],self.num,".fits"))
+        frame = self.frame()
+        self.num = frame.lensletNumber
+        self.subcorner = frame.corner
         
-    def _debug_dispersion(self):
+    def bin_subimage(self):
+        """Bin the selected subimage"""
+        self.save(self.bin(self.data(),self.config["Instrument"]["density"]).astype(np.int16),"Binned Spectrum")
+        
+    def plot_dispersion(self):
         """Debugging for the dispersion process"""
-        if self.log.getEffectiveLevel() > logging.DEBUG or not self.config["Plot"]:
-            return
-        self.log.debug("Plotting Wavelength Information")
+        assert self.dispersion
         # This graph shows the change in distance along arc per pixel.
         # The graph should produce all data points close to each other, except a variety of much lower
         # data points which are caused by the arc crossing between pixels.
@@ -353,9 +442,58 @@ class Lenslet(ImageObject):
         plt.title("$\Delta$Distance Along Arc")
         plt.xlabel("x (px)")
         plt.ylabel("$\Delta$Distance along arc (px)")
-        plt.plot(self.dys[:-1],np.diff(distance) * self.config["Instrument"]["convert"]["mmtopx"],'g.')
-        plt.savefig("%sInstrument-%04d-Delta-Distances%s" % (self.config["Dirs"]["Partials"],self.num,self.config["plot_format"]))
+        plt.plot(self.dys[:-1],np.diff(self.drs) * self.config["Instrument"]["convert"]["mmtopx"],'g.')
+        plt.savefig("%s/Instrument-%04d-Delta-Distances%s" % (self.config["Dirs"]["Partials"],self.num,self.config["plot_format"]))
         plt.clf()
+        
+    def plot_spectrum(self):
+        """Plots the generated spectrum for this lenslet"""
+        assert self.traced
+        plt.clf()
+        plt.plot(self.twl,self.trd[1,:],"b.")
+        plt.title("Retrieved Spectral Radiance with Gain")
+        plt.xlabel("Wavelength ($\mu m$)")
+        plt.ylabel("Radiance (Units undefined)")
+        plt.savefig("%s/Instrument-%04d-Radiance%s" % (self.config["Dirs"]["Partials"],self.num,self.config["plot_format"]))
+        plt.clf()
+        plt.plot(self.twl*1e-6,self.tfl,"b.")
+        plt.title("Generated, Fluxed Spectra")
+        plt.xlabel("Wavelength ($\mu m$)")
+        plt.ylabel("Flux (Units undefined)")
+        plt.savefig("%s/Instrument-%04d-Flux%s" % (self.config["Dirs"]["Partials"],self.num,self.config["plot_format"]))
+        plt.clf()
+
+        
+    
+    def plot_trace(self):
+        """Plots aspects of the trace"""
+        assert self.traced
+        plt.clf()
+        plt.plot(self.twl*1e-6,self.tdw*1e-6,"g.")
+        plt.title("$\Delta\lambda$ for each pixel")
+        plt.xlabel("Wavelength ($\mu m$)")
+        plt.ylabel("$\Delta\lambda$ per pixel")
+        plt.savefig("%s/Instrument-%04d-DeltaWL%s" % (self.config["Dirs"]["Partials"],self.num,self.config["plot_format"]))
+        plt.clf()
+        plt.semilogy(self.twl*1e-6,self.trs,"g.")
+        plt.title("$R = \\frac{\lambda}{\Delta\lambda}$ for each pixel")
+        plt.xlabel("Wavelength ($\mu m$)")
+        plt.ylabel("Resolution $R = \\frac{\Delta\lambda}{\lambda}$ per pixel")
+        plt.savefig("%s/Instrument-%04d-Resolution%s" % (self.config["Dirs"]["Partials"],self.num,self.config["plot_format"]))
+        plt.clf()
+    
+    def bin(self,array,factor):
+        """Bins an array by the given factor"""
+    
+        finalShape = tuple((np.array(array.shape) / factor).astype(np.int))
+        Aout = np.zeros(finalShape)
+    
+        for i in range(factor):
+            Ai = array[i::factor,i::factor]
+            Aout += Ai
+    
+        return Aout
+        
     
     def rotate(self,point,angle,origin=None):
         """Rotate a given point by the provided angle around the origin given"""
@@ -368,9 +506,9 @@ class Lenslet(ImageObject):
     
     def make_hexagon(self):
         """Generates a hexagonal polygon for this lenslet, to be used for area calculations"""
-        radius = 0.25e-2
+        radius = self.conifg["Instrument"]["lenslets"]["radius"]
         angle = np.pi/3.0
-        rotation = 20.0 * (np.pi/180.0) #Absolute angle of rotation for hexagons
+        rotation =  self.config["Instrument"]["lenslets"]["rotation"] * (np.pi/180.0) #Absolute angle of rotation for hexagons
         A = self.rotate(self.ps + np.array([radius,0]),rotation,self.ps)
         points = [A]
         for i in range(6):
@@ -379,5 +517,10 @@ class Lenslet(ImageObject):
         self.shape = sh.geometry.Polygon(tuple(points))
 
         
+class SourcePixel(object):
+    """Source Pixels are objects which handle the source shape and size for resampling"""
+    def __init__(self):
+        super(SourcePixel, self).__init__()
         
+                
 

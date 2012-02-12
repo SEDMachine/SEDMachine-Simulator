@@ -1481,7 +1481,6 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
             label = "Poisson Noise Mask (%2g)" % (lam)
         arguments = (lam,shape)
         noise = distribution(*arguments)
-        
         self.save(noise,label)
     
     def ccdCrop(self):

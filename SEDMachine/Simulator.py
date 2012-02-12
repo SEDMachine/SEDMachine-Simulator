@@ -39,73 +39,6 @@ from AstroObject.Utilities import *
 
 from Lenslet import *
 
-class SubImage(ImageFrame):
-    """A custom frame type for SEDMachine Sub-Images"""
-    def __init__(self, array, label, header=None, metadata=None):
-        super(SubImage, self).__init__(array,label,header,metadata)
-        self.lensletNumber = 0
-        self.corner = [0,0]
-        self.configHash = hash(0)
-        self.spectrum = "NO SPEC"
-        
-    def sync_header(self):
-        """Synchronizes the header dictionary with the HDU header"""
-        # assert self.label == self.header['SEDlabel'], "Label does not match value specified in header: %s and %s" % (self.label,self.header['SEDlabel'])
-        self.configHash = self.header['SEDconf']
-        self.corner = [self.header['SEDcrx'],self.header['SEDcry']]
-        self.spectrum = self.header['SEDspec']
-        self.lensletNumber = self.header['SEDlens']
-    
-    def __hdu__(self,primary=False):
-        """Retruns an HDU which represents this frame. HDUs are either ``pyfits.PrimaryHDU`` or ``pyfits.ImageHDU`` depending on the *primary* keyword."""
-        if primary:
-            LOG.log(5,"Generating a primary HDU for %s" % self)
-            HDU = pf.PrimaryHDU(self())
-        else:
-            LOG.log(5,"Generating an image HDU for %s" % self)
-            HDU = pf.ImageHDU(self())
-        HDU.header.update('object',self.label)
-        HDU.header.update('SEDlabel',self.label)
-        HDU.header.update('SEDconf',self.configHash)
-        HDU.header.update('SEDcrx',self.corner[0])
-        HDU.header.update('SEDcry',self.corner[1])
-        HDU.header.update('SEDspec',self.spectrum)
-        HDU.header.update('SEDlens',self.lensletNumber)
-        for key,value in self.header.iteritems():
-            HDU.header.update(key,value)
-        return HDU
-    
-    def __show__(self):
-        """Plots the image in this frame using matplotlib's ``imshow`` function. The color map is set to an inverted binary, as is often useful when looking at astronomical images. The figure object is returned, and can be manipulated further.
-        
-        .. Note::
-            This function serves as a quick view of the current state of the frame. It is not intended for robust plotting support, as that can be easily accomplished using ``matplotlib``. Rather, it attempts to do the minimum possible to create an acceptable image for immediate inspection.
-        """
-        LOG.debug("Plotting %s using matplotlib.pyplot.imshow" % self)
-        figure = plt.imshow(self())
-        figure.set_cmap('binary_r')
-        return figure
-    
-    @classmethod
-    def __read__(cls,HDU,label):
-        """Attempts to convert a given HDU into an object of type :class:`ImageFrame`. This method is similar to the :meth:`__save__` method, but instead of taking data as input, it takes a full HDU. The use of a full HDU allows this method to check for the correct type of HDU, and to gather header information from the HDU. When reading data from a FITS file, this is the prefered method to initialize a new frame.
-        """
-        LOG.debug("Attempting to read as %s" % cls)
-        if not isinstance(HDU,(pf.ImageHDU,pf.PrimaryHDU)):
-            msg = "Must save a PrimaryHDU or ImageHDU to a %s, found %s" % (cls.__name__,type(HDU))
-            raise AbstractError(msg)
-        if not isinstance(HDU.data,np.ndarray):
-            msg = "HDU Data must be %s for %s, found data of %s" % (np.ndarray,cls.__name__,type(HDU.data))
-            raise AbstractError(msg)
-        try:
-            Object = cls(HDU.data,label,header=HDU.header)
-        except AssertionError as AE:
-            msg = "%s data did not validate: %s" % (cls.__name__,AE)
-            raise AbstractError(msg)
-        LOG.debug("Created %s" % Object)
-        Object.sync_header()
-        return Object
-
 
 class SEDSimulator(Simulator,ImageObject):
     """A simulator for the SED Machine"""
@@ -128,6 +61,7 @@ class SEDSimulator(Simulator,ImageObject):
         "Output": {
             "Label": "Generated",
             "Format": "fits",
+            "FrameLabel": "Final",
         },
         "Configurations": {
             "Instrument" : "SED.instrument.config.yaml",
@@ -143,9 +77,9 @@ class SEDSimulator(Simulator,ImageObject):
         "Lenslets" : {},
         'logging': {
             'console': {
-                'level': False, 
+                'level': logging.INFO, 
                 'enable': True, 
-                'format': '... %(levelname)-8s %(message)s'
+                'format': '%(levelname)-8s... %(message)s'
             },
             'growl' : {
                 'name' : "SED Machine Simulator",
@@ -186,27 +120,54 @@ class SEDSimulator(Simulator,ImageObject):
         'tel_radii': { 'px': 1.2}, 
         'exposure': 120, 
         'gain': 10000000000.0,
+        'lenslets' : {
+              'radius' : 0.25e-2,
+              'rotation' : 20.0,
+        },
     }
     
     source = {
         'Filename' : "Data/SNIa.R1000.dat",
-        'PreAmp' : 1.0,
+        'PreAmp' : 100.0,
     }
     
     def setup_stages(self):
         """Sets up all simulator stages"""
-        self.registerStage(self.setup_caches,"setup_caches",help=False,description="Setting up caches")
-        self.registerStage(self.setup_configuration,"setup_config",help=False,description="Setting up dynamic configuration")
-        self.registerStage(self.setup_lenslets,"setup_lenslets",help=False,description="Setting up lenslets",dependencies=["setup_config"])
-        self.registerStage(self.setup_blank,"setup_blank",help=False,description="Creating blank image")
-        self.registerStage(self.setup_source,"setup_source",help=False,description="Creating Spectrum Objects")
-        self.registerStage(None,"setup",dependencies=["setup_caches","setup_lenslets","setup_blank","setup_source"],help="System Setup",description="Set up simulator")
-        self.registerStage(self.plot_lenslet_data,"plot_lenslets",help="Plot Lenslets",description="Plotting Lenslet Positions",include=False,dependencies=["setup_lenslets"])
-        self.registerStage(self.lenslet_dispersion,"dispersion",help="Calculate dispersion",description="Calculating Dispersion for each Lenslet",dependencies=["setup_lenslets","setup_caches"])
-        self.registerStage(self.lenslet_trace,"trace",help="Trace Lenslets",description="Tracing Lenslet Dispersion",dependencies=["dispersion","setup_caches","setup_source"])
-        self.registerStage(self.lenslet_place,"place",help="Place Subimages",description="Placing Lenslet Spectra",dependencies=["trace"])
-        self.registerStage(self.lenslet_write,"write",help="Write Subimages",description="Writing Subimages to Cache Files",dependencies=["place"])
-    
+        self.registerConfigOpts("D",{"Lenslets":{"start":2100,"number":50},"Debug":True},help="Debug, Limit lenslets (50,start from 2100)")
+        self.registerConfigOpts("S",{"Lenslets":{"start":2100,"number":5},"Debug":True},help="Debug, Limit lenslets (5,start from 2100)")
+        self.registerConfigOpts("T",{"Lenslets":{"start":2100,"number":50},"Debug":True},help="Limit lenslets (50,start from 2100)")
+        
+        
+        self.registerStage(self.setup_caches,"setup-caches",help=False,description="Setting up caches")
+        self.registerStage(self.setup_configuration,"setup-config",help=False,description="Setting up dynamic configuration")
+        self.registerStage(self.setup_lenslets,"setup-lenslets",help=False,description="Setting up lenslets",dependencies=["setup-config"])
+        self.registerStage(self.setup_blank,"setup-blank",help=False,description="Creating blank image",dependencies=["setup-config"])
+        self.registerStage(self.setup_source,"setup-source",help=False,description="Creating source spectrum objects")
+        self.registerStage(self.setup_noise,"setup-noise",help=False,description="Setting up Dark/Bias frames")
+        self.registerStage(None,"setup",dependencies=["setup-caches","setup-lenslets","setup-blank","setup-source","setup-noise"],help="System Setup",description="Set up simulator")
+        self.registerStage(self.flat_source,"flat-source",help=False,description="Replacing default source with a flat one.",include=False,replaces=["setup-source"])
+        
+        self.registerStage(self.plot_lenslet_data,"plot-lenslet-position",help="Plot Lenslets",description="Plotting lenslet positions",include=False,dependencies=["setup-lenslets"])
+        
+        self.registerStage(self.lenslet_dispersion,"dispersion",help="Calculate dispersion",description="Calculating dispersion for each lenslet",dependencies=["setup-lenslets","setup-caches"])
+        self.registerStage(self.lenslet_trace,"trace",help="Trace Lenslets",description="Tracing lenslet dispersion",dependencies=["dispersion","setup-caches","setup-source"])
+        self.registerStage(self.lenslet_place,"place",help="Place Subimages",description="Placing lenslet spectra",dependencies=["trace"])
+        
+        self.registerStage(self.plot_dispersion_data,"plot-dispersion",help=False,description="Plotting dispersion for each lenslet",dependencies=["dispersion"],include=False)
+        self.registerStage(self.plot_trace_data,"plot-trace",help=False,description="Plotting trace data for each lenslet",dependencies=["trace"],include=False)
+        self.registerStage(self.plot_spectrum_data,"plot-spectrum",help=False,description="Plotting spectral data for each lenslet",dependencies=["trace"],include=False)
+        self.registerStage(None,"plot-lenslets",help="Plot data about each lenslet",description="Plotting data about each lenslet",include=False,dependencies=["plot-dispersion","plot-trace","plot-spectrum"])
+        
+        self.registerStage(self.image_merge,"merge-cached",help="Merge Cached Subimages",description="Merging subimages",dependencies=["setup-blank","setup-lenslets"])
+        self.registerStage(None,"merge",help="Merge Subimages",description="Merging subimage into master image",dependencies=["place","merge-cached"])
+        
+        self.registerStage(self.ccd_crop,"crop",help="Crop Final Image",description="Cropping image to CCD size",dependencies=["setup-blank"])
+        self.registerStage(self.apply_noise,"add-noise",help="Add Dark/Bias noise to image",description="Adding Dark/Bias noise",dependencies=["crop","setup-noise"])
+        self.registerStage(self.save_file,"save",help="Save image to file",description="Saving image to disk",dependencies=["setup-blank"])
+        self.registerStage(None,"cached-only",help="Use cached subimages to construct final image",description="Building image from caches",dependencies=["merge-cached","crop","add-noise","save"],include=False)
+        
+        self.registerStage(None,"plot",help="Create all plots",description="Plotting everything",dependencies=["plot-lenslet-position","plot-lenslets"],include=False)
+        
     def setup_caches(self):
         """Register all of the cache objects and types"""
         self.Caches.registerNPY("TEL",self.get_tel_kern,filename=self.config["Caches"]["Telescope"])
@@ -292,6 +253,7 @@ class SEDSimulator(Simulator,ImageObject):
        if "number" in self.config["Lenslets"]:
            self.lensletIndex = self.lensletIndex[:self.config["Lenslets"]["number"]]
        self.total = len(self.lensletIndex)
+       self.lenslets = {x:self.lenslets[x] for x in self.lensletIndex}
     
     def setup_blank(self):
         """Establish a blank Image"""
@@ -301,52 +263,140 @@ class SEDSimulator(Simulator,ImageObject):
         """Sets up a uniform source file based spectrum"""
         WL,Flux = np.genfromtxt(self.config["Source"]["Filename"]).T
         WL *= 1e-10
-        Flux /= np.max(Flux) 
-        self.R_Spectrum = ResampledSpectrum(np.array([WL,Flux]),self.config["Source"]["Filename"])
-        self.Spectrum = self.R_Spectrum * self.config["Source"]["PreAmp"]
-    
+        Flux /= np.sum(Flux) # Normalized! 
+        self.Spectrum = ResampledSpectrum(np.array([WL,Flux]),self.config["Source"]["Filename"]) * self.config["Source"]["PreAmp"]
+
+    def flat_source(self):
+        """Replace the default file-source with a flat spectrum"""
+        self.Spectrum = FlatSpectrum(1.0) * self.config["Source"]["PreAmp"]
 
     def lenslet_dispersion(self):
         """Calculate the dispersion for each lenslet"""
-        self.map_over_lenslets(lambda l: l.find_dispersion(),exceptions=None,color="blue")
+        self.map_over_lenslets(lambda l: l.find_dispersion(),color="blue")
         
     def lenslet_trace(self):
         """Trace out each lenslet"""
-        self.map_over_lenslets(lambda l: l.get_trace(self.Spectrum),exceptions=None,color="blue")
+        self.map_over_lenslets(lambda l: l.get_trace(self.Spectrum),color="blue")
 
     def lenslet_place(self):
         """Place each spectrum into the subimage"""
-        self.map_over_lenslets(lambda l: l.place_trace(self.get_psf),color="yellow")
+        self.map_over_lenslets(lambda l: (l.place_trace(self.get_psf),l.write_subimage()),color="yellow")
         
-    def lenslet_write(self):
-        """Write each lenslet into the final image"""
-        self.map_over_lenslets(lambda l: l.write("%sSubimage-%4d%s" % (self.config["Dirs"]["Caches"],lenslet,".fits")),color="red")
+    def image_merge(self):
+        """Merge subimages into master image"""
+        self.save(self.frame("Blank"),self.config["Output"]["FrameLabel"])
+        self.map_over_lenslets(self._lenslet_merge,color="yellow")
         
-    def lenslet_delete(self):
-        """Clear out lenslet subimages for memory purposes"""
-        self.map_over_lenslets(lambda l: del l,color="red")
+    def _lenslet_merge(self,lenslet):
+        """Merge a single lenslet into the master image"""
+        lenslet.read_subimage()
+        lenslet.bin_subimage()
+        self.place(lenslet.data(),lenslet.subcorner,self.config["Output"]["FrameLabel"])
+        lenslet.clear(delete=True)
+    
+    def ccd_crop(self):
+        """Crops the image to the appropriate ccd size"""
+        x,y = self.center
+        size = self.config["Instrument"]["ccd_size"]["px"] / 2.0
+        self.crop(x,y,size,label=self.statename)
+        
+    def setup_noise(self):
+        """Makes noise masks"""
+        self.generate_poisson_noise("Dark",self.config["Instrument"]["dark"]*self.config["Instrument"]["exposure"])
+        self.generate_poisson_noise("Bias",self.config["Instrument"]["bias"])
+    
+        
+    def apply_noise(self):
+        """Apply the noise masks to the target image label"""
+        
+        dark = self.data("Dark")
+        bias = self.data("Bias")
+        
+        data = self.data(self.config["Output"]["FrameLabel"])
+        
+        data += dark + bias
+        
+        self.remove(self.config["Output"]["FrameLabel"])
+        self.save(data,self.config["Output"]["FrameLabel"])
+    
+    def save_file(self):
+        """Saves the file"""
+        self.Filename = "%(dir)s/%(label)s-%(date)s.%(fmt)s" % {'dir':self.config["Dirs"]["Images"], 'label': self.config["Output"]["Label"], 'date': time.strftime("%Y-%m-%d"), 'fmt':self.config["Output"]["Format"] }
+        self.write(self.Filename,states=[self.statename],clobber=True)
+        self.log.info("Wrote %s" % self.Filename)
+    
+    
+    ################################
+    ## IMAGE MANAGEMENT FUNCTIONS ##
+    ################################
+        
+    def place(self,img,corner,label):
+        """Place the given AstroObject.AnalyticSpectra.AnalyticSpectrum onto the SEDMachine Image"""
+        
+        xstart = corner[0]
+        xend = xstart + img.shape[0]
+        ystart = corner[1]
+        yend = ystart + img.shape[1]
+        data = self.data(label)
+        
+        if data.shape[0] < xend or data.shape[1] < yend:
+            raise SEDLimits
+        
+        if xstart < 0 or ystart < 0:
+            raise SEDLimits
+        
+        if xend < 0 or yend < 0:
+            raise SEDLimits
+        
+        data[xstart:xend,ystart:yend] += img
+        self.remove(label)
+        self.save(data,label)    
+        
+    
+    def crop(self,x,y,xsize,ysize=None,label=None):
+        """Crops the provided image to twice the specified size, centered around the x and y coordinates provided."""
+        if not ysize:
+            ysize = xsize
+        cropped = self.states[self.statename].data[x-xsize:x+xsize,y-ysize:y+ysize]
+        self.log.debug("Cropped and Saved Image")
+        if label == None:
+            label = "Cropped"
+        self.remove(label)
+        self.save(cropped,label)
+    
     
     #######################
     ## DEBUGGING METHODS ##
     #######################
     
+    def plot_dispersion_data(self):
+        """Outputs dispersion debugging data"""
+        self.map_over_lenslets(lambda l: l.plot_dispersion(),color="cyan")
+    
+    def plot_trace_data(self):
+        """Outputs plots about each lenslet trace"""
+        self.map_over_lenslets(lambda l: l.plot_trace(),color="cyan")
+        
+    def plot_spectrum_data(self):
+        """Outputs plots about each lenslet trace"""
+        self.map_over_lenslets(lambda l: l.plot_spectrum(),color="cyan")
+    
     def plot_lenslet_data(self):
         """Outputs the lenslet data"""
         plt.figure()
         plt.clf()
-        
-        FileName = "%(dir)sLenslet-xy%(fmt)s" % { 'dir' : self.config["Dirs"]["Partials"], 'fmt':self.config["plot_format"]}
-        for lenslet in self.lenslets.values():
-            plt.plot(lenslet.xs,lenslet.ys,linestyle='-')
+        self.log.info("Plotting lenslet arc positions in CCD (x,y) space")
+        FileName = "%(dir)s/Lenslet-xy%(fmt)s" % { 'dir' : self.config["Dirs"]["Partials"], 'fmt':self.config["plot_format"]}
+        self.map_over_lenslets(lambda l: plt.plot(l.xs,l.ys,linestyle='-'),color="cyan")
         plt.title("Lenslet x-y positions")
         plt.savefig(FileName)
         
         plt.clf()
-        
-        FileName = "%(dir)sLenslet-pxy%(fmt)s" % { 'dir' : self.config["Dirs"]["Partials"], 'fmt':self.config["plot_format"]}
-        for lenslet in self.lenslets.values():
-            x,y = lenslet.ps.T
-            plt.plot(x,y,marker='.')
+        self.log.info("Plotting lenslet physical positions in mm space")
+        FileName = "%(dir)s/Lenslet-pxy%(fmt)s" % { 'dir' : self.config["Dirs"]["Partials"], 'fmt':self.config["plot_format"]}
+        self.map_over_lenslets(lambda l: plt.plot(l.ps.T[0],l.ps.T[1],marker='.'),color="cyan")
+            
+            
         plt.title("Lenslet p-xy positions")
         plt.savefig(FileName)
         
@@ -362,28 +412,46 @@ class SEDSimulator(Simulator,ImageObject):
         self.bar = arpytools.progressbar.ProgressBar(color=color)
         self.log.useConsole(False)
         self.bar.render(0,"L:%4s %4d/%-4d" % ("",self.progress,self.total))
-        for lenslet in self.lenslets.values():
-            self.bar.render(int(self.progress/self.total * 100),"L:%4d %4d/%-4d" % (lenslet.num,self.progress,self.total))
-            try:
-                function(lenslet)
-            except exceptions as e:
-                self.log.error("Caught %s in Lenslet %d" % (e.__class__.__name__,lenslet.num))
-                self.log.error(str(e))
-                self.errors += 1
-            finally:
-                self.progress += 1.0
-                self.bar.render(int(self.progress/self.total * 100),"L:%4d %4d/%-4d" % (lenslet.num,self.progress,self.total))
+        map(lambda l:self._lenslet_map(l,function,exceptions),self.lenslets.values())
         self.bar.render(100,"L:%4s %4d/%-4d" % ("Done",self.progress,self.total))
         self.log.useConsole(True)
         if self.progress != self.total:
             self.log.warning("Progress and Total are different at end of loop: %d != %d" % (self.progress,self.total))
         if self.errors != 0:
             self.log.warning("Trapped %d errors" % self.errors)
+            
+    def _lenslet_map(self,lenslet,function,exceptions):
+        """Maps something over a bunch of lenslets"""
+        self.bar.render(int(self.progress/self.total * 100),"L:%4d %4d/%-4d" % (lenslet.num,self.progress,self.total))
+        try:
+            function(lenslet)
+        except exceptions as e:
+            self.log.error("Caught %s in Lenslet %d" % (e.__class__.__name__,lenslet.num))
+            self.log.error(str(e))
+            self.errors += 1
+            if self.config["Debug"]:
+                raise
+        finally:
+            self.progress += 1.0
+            self.bar.render(int(self.progress/self.total * 100),"L:%4d %4d/%-4d" % (lenslet.num,self.progress,self.total))
+        
         
         
     ###################
     ## Image KERNELS ##
     ###################
+    
+    
+    
+    def generate_poisson_noise(self,label=None,lam=2.0):
+        """Generates a poisson noise mask, saving to this object"""
+        distribution = np.random.poisson
+        shape = (self.config["Instrument"]["ccd_size"]["px"],self.config["Instrument"]["ccd_size"]["px"])
+        if label == None:
+            label = "Poisson Noise Mask (%2g)" % (lam)
+        arguments = (lam,shape)
+        noise = distribution(*arguments)
+        self.save(noise,label)
     
     def get_psf(self,wavelength):
         """Return a PSF for a given wavelength in the system"""
@@ -505,7 +573,8 @@ class SEDSimulator(Simulator,ImageObject):
                 mm: 30
         
         
-        """        
+        """
+        self.config.load()        
         if "calc" not in self.config["Instrument"]["convert"]:
             if "mmtopx" not in self.config["Instrument"]["convert"] and "pxtomm" in self.config["Instrument"]["convert"]:
                 self.config["Instrument"]["convert"]["mmtopx"] = 1.0 / self.config["Instrument"]["convert"]["pxtomm"]
