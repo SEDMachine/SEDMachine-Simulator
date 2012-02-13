@@ -28,6 +28,7 @@ import logging,logging.handlers
 import time
 import copy
 import collections
+import gc
 
 import AstroObject
 import AstroObject.AstroSimulator
@@ -144,10 +145,31 @@ class Lenslet(ImageObject):
     
     def reset(self):
         """Reset Flag Variables"""
-        self.dispersion = False
         self.checked = False
         self.passed = False
-        self.traced = False
+        
+        if self.dispersion:
+            self.dispersion = False
+            del self.dxs
+            del self.dys
+            del self.dwl
+            del self.drs
+            del self.dis
+        
+        if self.traced:
+            self.traced = False
+            del self.txs
+            del self.tys
+            del self.trd
+            del self.tfl
+            del self.twl
+            del self.tdw
+            del self.trs
+            del self.subshape
+            del self.subcorner
+            
+        gc.collect()
+        
         
     
     def introspect(self):
@@ -420,6 +442,7 @@ class Lenslet(ImageObject):
         """Writes a subimage to file"""
         self.write("%s/Subimage-%4d%s" % (self.config["Dirs"]["Caches"],self.num,".fits"),primaryState="Raw Spectrum",states=["Raw Spectrum"],clobber=True)
         self.clear(delete=True)
+        self.reset()
         
     def read_subimage(self):
         """Read a subimage from file"""

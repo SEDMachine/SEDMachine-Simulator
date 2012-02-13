@@ -28,6 +28,7 @@ import logging,logging.handlers
 import time
 import copy
 import collections
+import gc
 
 import AstroObject
 from AstroObject.AstroSimulator import Simulator
@@ -136,6 +137,7 @@ class SEDSimulator(Simulator,ImageObject):
         self.registerConfigOpts("D",{"Lenslets":{"start":2100,"number":50},"Debug":True},help="Debug, Limit lenslets (50,start from 2100)")
         self.registerConfigOpts("S",{"Lenslets":{"start":2100,"number":5},"Debug":True},help="Debug, Limit lenslets (5,start from 2100)")
         self.registerConfigOpts("T",{"Lenslets":{"start":2100,"number":50},"Debug":True},help="Limit lenslets (50,start from 2100)")
+        self.registerConfigOpts("M",{"Lenslets":{"start":1000,"number":500},"Debug":True},help="Limit lenslets (500,start from 1000)")
         
         
         self.registerStage(self.setup_caches,"setup-caches",help=False,description="Setting up caches")
@@ -280,8 +282,15 @@ class SEDSimulator(Simulator,ImageObject):
 
     def lenslet_place(self):
         """Place each spectrum into the subimage"""
-        self.map_over_lenslets(lambda l: (l.place_trace(self.get_psf),l.write_subimage()),color="yellow")
+        self.map_over_lenslets(self._lenslet_place,color="yellow")
         
+    def _lenslet_place(self,l):
+        """docstring for _lenslet_place"""
+        l.place_trace(self.get_psf)
+        l.write_subimage()
+        del l
+        gc.collect()
+    
     def image_merge(self):
         """Merge subimages into master image"""
         self.save(self.frame("Blank"),self.config["Output"]["FrameLabel"])
