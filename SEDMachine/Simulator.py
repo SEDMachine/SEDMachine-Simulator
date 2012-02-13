@@ -289,7 +289,7 @@ class SEDSimulator(Simulator,ImageObject):
         l.place_trace(self.get_psf)
         l.write_subimage()
         with open("Partials/LensletAudit.dat","a") as s:
-            s.write("%s\n" % l.list() )
+            s.write("%s\n" % vars(l) )
         del l
         gc.collect()
     
