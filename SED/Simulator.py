@@ -69,6 +69,7 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
         self.registerStage(self.debugLenslets,"lensdebug",description="Debugging Lenslets",include=False)
         self.registerStage(self.setupNoise,"noisemask",help="Generate noise frames",description="Generate noise masks")
         self.registerStage(self.setupSource,"sourceinit",description="Set up the source model")
+        self.registerStage(self.flatSource,"flatsource",description="Set up the flat source model")
         self.registerMacro("source","sourceinit",help="Test the initialization of the source model")
         self.registerStage(self.dispersion,"dispers",description="Get Dispersion for all lenslets")
         self.registerMacro("dispersion","instrument","dispers",help="Generate dispersions for all lenslets")
@@ -167,7 +168,9 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
                 
         self.log.debug("Set Spectrum to %s" % self.Source.Spectrum)
         
-        
+    def flatSource(self):
+        """Make a flat source"""
+        self.Spectrum = self.D_Spectrum
     
     def setupModel(self):
         """Sets up the SED Module Model"""
