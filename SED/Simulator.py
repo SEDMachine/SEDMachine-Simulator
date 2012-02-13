@@ -170,7 +170,7 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
         
     def flatSource(self):
         """Make a flat source"""
-        self.Spectrum = self.D_Spectrum
+        self.Source.Spectrum = self.Source.D_Spectrum
     
     def setupModel(self):
         """Sets up the SED Module Model"""
