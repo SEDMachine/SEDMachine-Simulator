@@ -145,7 +145,7 @@ class SEDSimulator(Simulator,ImageObject):
         self.registerStage(self.setup_lenslets,"setup-lenslets",help=False,description="Setting up lenslets",dependencies=["setup-config"])
         self.registerStage(self.setup_blank,"setup-blank",help=False,description="Creating blank image",dependencies=["setup-config"])
         self.registerStage(self.setup_source,"setup-source",help=False,description="Creating source spectrum objects")
-        self.registerStage(self.setup_noise,"setup-noise",help=False,description="Setting up Dark/Bias frames")
+        self.registerStage(self.setup_noise,"setup-noise",help=False,description="Setting up Dark/Bias frames",dependencies=["setup-config"])
         self.registerStage(self.flat_source,"flat-source",help="Make a constant value source",description="Replacing default source with a flat one.",include=False,replaces=["setup-source"])
         self.registerStage(None,"setup",dependencies=["setup-caches","setup-lenslets","setup-blank","setup-source","setup-noise"],help="System Setup",description="Set up simulator")
         

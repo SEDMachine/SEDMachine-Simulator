@@ -57,7 +57,7 @@ class SubImage(ImageFrame):
         self.configHash = hash(0)
         self.spectrum = "NO SPEC"
 
-    log = logging.getLogger("Instrument")
+    log = logging.getLogger("SEDMachine")
     
         
     def sync_header(self):
@@ -124,7 +124,7 @@ class Lenslet(ImageObject):
     def __init__(self,xs,ys,xpixs,ypixs,p1s,p2s,ls,ix,config,caches):
         super(Lenslet, self).__init__()
         self.dataClasses = [SubImage]
-        self.log = logging.getLogger("Instrument")
+        self.log = logging.getLogger("SEDMachine")
         self.num = ix
         self.xs = xs
         self.ys = ys
