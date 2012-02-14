@@ -146,8 +146,8 @@ class SEDSimulator(Simulator,ImageObject):
         self.registerStage(self.setup_blank,"setup-blank",help=False,description="Creating blank image",dependencies=["setup-config"])
         self.registerStage(self.setup_source,"setup-source",help=False,description="Creating source spectrum objects")
         self.registerStage(self.setup_noise,"setup-noise",help=False,description="Setting up Dark/Bias frames")
-        self.registerStage(None,"setup",dependencies=["setup-caches","setup-lenslets","setup-blank","setup-source","setup-noise"],help="System Setup",description="Set up simulator")
         self.registerStage(self.flat_source,"flat-source",help="Make a constant value source",description="Replacing default source with a flat one.",include=False,replaces=["setup-source"])
+        self.registerStage(None,"setup",dependencies=["setup-caches","setup-lenslets","setup-blank","setup-source","setup-noise"],help="System Setup",description="Set up simulator")
         
         self.registerStage(self.plot_lenslet_data,"plot-lenslet-xy",help="Plot Lenslets",description="Plotting lenslet positions",include=False,dependencies=["setup-lenslets"])
         
@@ -270,7 +270,7 @@ class SEDSimulator(Simulator,ImageObject):
 
     def flat_source(self):
         """Replace the default file-source with a flat spectrum"""
-        self.Spectrum = FlatSpectrum(1e10) * self.config["Source"]["PreAmp"]
+        self.Spectrum = FlatSpectrum(self.config["Source"]["Value"]) * self.config["Source"]["PreAmp"]
 
     def lenslet_dispersion(self):
         """Calculate the dispersion for each lenslet"""

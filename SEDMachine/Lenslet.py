@@ -135,8 +135,6 @@ class Lenslet(ImageObject):
         self.ps = np.array([p1s,p2s]).T
         self.ls = np.array(ls)
         self.config = config
-        # self.Caches = caches        
-        # self.Caches.registerNPY("%dDispersion" % self.num,generate=self.return_dispersion,filename="Dispersion-%d.cache.npy" % self.num)
                 
         self.dispersion = False
         self.checked = False
@@ -332,9 +330,6 @@ class Lenslet(ImageObject):
         
         if self.traced:
             return self.traced
-        if not self.dispersion:
-            self.dxs,self.dys,self.dwl,self.drs = self.Caches.get("%dDispersion" % self.num)
-            self.dispersion = True
             
         # Variables taken from the dispersion calculation
         points = np.array([self.dxs,self.dys]).T
@@ -395,6 +390,8 @@ class Lenslet(ImageObject):
         WLS = WLS[:-1]
         RS = WLS/DWL/self.config["Instrument"]["density"]
         
+        
+        # Call and evaluate the spectrum
         self.log.debug("Scailing by %g" % self.config["Instrument"]["gain"])
         radiance = spectrum(wavelengths=WLS,resolution=RS) 
         radiance *= self.config["Instrument"]["gain"]
