@@ -445,7 +445,6 @@ class Lenslet(ImageObject):
         """Writes a subimage to file"""
         self.write("%(Caches)s/Subimage-%(num)4d%(ext)s" % dict(num=self.num,ext=".fits",**self.config["Dirs"]),primaryState="Raw Spectrum",states=["Raw Spectrum"],clobber=True)
         self.clear(delete=True)
-        self.reset()
         
     def read_subimage(self):
         """Read a subimage from file"""

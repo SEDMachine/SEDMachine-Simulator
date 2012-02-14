@@ -270,7 +270,7 @@ class SEDSimulator(Simulator,ImageObject):
 
     def flat_source(self):
         """Replace the default file-source with a flat spectrum"""
-        self.Spectrum = FlatSpectrum(1.0) * self.config["Source"]["PreAmp"]
+        self.Spectrum = FlatSpectrum(1e10) * self.config["Source"]["PreAmp"]
 
     def lenslet_dispersion(self):
         """Calculate the dispersion for each lenslet"""
@@ -290,7 +290,6 @@ class SEDSimulator(Simulator,ImageObject):
         l.write_subimage()
         with open("%(Partials)s/LensletAudit.dat" % self.config["Dirs"],"a") as s:
             s.write("%s\n" % vars(l) )
-        del l
         gc.collect()
     
     def image_merge(self):
