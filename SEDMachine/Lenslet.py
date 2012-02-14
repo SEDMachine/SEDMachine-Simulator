@@ -449,7 +449,7 @@ class Lenslet(ImageObject):
         
     def read_subimage(self):
         """Read a subimage from file"""
-        self.read("%(Caches)s/Subimage-%(num)4d%(ext)s" % sdict(num=self.num,ext=".fits",**self.config["Dirs"]))
+        self.read("%(Caches)s/Subimage-%(num)4d%(ext)s" % dict(num=self.num,ext=".fits",**self.config["Dirs"]))
         frame = self.frame()
         self.num = frame.lensletNumber
         self.subcorner = frame.corner
