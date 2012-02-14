@@ -147,9 +147,9 @@ class SEDSimulator(Simulator,ImageObject):
         self.registerStage(self.setup_source,"setup-source",help=False,description="Creating source spectrum objects")
         self.registerStage(self.setup_noise,"setup-noise",help=False,description="Setting up Dark/Bias frames")
         self.registerStage(None,"setup",dependencies=["setup-caches","setup-lenslets","setup-blank","setup-source","setup-noise"],help="System Setup",description="Set up simulator")
-        self.registerStage(self.flat_source,"flat-source",help=False,description="Replacing default source with a flat one.",include=False,replaces=["setup-source"])
+        self.registerStage(self.flat_source,"flat-source",help="Make a constant value source",description="Replacing default source with a flat one.",include=False,replaces=["setup-source"])
         
-        self.registerStage(self.plot_lenslet_data,"plot-lenslet-position",help="Plot Lenslets",description="Plotting lenslet positions",include=False,dependencies=["setup-lenslets"])
+        self.registerStage(self.plot_lenslet_data,"plot-lenslet-xy",help="Plot Lenslets",description="Plotting lenslet positions",include=False,dependencies=["setup-lenslets"])
         
         self.registerStage(self.lenslet_dispersion,"dispersion",help="Calculate dispersion",description="Calculating dispersion for each lenslet",dependencies=["setup-lenslets","setup-caches"])
         self.registerStage(self.lenslet_trace,"trace",help="Trace Lenslets",description="Tracing lenslet dispersion",dependencies=["dispersion","setup-caches","setup-source"])
@@ -168,7 +168,7 @@ class SEDSimulator(Simulator,ImageObject):
         self.registerStage(self.save_file,"save",help="Save image to file",description="Saving image to disk",dependencies=["setup-blank"])
         self.registerStage(None,"cached-only",help="Use cached subimages to construct final image",description="Building image from caches",dependencies=["merge-cached","crop","add-noise","save"],include=False)
         
-        self.registerStage(None,"plot",help="Create all plots",description="Plotting everything",dependencies=["plot-lenslet-position","plot-lenslets"],include=False)
+        self.registerStage(None,"plot",help="Create all plots",description="Plotting everything",dependencies=["plot-lenslet-xy","plot-lenslets"],include=False)
         
     def setup_caches(self):
         """Register all of the cache objects and types"""
