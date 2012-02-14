@@ -135,8 +135,8 @@ class Lenslet(ImageObject):
         self.ps = np.array([p1s,p2s]).T
         self.ls = np.array(ls)
         self.config = config
-        self.Caches = caches        
-        self.Caches.registerNPY("%dDispersion" % self.num,generate=self.return_dispersion,filename="Dispersion-%d.cache.npy" % self.num)
+        # self.Caches = caches        
+        # self.Caches.registerNPY("%dDispersion" % self.num,generate=self.return_dispersion,filename="Dispersion-%d.cache.npy" % self.num)
                 
         self.dispersion = False
         self.checked = False
@@ -376,7 +376,7 @@ class Lenslet(ImageObject):
         corner /= self.config["Instrument"]["density"]
         self.log.debug("Corner Position Offset in Dense Space: %s" % (offset))
         if self.log.getEffectiveLevel() <= logging.DEBUG:
-            with open(self.config["Dirs"]["Partials"]+"Instrument-Offsets.dat",'a') as handle:
+            with open("%(Partials)s/Instrument-Offsets.dat" % self.config["Dirs"],'a') as handle:
                 np.savetxt(handle,offset)
         corner -= np.array([-self.config["Instrument"]["padding"],self.config["Instrument"]["padding"]])
         
@@ -404,7 +404,7 @@ class Lenslet(ImageObject):
         self.log.debug(npArrayInfo(flux,"Final Flux"))
          
         if self.log.getEffectiveLevel() <= logging.DEBUG:
-            np.savetxt("%s/Instrument-Subimage-Values.dat" % self.config["Dirs"]["Partials"],np.array([x,y,self.dwl[:-1],deltawl,flux]).T)
+            np.savetxt("%(Partials)s/Instrument-Subimage-Values.dat" % self.config["Dirs"],np.array([x,y,self.dwl[:-1],deltawl,flux]).T)
         
         self.txs = x
         self.tys = y
@@ -426,11 +426,14 @@ class Lenslet(ImageObject):
         
         for x,y,wl,flux in zip(self.txs,self.tys,self.twl,self.tfl):
             psf = get_psf(wl)
-            tiny_image = np.zeros(psf.shape) + psf * flux
+            tiny_image = psf * flux
             tl_corner = [ x - tiny_image.shape[0]/2.0, y - tiny_image.shape[0]/2.0 ]
             br_corner = [ x + tiny_image.shape[0]/2.0, y + tiny_image.shape[0]/2.0 ]
-            self.log.debug("Corner of tiny image is %s" % (tl_corner))
             img[tl_corner[0]:br_corner[0],tl_corner[1]:br_corner[1]] += tiny_image
+            del tiny_image
+            del tl_corner
+            del br_corner
+            del psf
         self.log.debug(npArrayInfo(img,"DenseSubImage"))
         self.save(img,"Raw Spectrum")
         frame = self.frame()
@@ -440,13 +443,13 @@ class Lenslet(ImageObject):
     
     def write_subimage(self):
         """Writes a subimage to file"""
-        self.write("%s/Subimage-%4d%s" % (self.config["Dirs"]["Caches"],self.num,".fits"),primaryState="Raw Spectrum",states=["Raw Spectrum"],clobber=True)
+        self.write("%(Caches)s/Subimage-%(num)4d%(ext)s" % dict(num=self.num,ext=".fits",**self.config["Dirs"]),primaryState="Raw Spectrum",states=["Raw Spectrum"],clobber=True)
         self.clear(delete=True)
         self.reset()
         
     def read_subimage(self):
         """Read a subimage from file"""
-        self.read("%s/Subimage-%4d%s" % (self.config["Dirs"]["Caches"],self.num,".fits"))
+        self.read("%(Caches)s/Subimage-%(num)4d%(ext)s" % sdict(num=self.num,ext=".fits",**self.config["Dirs"]))
         frame = self.frame()
         self.num = frame.lensletNumber
         self.subcorner = frame.corner
@@ -466,7 +469,7 @@ class Lenslet(ImageObject):
         plt.xlabel("x (px)")
         plt.ylabel("$\Delta$Distance along arc (px)")
         plt.plot(self.dys[:-1],np.diff(self.drs) * self.config["Instrument"]["convert"]["mmtopx"],'g.')
-        plt.savefig("%s/Instrument-%04d-Delta-Distances%s" % (self.config["Dirs"]["Partials"],self.num,self.config["plot_format"]))
+        plt.savefig("%(Partials)s/Instrument-%(num)04d-Delta-Distances%(ext)s" % dict(num=self.num, ext=self.config["plot_format"],**self.config["Dirs"]))
         plt.clf()
         
     def plot_spectrum(self):
@@ -477,13 +480,13 @@ class Lenslet(ImageObject):
         plt.title("Retrieved Spectral Radiance with Gain")
         plt.xlabel("Wavelength ($\mu m$)")
         plt.ylabel("Radiance (Units undefined)")
-        plt.savefig("%s/Instrument-%04d-Radiance%s" % (self.config["Dirs"]["Partials"],self.num,self.config["plot_format"]))
+        plt.savefig("%(Partials)s/Instrument-%(num)04d-Radiance%(ext)s" % dict(num=self.num, ext=self.config["plot_format"],**self.config["Dirs"]))
         plt.clf()
         plt.plot(self.twl*1e-6,self.tfl,"b.")
         plt.title("Generated, Fluxed Spectra")
         plt.xlabel("Wavelength ($\mu m$)")
         plt.ylabel("Flux (Units undefined)")
-        plt.savefig("%s/Instrument-%04d-Flux%s" % (self.config["Dirs"]["Partials"],self.num,self.config["plot_format"]))
+        plt.savefig("%(Partials)s/Instrument-%(num)04d-Flux%(ext)s" % dict(num=self.num, ext=self.config["plot_format"],**self.config["Dirs"]))
         plt.clf()
 
         
@@ -496,13 +499,13 @@ class Lenslet(ImageObject):
         plt.title("$\Delta\lambda$ for each pixel")
         plt.xlabel("Wavelength ($\mu m$)")
         plt.ylabel("$\Delta\lambda$ per pixel")
-        plt.savefig("%s/Instrument-%04d-DeltaWL%s" % (self.config["Dirs"]["Partials"],self.num,self.config["plot_format"]))
+        plt.savefig("%(Partials)s/Instrument-%(num)04d-DeltaWL%(ext)s" % dict(num=self.num, ext=self.config["plot_format"],**self.config["Dirs"]))
         plt.clf()
         plt.semilogy(self.twl*1e-6,self.trs,"g.")
         plt.title("$R = \\frac{\lambda}{\Delta\lambda}$ for each pixel")
         plt.xlabel("Wavelength ($\mu m$)")
         plt.ylabel("Resolution $R = \\frac{\Delta\lambda}{\lambda}$ per pixel")
-        plt.savefig("%s/Instrument-%04d-Resolution%s" % (self.config["Dirs"]["Partials"],self.num,self.config["plot_format"]))
+        plt.savefig("%(Partials)s/Instrument-%(num)04d-Resolution%(ext)s" % dict(num=self.num, ext=self.config["plot_format"],**self.config["Dirs"]))
         plt.clf()
     
     def bin(self,array,factor):

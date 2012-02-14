@@ -236,7 +236,7 @@ class SEDSimulator(Simulator,ImageObject):
         
        # Variables for lenslet use
        self.lenslets = {}
-       FileName = self.config["Dirs"]["Partials"] + "Lenslets-raw" + ".dat"
+       FileName = "%(Partials)s/%(name)s%(ext)s" % dict(name="Lenslets-raw",ext=".dat",**self.config["Dirs"])
        with open(FileName,'w') as stream:
            for idx in self.lensletIndex:
                select = idx == ix
@@ -288,7 +288,7 @@ class SEDSimulator(Simulator,ImageObject):
         """docstring for _lenslet_place"""
         l.place_trace(self.get_psf)
         l.write_subimage()
-        with open("Partials/LensletAudit.dat","a") as s:
+        with open("%(Partials)s/LensletAudit.dat" % self.config["Dirs"],"a") as s:
             s.write("%s\n" % vars(l) )
         del l
         gc.collect()
@@ -332,7 +332,7 @@ class SEDSimulator(Simulator,ImageObject):
     
     def save_file(self):
         """Saves the file"""
-        self.Filename = "%(dir)s/%(label)s-%(date)s.%(fmt)s" % {'dir':self.config["Dirs"]["Images"], 'label': self.config["Output"]["Label"], 'date': time.strftime("%Y-%m-%d"), 'fmt':self.config["Output"]["Format"] }
+        self.Filename = "%(Images)s/%(label)s-%(date)s.%(fmt)s" % dict(label=self.config["Output"]["Label"],date=time.strftime("%Y-%m-%d"), fmt=self.config["Output"]["Format"], **self.config["Dirs"] )
         self.write(self.Filename,states=[self.statename],clobber=True)
         self.log.info("Wrote %s" % self.Filename)
     
@@ -397,14 +397,14 @@ class SEDSimulator(Simulator,ImageObject):
         plt.figure()
         plt.clf()
         self.log.info("Plotting lenslet arc positions in CCD (x,y) space")
-        FileName = "%(dir)s/Lenslet-xy%(fmt)s" % { 'dir' : self.config["Dirs"]["Partials"], 'fmt':self.config["plot_format"]}
+        FileName = "%(Partials)s/Lenslet-xy%(fmt)s" % dict(fmt=self.config["plot_format"],**self.config["Dirs"])
         self.map_over_lenslets(lambda l: plt.plot(l.xs,l.ys,linestyle='-'),color="cyan")
         plt.title("Lenslet x-y positions")
         plt.savefig(FileName)
         
         plt.clf()
         self.log.info("Plotting lenslet physical positions in mm space")
-        FileName = "%(dir)s/Lenslet-pxy%(fmt)s" % { 'dir' : self.config["Dirs"]["Partials"], 'fmt':self.config["plot_format"]}
+        FileName = "%(Partials)s/Lenslet-pxy%(fmt)s" % dict(fmt=self.config["plot_format"],**self.config["Dirs"])
         self.map_over_lenslets(lambda l: plt.plot(l.ps.T[0],l.ps.T[1],marker='.'),color="cyan")
             
             
@@ -466,7 +466,8 @@ class SEDSimulator(Simulator,ImageObject):
     
     def get_psf(self,wavelength):
         """Return a PSF for a given wavelength in the system"""
-        return self.Caches.get("PSF")
+        return self.get_psf_kern()
+        
     
     def psf_kern(self,filename,size=0,truncate=False,header_lines=18):
         """Generates a PSF Kernel from a file with micron-encircled energy conversions. The file should have two columns, first, microns from the center of the PSF, and second, the fraction of encircled energy at that distance from the PSF.
