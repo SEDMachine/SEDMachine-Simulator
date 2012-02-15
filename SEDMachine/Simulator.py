@@ -172,14 +172,15 @@ class SEDSimulator(Simulator,ImageObject):
         self.registerStage(self.setup_caches,"setup-caches",help=False,description="Setting up caches")
         self.registerStage(self.setup_configuration,"setup-config",help=False,description="Setting up dynamic configuration")
         self.registerStage(self.setup_constants,"setup-constants",help=False,description="Setting up physical constants")
+        self.registerStage(self.setup_cameras,"setup-cameras",help=False,description="Setting up Cameras")
         self.registerStage(self.setup_lenslets,"setup-lenslets",help=False,description="Setting up lenslets",dependencies=["setup-config"])
         self.registerStage(self.setup_blank,"setup-blank",help=False,description="Creating blank image",dependencies=["setup-config"])
         self.registerStage(self.setup_source,"setup-source",help=False,description="Creating source spectrum objects")
-        self.registerStage(self.setup_noise,"setup-noise",help=False,description="Setting up Dark/Bias frames",dependencies=["setup-config"])
+        self.registerStage(self.setup_noise,"setup-noise",help=False,description="Setting up Dark/Bias frames",dependencies=["setup-config","setup-cameras"])
         self.registerStage(self.setup_sky,"setup-sky",help=False,description="Setting up Sky spectrum object",dependencies=["setup-config","setup-constants"])
         self.registerStage(self.flat_source,"flat-source",help="Make a constant value source",description="Replacing default source with a flat one.",include=False,replaces=["setup-source"])
         self.registerStage(None,"setup",help="System Setup",description="Set up simulator",
-            dependencies=["setup-caches","setup-lenslets","setup-blank","setup-source","setup-noise","setup-constants","setup-sky"],
+            dependencies=["setup-caches","setup-lenslets","setup-blank","setup-source","setup-noise","setup-constants","setup-sky","setup-cameras"],
             )
         
         self.registerStage(self.apply_qe,"apply-qe",help=False,description="Applying Quantum Efficiency Functions",dependencies=["setup-source","setup-sky"])
@@ -502,7 +503,7 @@ class SEDSimulator(Simulator,ImageObject):
     def setup_noise(self):
         """Makes noise masks"""
         
-        read_noise = np.sqrt(self.cameras[self.config["Instrument"]["camera"]]["RN"]**2 * self.conifg["Instrument"]["psf_size"]["px"] * self.config["Observation"]["number"] / self.config["Instrument"]["gain"])
+        read_noise = np.sqrt(self.cameras[self.config["Instrument"]["camera"]]["RN"]**2 * self.config["Instrument"]["psf_size"]["px"] * self.config["Observation"]["number"] / self.config["Instrument"]["gain"])
         dark_noise = self.cameras[self.config["Instrument"]["camera"]]["DC"] * self.config["Observation"]["exposure"]
         
         self.generate_poisson_noise("Read",read_noise)
