@@ -4,7 +4,7 @@
 #
 #  Created by Alexander Rudy on 2011-11-09.
 #  Copyright 2011 Alexander Rudy. All rights reserved.
-#  Version 0.2.0a1
+#  Version 0.3.0
 #
 
 import math, copy, sys, time, logging, os, argparse, yaml, collections
@@ -69,6 +69,7 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
         self.registerStage(self.debugLenslets,"lensdebug",description="Debugging Lenslets",include=False)
         self.registerStage(self.setupNoise,"noisemask",help="Generate noise frames",description="Generate noise masks")
         self.registerStage(self.setupSource,"sourceinit",description="Set up the source model")
+        self.registerStage(self.flatSource,"flatsource",description="Set up the flat source model")
         self.registerMacro("source","sourceinit",help="Test the initialization of the source model")
         self.registerStage(self.dispersion,"dispers",description="Get Dispersion for all lenslets")
         self.registerMacro("dispersion","instrument","dispers",help="Generate dispersions for all lenslets")
@@ -167,7 +168,9 @@ class Simulator(AstroObject.AstroSimulator.Simulator):
                 
         self.log.debug("Set Spectrum to %s" % self.Source.Spectrum)
         
-        
+    def flatSource(self):
+        """Make a flat source"""
+        self.Source.Spectrum = self.Source.D_Spectrum
     
     def setupModel(self):
         """Sets up the SED Module Model"""

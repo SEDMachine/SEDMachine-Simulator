@@ -6,7 +6,7 @@
 #
 #  Created by Alexander Rudy on 2011-11-04.
 #  Copyright 2011 Alexander Rudy. All rights reserved.
-#  Version 0.2.0a1
+#  Version 0.3.0
 #
 
 
@@ -1481,7 +1481,6 @@ class Instrument(ImageObject,AstroObject.AstroSimulator.Simulator):
             label = "Poisson Noise Mask (%2g)" % (lam)
         arguments = (lam,shape)
         noise = distribution(*arguments)
-        
         self.save(noise,label)
     
     def ccdCrop(self):

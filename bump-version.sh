@@ -8,6 +8,16 @@
 # 
 
 
+
+
+
+
+VSPECFILE="VERSION"
+
+VERSION=`cat $VSPECFILE`
+
+DIR="SEDMachine"
+
 EXE=$0
 USAGE="
 Usage for bump-version
@@ -15,8 +25,11 @@ Usage for bump-version
 	$EXE x.x.x
 	
 	change the version number to x.x.x
+	
+	Current Version: $VERSION
 
 "
+
 
 if [ "$#" -ne 1 ]
 then
@@ -24,21 +37,18 @@ then
 	exit
 fi
 
-VSPECFILE="VERSION"
-
-VERSION=`cat $VSPECFILE`
 
 echo "Version is currently $VERSION, changing to $1"
 
 echo "$1" > $VSPECFILE
-echo "$1" > "SED/$VSPECFILE"
+echo "$1" > "$DIR/$VSPECFILE"
 
 VERSION=`cat $VSPECFILE`
 
 echo "New Version $VERSION"
 
 echo "Manipulating Python (.py) files"
-files=`find SED/*.py`
+files=`find $DIR/*.py`
 
 for file in $files
 do
@@ -56,7 +66,7 @@ do
 done
 
 echo "Manipulating Special Files:"
-sed -i '' -Ee "s/__version__ += +\'[0-9a-zA-Z\.]+\'/__version__ = \'$VERSION\'/" 'SED/__init__.py'
+sed -i '' -Ee "s/__version__ += +\'[0-9a-zA-Z\.]+\'/__version__ = \'$VERSION\'/" "$DIR/__init__.py"
 echo "  Changed __init__.py version variable to $VERSION"
 sed -i '' -Ee "s/    version = \"[0-9a-zA-Z\.]+\",/    version = \"$VERSION\",/" 'setup.py'
 echo "  Changed setup.py version variable to $VERSION"

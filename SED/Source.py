@@ -6,6 +6,7 @@
 #  
 #  Created by Alexander Rudy on 2011-12-03.
 #  Copyright 2011 Alexander Rudy. All rights reserved.
+#  Version 0.3.0
 # 
 
 import math, copy, sys, time, logging, os, argparse, yaml, collections
@@ -163,13 +164,13 @@ class Source(AstroObject.AstroSimulator.Simulator):
     def _setupBlackbody(self):
         """Set up a blackbody spectrum"""
         
-        self.Spectrum = BlackBodySpectrum(self.config["Temp"])
-        self.Spectrum *= self.config["PreAmp"]
+        self.D_Spectrum = BlackBodySpectrum(self.config["Temp"])
+        self.D_Spectrum *= self.config["PreAmp"]
         
     def _setupFlat(self):
         """Sets up a flat spectrum"""
-        self.Spectrum = FlatSpectrum(self.config["Value"])
-        self.Spectrum *= self.config["PreAmp"]
+        self.D_Spectrum = FlatSpectrum(self.config["Value"])
+        self.D_Spectrum *= self.config["PreAmp"]
         
     
     def _setupFile(self):
