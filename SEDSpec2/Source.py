@@ -30,7 +30,7 @@ import logging.handlers
 import arpytools.progressbar
 
 try:
-    from AstroObject.AnalyticSpectra import BlackBodySpectrum,FlatSpectrum,ResampledSpectrum,FLambdaSpectrum
+    from AstroObject.AnalyticSpectra import BlackBodySpectrum,FlatSpectrum,ResampledSpectrum,FLambdaSpectrum,InterpolatedSpectrum
     from AstroObject.AstroSpectra import SpectraObject
     import AstroObject.Utilities as AOU
     import AstroObject.AstroSimulator
@@ -42,65 +42,76 @@ import scipy.signal
 
 class SourceCreator(AstroObject.AstroSimulator.Simulator):
     """docstring for SourceCreator"""
-    def __init__(self,config=None):
+    def __init__(self):
         super(SourceCreator, self).__init__(name="Sources")
-        if config == None:
-            config = {}
-        self.config = config
-        self._configureDefaults()
+        self.config.merge(self.defaults)
         self.initStages()
     
-    def _configureDefaults(self):
-        """Sets up the default configuration for the source routines"""
-        self.dconfig = {}
-        self.dconfig["ExpTime"] = 1200
-        
-        self.dconfig["plot_format"] = ".pdf"
-        
-        self.dconfig["Sky"] = {}
-        self.dconfig["Sky"]["Massey"] = "MasseySky.fits"
-        
-        self.dconfig["Configs"] = {}
-        self.dconfig["Configs"]["Source"] = "SED.source2.config.yaml"
-        
-        self.dconfig["Dirs"] = {}
-        self.dconfig["Dirs"]["Logs"] = "Logs/"
-        self.dconfig["Dirs"]["Partials"] = "Partials/"
-        self.dconfig["Dirs"]["Caches"] = "Caches/"
-        self.dconfig["Dirs"]["Images"] = "Images/"
-        
-        
-        # Logging Configuration
-        self.dconfig["logging"] = {}
-        self.dconfig["logging"]["console"] = {}
-        self.dconfig["logging"]["console"]["enable"] = True
-        self.dconfig["logging"]["console"]["format"] = "......%(message)s"
-        self.dconfig["logging"]["console"]["level"] = False
-        self.dconfig["logging"]["file"] = {}
-        self.dconfig["logging"]["file"]["enable"] = True
-        self.dconfig["logging"]["file"]["filename"] = "SEDSource"
-        self.dconfig["logging"]["file"]["format"] = "%(asctime)s : %(levelname)-8s : %(funcName)-20s : %(message)s"
-        
-        AOU.update(self.config,self.dconfig)
-        self.config["Configs"]["This"] = self.config["Configs"]["Source"]
-        self.log.debug("Set default configuration values.")
-    
+    defaults = {
+        "ExpTime" : 1200,
+        "plot_format" : ".pdf",
+        "Sky" : {
+            "Massey" : "MasseySky.fits",  
+        },
+        "Moon" : {
+            "Phase" : 1
+        },
+        "Thpt" : "SEDSpec2/Data/thpt.npy",
+        "QE" : "prism_pi",
+        "Configs" : {
+            "Source" : "SED.source2.config.yaml"
+        },
+        "Dirs": {
+            "Logs": "Logs",
+            "Partials" : "Partials",
+            "Caches" : "Caches",
+            "Images" : "Images",
+        },
+        'logging': {
+            'console': {
+                'level': logging.INFO, 
+                'enable': True, 
+                'format': '%(levelname)-8s... %(message)s'
+            },
+            'growl' : {
+                'name' : "SED Machine Simulator",
+            },
+            'file': {
+                'format': '%(asctime)s : %(levelname)-8s : %(funcName)-20s : %(message)s',
+                'enable': True, 
+                'filename': 'SEDMachine'
+            },
+        },
+    }
      
     def initStages(self):
         """Initialize all of the simulator stages"""
-        self.registerStage(self.loadSkies,"skydata",description="Loading Sky Data",help="Loading Sky Data")
-        self.registerStage(self.setupMoonAttenuation,"moondata",description="Loading Moon Phase Data")
+        self.registerStage(self.physical_constants,"constants",description="Setting Physical Constants",help=False)
+        self.registerStage(self.load_skies,"sky-data",description="Loading Sky Data",help="Loading Sky Data")
+        self.registerStage(self.setup_moon,"moon-data",description="Loading Moon Phase Data",dependencies=["constants"])
+        self.registerStage(None,"sky-func",description="DUMMY Setting Sky Function")
+        self.registerStage(self.use_turnrose,"turnrose",description="Setting Turnrose Sky Function",help="Use Turnrose Sky spectrum",dependencies=["sky-data","moon-data","constants"],replaces=["sky-func"])
+        self.registerStage(self.setup_thpt,"setup-thruput",description="Making Thruput Functions",help=False)
+        self.registerStage(self.include_moon,"moon",description="Applying Moon Light",help=False,dependencies=["moon-data","sky-func"])
+        self.registerStage(self.make_sky,"make-sky",description="Make final sky spectrum",help=False,dependencies=["setup-thruput"])
         
-    def loadSkies(self):
+        
+    def physical_constants(self):
+        """Setup physical constants"""
+        self.const = {}
+        self.const["hc"] = 1.98644521e-8 # erg angstrom
+
+        
+    def load_skies(self):
         """Load in the sky data from files"""
-        SKYData = SpectraObject()
+        self.SKYData = SpectraObject()
         # SKYData.dataClasses = [FLambdaSpectrum]
-        SKYData.read("SEDSpec2/MasseySky.fits")
-        SKYData.read("SEDSpec2/HansuchikUVES.fits")
-        SKYData.read("SEDSpec2/Quimby.fits")
-        SKYData.read("SEDSpec2/TurnroseSKY.fits")
+        self.SKYData.read("SEDSpec2/MasseySky.fits")
+        self.SKYData.read("SEDSpec2/HansuchikUVES.fits")
+        self.SKYData.read("SEDSpec2/Quimby.fits")
+        self.SKYData.read("SEDSpec2/TurnroseSKY.fits")
         
-    def setupMoonAttenuation(self):
+    def setup_moon(self):
         """docstring for setupMoonAttenuation"""
         # Moon phase adjustments. These moon phase attenuation values are for different filter bands.
         # The intermediate wavelengths are accounted for using a polyfit
@@ -114,18 +125,49 @@ class SourceCreator(AstroObject.AstroSimulator.Simulator):
 
         sky_ls = (4868., 6290., 7706., 10000)
 
-        self.moon_funs = []
+        self.moon_specs = []
         for i in xrange(len(moon_phase)):
             gm = moon_g[i]-moon_g[0]
             rm = moon_r[i]-moon_r[0]
             im = moon_i[i]-moon_i[0]
             zm = im
-
-            ff= np.poly1d(np.polyfit(sky_ls, np.array([gm, rm, im, zm]), 2))
-
-            self.moon_funs.append(ff)
+            fluxes = np.array([gm, rm, im, zm])/self.const["hc"]/sky_ls
+            moon_spec = InterpolatedSpectrum(np.array([sky_ls,fluxes]),"Moon Phase %s" % i)
+            
+            self.moon_specs.append(moon_spec)
+        
+    def use_turnrose(self):
+        """docstring for setupTurnrose"""
+        WL,FL = self.SKYData.data("TurnroseSKY")
+        FL *= 1e-18 * 3 # NICK! I NEED THIS EXPLAINED!
+        FL /= self.const["hc"] / WL
+        self.SkySpectrum = FLambdaSpectrum(np.array([WL*1e-10,FL]),"SkySpectrum")
+        
+        
+    def include_moon(self):
+        """docstring for include_moon"""
+        self.SkySpectrum += self.moon_specs[self.config["Moon"]["Phase"]]
+        
+        
+        
+    def setup_thpt(self):
+        """Sets up thruputs"""
+        thpts = np.load(self.config["Thpt"])[0]
+        self.qe = {}
+        self.qe["prism_pi"] = InterpolatedSpectrum(np.array([thpts["lambda"], thpts["thpt-prism-PI"]]),"PI Prism")
+        self.qe["prism_andor"] = InterpolatedSpectrum(np.array([thpts["lambda"], thpts["thpt-prism-Andor"]]),"Andor Prism")
+        self.qe["grating"] = InterpolatedSpectrum(np.array([thpts["lambda"], thpts["thpt-grating"]]),"Grating")
+        
+    def make_sky(self):
+        """Make a sky spectrum"""
+        self.SkySpectrum *= self.qe[self.config["QE"]]
         
     
         
-        
+def run():
+    SIM = SourceCreator()
+    SIM.run()
+    
+if __name__ == '__main__':
+    run()        
         

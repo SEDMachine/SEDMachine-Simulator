@@ -33,9 +33,10 @@ import gc
 import AstroObject
 from AstroObject.AstroSimulator import Simulator
 from AstroObject.AstroCache import *
+from AstroObject.AstroConfig import *
 from AstroObject.AstroSpectra import SpectraObject
 from AstroObject.AstroImage import ImageObject,ImageFrame
-from AstroObject.AnalyticSpectra import BlackBodySpectrum, AnalyticSpectrum, FlatSpectrum, ResampledSpectrum
+from AstroObject.AnalyticSpectra import BlackBodySpectrum, AnalyticSpectrum, FlatSpectrum, ResampledSpectrum, FLambdaSpectrum, InterpolatedSpectrum
 from AstroObject.Utilities import *
 
 from Lenslet import *
@@ -49,7 +50,7 @@ class SEDSimulator(Simulator,ImageObject):
         self.dataClasses = [SubImage]
         self.lenslets = []
         self.config.merge(self.basics)
-        self.config.merge({"Instrument":self.instrument,"Caches":self.caches,"Source":self.source})
+        self.config.merge({"Instrument":self.instrument,"Caches":self.caches,"Source":self.source,"Observation":self.observation})
         self.config.setFile("Main")
         self.setup_stages()
 
@@ -99,14 +100,22 @@ class SEDSimulator(Simulator,ImageObject):
         'CONV' : "SED.Instrument.conv.npy",
         'config' : "SED.Instrument.config.yaml",
     }
-       
+    
+    observation = {
+        'exposure' : 1200,
+        'number' : 3,
+        'airmass' : 1,
+        
+    }
+    
+    
     instrument = {
         'files': {
             'dispersion': 'Data/dispersion_12-10-2011.txt',
             'encircledenergy': 'Data/encircled_energy_4nov11.TXT',
             'lenslets': 'Data/xy_17nov2011_v57.TXT',
         },
-        'dark': 2, 
+        'camera' : "PI",
         'convert': {
             'pxtomm': 0.0135 }, 
         'density': 5, 
@@ -116,15 +125,33 @@ class SEDSimulator(Simulator,ImageObject):
         'padding': 5, 
         'psf_stdev': {'px': 1.0}, 
         'bias': 20, 
-        'psf_size': { 'px': 0}, 
+        'psf_size': { 'px': 2.4}, 
         'image_size': { 'mm': 40.0}, 
-        'tel_radii': { 'px': 1.2}, 
-        'exposure': 120, 
-        'gain': 10000000000.0,
+        'tel_radii': { 'px': 1.2},
+        'tel_area' : 18242. * 0.9,
+        'gain': 5,
+        'eADU' : 3.802,
         'lenslets' : {
               'radius' : 0.25e-2,
               'rotation' : 20.0,
         },
+        'Sky' : {
+            'Use' : "TurnroseSKY",
+            'Files' : {
+                'Massey' : "SEDSpec2/MasseySky.fits",
+                'Quimby' : "SEDSpec2/Quimby.fits",
+                'HansuchikUVES' : "SEDSpec2/HansuchikUVES.fits",
+                'TurnroseSKY' : "SEDSpec2/TurnroseSKY.fits",
+            },
+        },
+        'Thpt' : {
+            'File' : "SEDSpec2/Data/thpt.npy",
+            'Type' : "prism_pi",
+        },
+        'Moon' : {
+            'Phase' : 1,
+        },
+        
     }
     
     source = {
@@ -138,21 +165,33 @@ class SEDSimulator(Simulator,ImageObject):
         self.registerConfigOpts("S",{"Lenslets":{"start":2100,"number":5},"Debug":True},help="Debug, Limit lenslets (5,start from 2100)")
         self.registerConfigOpts("T",{"Lenslets":{"start":2100,"number":50},"Debug":True},help="Limit lenslets (50,start from 2100)")
         self.registerConfigOpts("M",{"Lenslets":{"start":1000,"number":500},"Debug":True},help="Limit lenslets (500,start from 1000)")
+        self.registerConfigOpts("A",{"Lenslets":{"start":2100,"number":1},"Debug":True},help="Debug, Single lenslets (start from 2100)")
+        
         
         
         self.registerStage(self.setup_caches,"setup-caches",help=False,description="Setting up caches")
         self.registerStage(self.setup_configuration,"setup-config",help=False,description="Setting up dynamic configuration")
+        self.registerStage(self.setup_constants,"setup-constants",help=False,description="Setting up physical constants")
         self.registerStage(self.setup_lenslets,"setup-lenslets",help=False,description="Setting up lenslets",dependencies=["setup-config"])
         self.registerStage(self.setup_blank,"setup-blank",help=False,description="Creating blank image",dependencies=["setup-config"])
         self.registerStage(self.setup_source,"setup-source",help=False,description="Creating source spectrum objects")
         self.registerStage(self.setup_noise,"setup-noise",help=False,description="Setting up Dark/Bias frames",dependencies=["setup-config"])
+        self.registerStage(self.setup_sky,"setup-sky",help=False,description="Setting up Sky spectrum object",dependencies=["setup-config","setup-constants"])
         self.registerStage(self.flat_source,"flat-source",help="Make a constant value source",description="Replacing default source with a flat one.",include=False,replaces=["setup-source"])
-        self.registerStage(None,"setup",dependencies=["setup-caches","setup-lenslets","setup-blank","setup-source","setup-noise"],help="System Setup",description="Set up simulator")
+        self.registerStage(None,"setup",help="System Setup",description="Set up simulator",
+            dependencies=["setup-caches","setup-lenslets","setup-blank","setup-source","setup-noise","setup-constants","setup-sky"],
+            )
         
+        self.registerStage(self.apply_qe,"apply-qe",help=False,description="Applying Quantum Efficiency Functions",dependencies=["setup-source","setup-sky"])
+        
+        self.registerStage(self.use_sky,"use-sky",help="Use only sky spectrum",description="Using only Sky spectrum",dependencies=["setup-sky","apply-qe"],include=False)
+        
+        self.registerStage(self.plot_sky,"plot-sky",help="Plot sky spectrum",description="Plotting Sky Spectrum",include=False,dependencies=["setup-sky","apply-qe"])
+        self.registerStage(self.plot_qe,"plot-qe",help="Plot QE spectrum",description="Plotting QE Spectrum",include=False,dependencies=["setup-sky"])
         self.registerStage(self.plot_lenslet_data,"plot-lenslet-xy",help="Plot Lenslets",description="Plotting lenslet positions",include=False,dependencies=["setup-lenslets"])
         
         self.registerStage(self.lenslet_dispersion,"dispersion",help="Calculate dispersion",description="Calculating dispersion for each lenslet",dependencies=["setup-lenslets","setup-caches"])
-        self.registerStage(self.lenslet_trace,"trace",help="Trace Lenslets",description="Tracing lenslet dispersion",dependencies=["dispersion","setup-caches","setup-source"])
+        self.registerStage(self.lenslet_trace,"trace",help="Trace Lenslets",description="Tracing lenslet dispersion",dependencies=["dispersion","setup-caches","apply-qe"])
         self.registerStage(self.lenslet_place,"place",help="Place Subimages",description="Placing lenslet spectra",dependencies=["trace"])
         
         self.registerStage(self.plot_dispersion_data,"plot-dispersion",help=False,description="Plotting dispersion for each lenslet",dependencies=["dispersion"],include=False)
@@ -168,7 +207,7 @@ class SEDSimulator(Simulator,ImageObject):
         self.registerStage(self.save_file,"save",help="Save image to file",description="Saving image to disk",dependencies=["setup-blank"])
         self.registerStage(None,"cached-only",help="Use cached subimages to construct final image",description="Building image from caches",dependencies=["merge-cached","crop","add-noise","save"],include=False)
         
-        self.registerStage(None,"plot",help="Create all plots",description="Plotting everything",dependencies=["plot-lenslet-xy","plot-lenslets"],include=False)
+        self.registerStage(None,"plot",help="Create all plots",description="Plotting everything",dependencies=["plot-lenslet-xy","plot-lenslets","plot-sky","plot-qe"],include=False)
         
     def setup_caches(self):
         """Register all of the cache objects and types"""
@@ -185,6 +224,13 @@ class SEDSimulator(Simulator,ImageObject):
         if self.Caches.check(master="CONFIG"):
             self.log.info("Caches appear to be out of date, regenerating")
         self.Caches.get("CONFIG")
+    
+    def setup_constants(self):
+        """Establish Physical Constants"""
+        self.const = StructuredConfiguration()
+        self.const.setFile("const","SED.const.config.yaml")
+        self.const["hc"] = 1.98644521e-8 # erg angstrom
+        
         
     def setup_lenslets(self):
        """This function loads data about lenslet positions, and thier dispersion through the prism. The data are original produced by Zeemax. This function reads the Zeemax data directly and then cleans the data in certain ways, preparing it for use later in the system.
@@ -277,7 +323,140 @@ class SEDSimulator(Simulator,ImageObject):
         WL *= 1e-10
         Flux /= np.sum(Flux) # Normalized! 
         self.Spectrum = ResampledSpectrum(np.array([WL,Flux]),self.config["Source"]["Filename"]) * self.config["Source"]["PreAmp"]
+    
+    
+    def setup_cameras(self):
+        """Set up camera configuration values"""
+        # Camera Data (from sim_pdr.py by Nick)
+        self.cameras = {
+        	"PI": {"DQEs": np.array([
+        		(2000, 0),	
+        		(3000, 0.01),
+        		(3500, .20),
+        		(4000, .60),
+        		(4500, .82),
+        		(5000, .90),
+        		(5500, .93),
+        		(6000, .93),
+        		(7000, .93),
+        		(7500, .88),
+        		(8000, .73),
+        		(8500, .55),
+        		(9000, .33),
+        		(10000, .08),
+        		(10500, 0.02),
+        		(11000, 0)
+        	]),
+        	"RN" : 5.,
+        	"DC":  0.006,
+        	"readtime": 37},
+        	"Andor": { # Midband
+        		"DQEs": np.array([
+        		(2500, .05),
+        		(3500, .18),
+        		(4500, .75),
+        		(5000, .9),
+        		(5500, .92),
+        		(6500, .91),
+        		(7500, .79),
+        		(8500, .48),
+        		(9500, .13),
+        		(10500, .02),
+        		(11000, 0)
+        	]), 
+        	"RN": 4,
+        	"DC": 0.0004,
+        	"readtime":  82},
+        	"E2V": {"DQEs" : np.array([
+        		(3000, .1),
+        		(3500, .3),
+        		(4500, .8),
+        		(5500, .8),
+        		(6500, .78),
+        		(7500, .7),
+        		(8500, .4),
+        		(9500, .13),
+        		(10500, .02),
+        		(11000, 0)]),
+        	"RN": 3.3,
+        	"DC": 0.006,
+        	"readtime": 37},
+        }
 
+
+        self.cameras["PI-fast"] = self.cameras["PI"]
+        self.cameras["PI-fast"]["RN"] = 12
+        self.cameras["PI-fast"]["readtime"] = 2.265
+
+        self.cameras["Andor-fast"] = self.cameras["Andor"]
+        self.cameras["Andor-fast"]["RN"] = 11.7
+        self.cameras["Andor-fast"]["readtime"] = 1.398
+        
+    
+    def setup_sky(self):
+        """Setup sky spectrum information"""
+
+        
+        # Sky Data (From sim_pdr.py by Nick, regenerated using SEDSpec2 module's make_files.py script)
+        # Each sky spectrum is saved in a FITS file for easy recall as a spectrum object.
+        self.SKYData = SpectraObject()
+        for filename in self.config["Instrument"]["Sky"]["Files"].values():
+            self.SKYData.read(filename)
+        
+        # Moon phase adjustments. These moon phase attenuation values are for different filter bands.
+        # The intermediate wavelengths are accounted for using a polyfit
+        # the result is a function which takes phase and wavelength, and outputs an attenuation...
+        
+        # See derivation on pg 83 of SED NB 1 (20 July 2011)
+        moon_phase = np.array([0., 0.08, 0.16, 0.24, 0.32, 0.40, 0.50])
+        moon_g = np.array([2e-17, 2.1e-17, 2.15e-17, 2.3e-17, 5.3e-17, 1.7e-16, 3.2e-16])
+        moon_r = np.array([2.3e-17,2.3e-17,2.3e-17,3.3e-17,3.5e-17,8.3e-17,1.3e-16])
+        moon_i = np.array([2.8e-17,3.0e-17,3.0e-17,3.3e-17,3.8e-17,7.0e-17,9.0e-17])
+
+        sky_ls = np.array([4868., 6290., 7706., 10000])
+
+        self.moon_specs = []
+        for i in xrange(len(moon_phase)):
+            gm = moon_g[i]-moon_g[0]
+            rm = moon_r[i]-moon_r[0]
+            im = moon_i[i]-moon_i[0]
+            zm = im
+            fluxes = np.array([gm, rm, im, zm])
+            # fluxes /= self.const["hc"] / sky_ls
+            moon_spec = InterpolatedSpectrum(np.array([sky_ls,fluxes]),"Moon Phase %s" % i)
+            moon_spec.func = np.poly1d(np.polyfit(sky_ls,fluxes, 2))
+            self.moon_specs.append(moon_spec)
+        
+        # Throughputs are generated from Nick's simulation scripts in throughput.py
+        # They are simply re-read here.
+        thpts = np.load(self.config["Instrument"]["Thpt"]["File"])[0]
+        self.qe = {}
+        WL = thpts["lambda"]* 1e-10
+        self.qe["prism_pi"] = InterpolatedSpectrum(np.array([WL, thpts["thpt-prism-PI"]]),"PI Prism")
+        self.qe["prism_andor"] = InterpolatedSpectrum(np.array([WL, thpts["thpt-prism-Andor"]]),"Andor Prism")
+        self.qe["grating"] = InterpolatedSpectrum(np.array([WL, thpts["thpt-grating"]]),"Grating")
+        
+        # This calculation fixes the units of the TurnroseSKY values
+        # I'm not sure what these units are doing, but we will leave them here for now.
+        WL,FL = self.SKYData.data(self.config["Instrument"]["Sky"]["Use"])
+        FL *= 1e-18 * 3 # NICK! I NEED THIS EXPLAINED!
+        FL += self.moon_specs[self.config["Instrument"]["Moon"]["Phase"]](wavelengths=WL)[1]
+        FL /= self.const["hc"] / WL
+        FL *= 1e10 #Spectrum was per Angstrom, should now be per Meter
+        WL *= 1e-10
+        
+        self.Sky_Original = InterpolatedSpectrum(np.array([WL,FL]),"SkySpectrum")
+        self.SkySpectrum = FLambdaSpectrum(np.array([WL,FL]),"SkySpectrum")
+        
+    def apply_qe(self):
+        """Apply the instrument quantum efficiency"""
+        self.SkySpectrum *= self.qe[self.config["Instrument"]["Thpt"]["Type"]] * self.config["Instrument"]["tel_area"] * self.config["Observation"]["exposure"]
+        self.Spectrum *= self.qe[self.config["Instrument"]["Thpt"]["Type"]] * self.config["Instrument"]["tel_area"] * self.config["Observation"]["exposure"]
+        
+    def use_sky(self):
+        """Use the sky spectrum only"""
+        self.Spectrum = self.SkySpectrum
+        
     def flat_source(self):
         """Replace the default file-source with a flat spectrum"""
         self.Spectrum = FlatSpectrum(self.config["Source"]["Value"]) * self.config["Source"]["PreAmp"]
@@ -322,15 +501,20 @@ class SEDSimulator(Simulator,ImageObject):
         
     def setup_noise(self):
         """Makes noise masks"""
-        self.generate_poisson_noise("Dark",self.config["Instrument"]["dark"]*self.config["Instrument"]["exposure"])
-        self.generate_poisson_noise("Bias",self.config["Instrument"]["bias"])
+        
+        read_noise = np.sqrt(self.cameras[self.config["Instrument"]["camera"]]["RN"]**2 * self.conifg["Instrument"]["psf_size"]["px"] * self.config["Observation"]["number"] / self.config["Instrument"]["gain"])
+        dark_noise = self.cameras[self.config["Instrument"]["camera"]]["DC"] * self.config["Observation"]["exposure"]
+        
+        self.generate_poisson_noise("Read",read_noise)
+        
+        self.generate_poisson_noise("Dark",dark_noise)
     
         
     def apply_noise(self):
         """Apply the noise masks to the target image label"""
         
         dark = self.data("Dark")
-        bias = self.data("Bias")
+        bias = self.data("Read")
         
         data = self.data(self.config["Output"]["FrameLabel"])
         
@@ -421,6 +605,52 @@ class SEDSimulator(Simulator,ImageObject):
         plt.savefig(FileName)
         
         plt.clf()
+    
+    def plot_sky(self):
+        """Plot sky spectrum"""
+        wavelengths, flux = self.SKYData.data(self.config["Instrument"]["Sky"]["Use"])
+        WL = wavelengths*1e-10
+        DWL = np.diff(WL) 
+        WL = WL[:-1]
+        RS = np.ones(WL.shape) * 100
+        plt.figure()
+        plt.title("Resolution")
+        plt.plot(WL*1e6,RS,'g.')
+        FileName = "%(Partials)s/Sky-Spectrum-Res%(fmt)s" % dict(fmt=self.config["plot_format"],**self.config["Dirs"])
+        plt.savefig(FileName)
+
+        plt.clf()
+        plt.title("Sky Spectrum")
+        self.log.debug(npArrayInfo(WL,"Wavelength for Sky Plot"))
+        WL,FL = self.SkySpectrum(wavelengths=WL,resolution=RS)
+        self.log.debug(npArrayInfo(WL,"Wavelength from Sky Plot"))
+        self.log.debug(npArrayInfo(FL,"Flux from Sky Plot"))
+        plt.semilogy(WL*1e6,FL,'b.',linestyle='-')
+        WL,FL = self.Sky_Original(wavelengths=WL,resolution=RS)
+        self.log.debug(npArrayInfo(WL,"Wavelength from Sky-O Plot"))
+        self.log.debug(npArrayInfo(FL,"Flux from Sky-O Plot"))
+        plt.semilogy(WL*1e6,FL,'g.',linestyle='-')
+        plt.xlabel("Wavelength ($\mu$m)")
+        plt.ylabel("Flux (Photons)")
+        FileName = "%(Partials)s/Sky-Spectrum%(fmt)s" % dict(fmt=self.config["plot_format"],**self.config["Dirs"])
+        plt.savefig(FileName)
+        plt.clf()
+
+    def plot_qe(self):
+        """Plot sky spectrum"""
+        wavelengths, flux = self.SKYData.data(self.config["Instrument"]["Sky"]["Use"])
+        WL = wavelengths[1:]*1e-10
+        plt.figure()
+        plt.clf()
+        plt.title("QE Spectrum")
+        WL,FL = self.qe[self.config["Instrument"]["Thpt"]["Type"]](wavelengths=WL)
+        plt.semilogy(WL*1e6,FL,'bo')
+        plt.xlabel("Wavelength ($\mu$m)")
+        plt.ylabel("Flux (Fraction)")
+        FileName = "%(Partials)s/QE-Spectrum%(fmt)s" % dict(fmt=self.config["plot_format"],**self.config["Dirs"])
+        plt.savefig(FileName)
+        plt.clf()
+    
     
     def map_over_lenslets(self,function,exceptions=True,color="green"):
         """Maps a given function to operate on each lenslet, and displays a progress bar along the way."""

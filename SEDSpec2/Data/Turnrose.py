@@ -74,5 +74,5 @@ skyspec = [
 ]
 
 skyspec = np.array(skyspec)
-skyspec[:,1] *= 1e-18 * 3 
-skyspec[:,1] /= hc/skyspec[:,0] # #/s/cm^2/ang/as^2
+# skyspec[:,1] *= 1e-18 * 3 
+# skyspec[:,1] /= hc/skyspec[:,0] # #/s/cm^2/ang/as^2

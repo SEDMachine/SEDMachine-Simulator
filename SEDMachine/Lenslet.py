@@ -392,23 +392,22 @@ class Lenslet(ImageObject):
         
         
         # Call and evaluate the spectrum
-        self.log.debug("Scailing by %g (Instrument.gain)" % self.config["Instrument"]["gain"])
-        radiance = spectrum(wavelengths=WLS,resolution=RS) 
-        radiance *= self.config["Instrument"]["gain"]
-        self.log.debug(npArrayInfo(radiance,"Generated Spectrum"))
-        self.log.debug(npArrayInfo(deltawl,"DeltaWL Rescaling"))
-        flux = radiance[1,:] * deltawl
+        self.log.debug(npArrayInfo(WLS,"Calling Wavelength"))
+        self.log.debug(npArrayInfo(RS,"Calling Resolution"))
+
+        wl,flux = spectrum(wavelengths=WLS,resolution=RS) 
+        self.log.debug("Converting to ADU by %g (Instrument.eADU)" % self.config["Instrument"]["eADU"])
+        flux *= self.config["Instrument"]["eADU"]
         self.log.debug(npArrayInfo(flux,"Final Flux"))
          
-        if self.log.getEffectiveLevel() <= logging.DEBUG:
-            np.savetxt("%(Partials)s/Instrument-Subimage-Values.dat" % self.config["Dirs"],np.array([x,y,self.dwl[:-1],deltawl,flux]).T)
+        # if self.log.getEffectiveLevel() <= logging.DEBUG:
+            # np.savetxt("%(Partials)s/Instrument-Subimage-Values.dat" % self.config["Dirs"],np.array([x,y,self.dwl[:-1],DWL,flux]).T)
         
         self.txs = x
         self.tys = y
-        self.trd = radiance
         self.tfl = flux
-        self.twl = self.dwl[:-1]
-        self.tdw = deltawl
+        self.twl = WLS
+        self.tdw = DWL
         self.trs = RS
         self.subshape = (xsize,ysize)
         self.subcorner = corner
@@ -471,17 +470,13 @@ class Lenslet(ImageObject):
     def plot_spectrum(self):
         """Plots the generated spectrum for this lenslet"""
         assert self.traced
+        self.log.debug(npArrayInfo(self.twl*1e6,"Wavlength"))
+        self.log.debug(npArrayInfo(self.tfl,"Flux"))
         plt.clf()
-        plt.plot(self.twl,self.trd[1,:],"b.")
-        plt.title("Retrieved Spectral Radiance with Gain")
-        plt.xlabel("Wavelength ($\mu m$)")
-        plt.ylabel("Radiance (Units undefined)")
-        plt.savefig("%(Partials)s/Instrument-%(num)04d-Radiance%(ext)s" % dict(num=self.num, ext=self.config["plot_format"],**self.config["Dirs"]))
-        plt.clf()
-        plt.plot(self.twl*1e-6,self.tfl,"b.")
+        plt.semilogy(self.twl*1e6,self.tfl,"b.")
         plt.title("Generated, Fluxed Spectra")
         plt.xlabel("Wavelength ($\mu m$)")
-        plt.ylabel("Flux (Units undefined)")
+        plt.ylabel("Flux (Electrons)")
         plt.savefig("%(Partials)s/Instrument-%(num)04d-Flux%(ext)s" % dict(num=self.num, ext=self.config["plot_format"],**self.config["Dirs"]))
         plt.clf()
 
@@ -491,13 +486,13 @@ class Lenslet(ImageObject):
         """Plots aspects of the trace"""
         assert self.traced
         plt.clf()
-        plt.plot(self.twl*1e-6,self.tdw*1e-6,"g.")
+        plt.plot(self.twl*1e6,self.tdw*1e6,"g.")
         plt.title("$\Delta\lambda$ for each pixel")
         plt.xlabel("Wavelength ($\mu m$)")
         plt.ylabel("$\Delta\lambda$ per pixel")
         plt.savefig("%(Partials)s/Instrument-%(num)04d-DeltaWL%(ext)s" % dict(num=self.num, ext=self.config["plot_format"],**self.config["Dirs"]))
         plt.clf()
-        plt.semilogy(self.twl*1e-6,self.trs,"g.")
+        plt.semilogy(self.twl*1e6,self.trs,"g.")
         plt.title("$R = \\frac{\lambda}{\Delta\lambda}$ for each pixel")
         plt.xlabel("Wavelength ($\mu m$)")
         plt.ylabel("Resolution $R = \\frac{\Delta\lambda}{\lambda}$ per pixel")
