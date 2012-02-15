@@ -187,6 +187,7 @@ class SEDSimulator(Simulator,ImageObject):
         
         self.registerStage(self.use_sky,"use-sky",help="Use only sky spectrum",description="Using only Sky spectrum",dependencies=["setup-sky","apply-qe"],include=False)
         
+        self.registerStage(self.plot_source,"plot-source",help="Plot sky spectrum",description="Plotting Source Spectrum",include=False,dependencies=["setup-sky","setup-source","apply-qe"])
         self.registerStage(self.plot_sky,"plot-sky",help="Plot sky spectrum",description="Plotting Sky Spectrum",include=False,dependencies=["setup-sky","apply-qe"])
         self.registerStage(self.plot_qe,"plot-qe",help="Plot QE spectrum",description="Plotting QE Spectrum",include=False,dependencies=["setup-sky"])
         self.registerStage(self.plot_lenslet_data,"plot-lenslet-xy",help="Plot Lenslets",description="Plotting lenslet positions",include=False,dependencies=["setup-lenslets"])
@@ -208,7 +209,7 @@ class SEDSimulator(Simulator,ImageObject):
         self.registerStage(self.save_file,"save",help="Save image to file",description="Saving image to disk",dependencies=["setup-blank"])
         self.registerStage(None,"cached-only",help="Use cached subimages to construct final image",description="Building image from caches",dependencies=["merge-cached","crop","add-noise","save"],include=False)
         
-        self.registerStage(None,"plot",help="Create all plots",description="Plotting everything",dependencies=["plot-lenslet-xy","plot-lenslets","plot-sky","plot-qe"],include=False)
+        self.registerStage(None,"plot",help="Create all plots",description="Plotting everything",dependencies=["plot-lenslet-xy","plot-lenslets","plot-sky","plot-qe","plot-source"],include=False)
         
     def setup_caches(self):
         """Register all of the cache objects and types"""
@@ -320,10 +321,11 @@ class SEDSimulator(Simulator,ImageObject):
 
     def setup_source(self):
         """Sets up a uniform source file based spectrum"""
-        WL,Flux = np.genfromtxt(self.config["Source"]["Filename"]).T
+        WL,FL = np.genfromtxt(self.config["Source"]["Filename"]).T
+        FL /= self.const["hc"] / WL
+        FL *= 1e10 #Spectrum was per Angstrom, should now be per Meter
         WL *= 1e-10
-        Flux /= np.sum(Flux) # Normalized! 
-        self.Spectrum = ResampledSpectrum(np.array([WL,Flux]),self.config["Source"]["Filename"]) * self.config["Source"]["PreAmp"]
+        self.Spectrum = FLambdaSpectrum(np.array([WL,FL]),self.config["Source"]["Filename"])
     
     
     def setup_cameras(self):
@@ -453,6 +455,8 @@ class SEDSimulator(Simulator,ImageObject):
         """Apply the instrument quantum efficiency"""
         self.SkySpectrum *= self.qe[self.config["Instrument"]["Thpt"]["Type"]] * self.config["Instrument"]["tel_area"] * self.config["Observation"]["exposure"]
         self.Spectrum *= self.qe[self.config["Instrument"]["Thpt"]["Type"]] * self.config["Instrument"]["tel_area"] * self.config["Observation"]["exposure"]
+        self.Spectrum += self.SkySpectrum
+        
         
     def use_sky(self):
         """Use the sky spectrum only"""
@@ -636,6 +640,34 @@ class SEDSimulator(Simulator,ImageObject):
         FileName = "%(Partials)s/Sky-Spectrum%(fmt)s" % dict(fmt=self.config["plot_format"],**self.config["Dirs"])
         plt.savefig(FileName)
         plt.clf()
+
+    def plot_source(self):
+        """Plot the source spectrum"""
+        WL = np.arange(3300,10000,100) * 1e-10
+        DWL = np.diff(WL) 
+        WL = WL[:-1]
+        RS = np.ones(WL.shape) * 100
+        plt.figure()
+        plt.title("Resolution")
+        plt.plot(WL*1e6,RS,'g.')
+        FileName = "%(Partials)s/Source-Spectrum-Res%(fmt)s" % dict(fmt=self.config["plot_format"],**self.config["Dirs"])
+        plt.savefig(FileName)
+
+        plt.clf()
+        plt.title("Source Spectrum")
+        self.log.debug(npArrayInfo(WL,"Wavelength for Sky Plot"))
+        WL,FL = self.Spectrum(wavelengths=WL,resolution=RS)
+        self.log.debug(npArrayInfo(WL,"Wavelength from Sky Plot"))
+        self.log.debug(npArrayInfo(FL,"Flux from Sky Plot"))
+        plt.semilogy(WL*1e6,FL,'b.',linestyle='-')
+        WL,FL = self.SkySpectrum(wavelengths=WL,resolution=RS)
+        plt.semilogy(WL*1e6,FL,'g.',linestyle='-')
+        plt.xlabel("Wavelength ($\mu$m)")
+        plt.ylabel("Flux (Photons)")
+        FileName = "%(Partials)s/Source-Spectrum%(fmt)s" % dict(fmt=self.config["plot_format"],**self.config["Dirs"])
+        plt.savefig(FileName)
+        plt.clf()
+        
 
     def plot_qe(self):
         """Plot sky spectrum"""
