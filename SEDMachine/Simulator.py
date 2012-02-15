@@ -479,7 +479,6 @@ class SEDSimulator(Simulator,ImageObject):
             self.found = True
             self.CONV = self.Caches.get("CONV") 
         return self.CONV
-        
     
     def psf_kern(self,filename,size=0,truncate=False,header_lines=18):
         """Generates a PSF Kernel from a file with micron-encircled energy conversions. The file should have two columns, first, microns from the center of the PSF, and second, the fraction of encircled energy at that distance from the PSF.
@@ -634,6 +633,10 @@ class SEDSimulator(Simulator,ImageObject):
                 else:
                     self.log.warning("Value for %s set in both px and mm." % parent)
         return r
+
+def run():
+    SIM = SEDSimulator()
+    SIM.run()
     
-SIM = SEDSimulator()
-SIM.run()  
+if __name__ == '__main__':    
+    run()
