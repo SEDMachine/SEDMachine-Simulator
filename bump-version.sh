@@ -41,7 +41,7 @@ fi
 echo "Version is currently $VERSION, changing to $1"
 
 echo "$1" > $VSPECFILE
-echo "$1" > "SED/$VSPECFILE"
+echo "$1" > "$DIR/$VSPECFILE"
 
 VERSION=`cat $VSPECFILE`
 
