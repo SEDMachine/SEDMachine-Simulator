@@ -106,7 +106,7 @@ class SEDSimulator(Simulator,ImageObject):
             'encircledenergy': 'Data/encircled_energy_4nov11.TXT',
             'lenslets': 'Data/xy_17nov2011_v57.TXT',
         },
-        'dark': 20, 
+        'dark': 2, 
         'convert': {
             'pxtomm': 0.0135 }, 
         'density': 5, 

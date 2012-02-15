@@ -392,7 +392,7 @@ class Lenslet(ImageObject):
         
         
         # Call and evaluate the spectrum
-        self.log.debug("Scailing by %g" % self.config["Instrument"]["gain"])
+        self.log.debug("Scailing by %g (Instrument.gain)" % self.config["Instrument"]["gain"])
         radiance = spectrum(wavelengths=WLS,resolution=RS) 
         radiance *= self.config["Instrument"]["gain"]
         self.log.debug(npArrayInfo(radiance,"Generated Spectrum"))
