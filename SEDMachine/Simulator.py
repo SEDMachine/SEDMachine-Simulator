@@ -798,7 +798,7 @@ class SEDSimulator(Simulator,ImageObject):
     def get_psf_kern(self):
         """Returns the PSF Kernel. The function first tries to read the encircled energy file. In this case, if a `psf_size` is set in the instrument configuration, this value will be used to truncate the size of the encircled energy function. If the encircled energy function cannot be loaded, the system will fall back on to a gaussian psf as configured by the instrument."""
         if self.config["Instrument"]["psf_size"]["px"] != 0:
-            size = self.config["Instrument"]["psf_size"]["px"] * self.config["density"]
+            size = self.config["Instrument"]["psf_size"]["px"] * self.config["Instrument"]["density"]
             truncate = True
         else:
             size = 0
@@ -807,7 +807,7 @@ class SEDSimulator(Simulator,ImageObject):
             PSFIMG = self.psf_kern( self.config["Instrument"]["files"]["encircledenergy"],size,truncate)
         except IOError as e:
             self.log.warning("Could not access encircled energy file: %s" % e)
-            PSFIMG = self.gauss_kern( (self.config["Instrument"]["psf_stdev"]["px"] * self.config["density"]) )
+            PSFIMG = self.gauss_kern( (self.config["Instrument"]["psf_stdev"]["px"] * self.config["Instrument"]["density"]) )
         else:
             self.log.debug("Loaded Encircled Energy from %s" % self.config["Instrument"]["files"]["encircledenergy"])
         return PSFIMG
