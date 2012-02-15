@@ -8,6 +8,14 @@
 # 
 
 
+
+
+
+
+VSPECFILE="VERSION"
+
+VERSION=`cat $VSPECFILE`
+
 EXE=$0
 USAGE="
 Usage for bump-version
@@ -15,8 +23,11 @@ Usage for bump-version
 	$EXE x.x.x
 	
 	change the version number to x.x.x
+	
+	Current Version: $VERSION
 
 "
+
 
 if [ "$#" -ne 1 ]
 then
@@ -24,9 +35,6 @@ then
 	exit
 fi
 
-VSPECFILE="VERSION"
-
-VERSION=`cat $VSPECFILE`
 
 echo "Version is currently $VERSION, changing to $1"
 
