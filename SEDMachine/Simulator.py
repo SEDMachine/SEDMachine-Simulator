@@ -226,6 +226,7 @@ class SEDSimulator(Simulator,ImageObject):
        # Determine the center of the whole system by finding the x position that is closest to 0,0 in pupil position
        cntix = np.argmin(p1**2 + p2**2)
        self.center = (xs[cntix] * self.config["Instrument"]["convert"]["mmtopx"], ys[cntix] * self.config["Instrument"]["convert"]["mmtopx"])
+       
         
        # Progress bar for lenslet creation and validation
        PBar = arpytools.progressbar.ProgressBar(color="green")
@@ -250,6 +251,13 @@ class SEDSimulator(Simulator,ImageObject):
        PBar.render(100,"L:%4s %4d/%-4d" % ("Done",total,total))
        self.lensletIndex = self.lenslets.keys()
        self.log.useConsole(True)
+       
+       FileName = "%(Partials)s/%(name)s%(ext)s" % dict(name="center-raw",ext=".dat",**self.config["Dirs"])
+       with open(FileName,'w') as stream:
+           lenslet = self.lenslets[ix[cntix]]
+           stream.write(lenslet.introspect())
+       
+       
        if "start" in self.config["Lenslets"]:
            self.lensletIndex = self.lensletIndex[self.config["Lenslets"]["start"]:]
        if "number" in self.config["Lenslets"]:
