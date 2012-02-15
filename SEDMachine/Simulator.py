@@ -163,7 +163,7 @@ class SEDSimulator(Simulator,ImageObject):
         """Sets up all simulator stages"""
         self.registerConfigOpts("D",{"Lenslets":{"start":2100,"number":50},"Debug":True},help="Debug, Limit lenslets (50,start from 2100)")
         self.registerConfigOpts("S",{"Lenslets":{"start":2100,"number":5},"Debug":True},help="Debug, Limit lenslets (5,start from 2100)")
-        self.registerConfigOpts("T",{"Lenslets":{"start":2100,"number":50},"Debug":True},help="Limit lenslets (50,start from 2100)")
+        self.registerConfigOpts("T",{"Lenslets":{"start":2100,"number":50},"Debug":False},help="Limit lenslets (50,start from 2100)")
         self.registerConfigOpts("M",{"Lenslets":{"start":1000,"number":500},"Debug":True},help="Limit lenslets (500,start from 1000)")
         self.registerConfigOpts("A",{"Lenslets":{"start":2100,"number":1},"Debug":True},help="Debug, Single lenslets (start from 2100)")
         
