@@ -252,6 +252,8 @@ class SEDSimulator(Simulator,ImageObject):
        self.lensletIndex = self.lenslets.keys()
        self.log.useConsole(True)
        
+       
+       # Central Lenslet Output
        FileName = "%(Partials)s/%(name)s%(ext)s" % dict(name="center-raw",ext=".dat",**self.config["Dirs"])
        with open(FileName,'w') as stream:
            lenslet = self.lenslets[ix[cntix]]
@@ -298,7 +300,7 @@ class SEDSimulator(Simulator,ImageObject):
         l.write_subimage()
         with open("%(Partials)s/LensletAudit.dat" % self.config["Dirs"],"a") as s:
             s.write("%s\n" % vars(l) )
-        gc.collect()
+        # gc.collect()
     
     def image_merge(self):
         """Merge subimages into master image"""
@@ -473,7 +475,10 @@ class SEDSimulator(Simulator,ImageObject):
     
     def get_psf(self,wavelength):
         """Return a PSF for a given wavelength in the system"""
-        return self.get_psf_kern()
+        if not hasattr(self,"found"):
+            self.found = True
+            self.CONV = self.Caches.get("CONV") 
+        return self.CONV
         
     
     def psf_kern(self,filename,size=0,truncate=False,header_lines=18):
@@ -552,9 +557,9 @@ class SEDSimulator(Simulator,ImageObject):
     
     def get_tel_kern(self):
         """Returns the telescope kernel. This kernel is built by creating a circle mask for the size of the telescope mirror, and then subtracting a telescope obscuration from the center of the mirror image. The values for all of these items are set in the configuration file."""
-        TELIMG = self.circle_kern( self.config["Instrument"]["tel_radii"]["px"] * self.config["density"] )
-        center = self.circle_kern( self.config["Instrument"]["tel_obsc"]["px"] * self.config["density"] ,
-            self.config["Instrument"]["tel_radii"]["px"] * self.config["density"] , False )
+        TELIMG = self.circle_kern( self.config["Instrument"]["tel_radii"]["px"] * self.config["Instrument"]["density"] )
+        center = self.circle_kern( self.config["Instrument"]["tel_obsc"]["px"] * self.config["Instrument"]["density"] ,
+            self.config["Instrument"]["tel_radii"]["px"] * self.config["Instrument"]["density"] , False )
         TELIMG -= center
         TELIMG = TELIMG / np.sum(TELIMG)
         self.log.debug("Generated a Telescpe Kernel with shape %s" % (str(TELIMG.shape)))
