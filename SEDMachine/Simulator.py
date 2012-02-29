@@ -175,7 +175,7 @@ class SEDSimulator(Simulator,ImageObject):
         self.registerStage(self.setup_cameras,"setup-cameras",help=False,description="Setting up Cameras")
         self.registerStage(self.setup_lenslets,"setup-lenslets",help=False,description="Setting up lenslets",dependencies=["setup-config"])
         self.registerStage(self.setup_blank,"setup-blank",help=False,description="Creating blank image",dependencies=["setup-config"])
-        self.registerStage(self.setup_source,"setup-source",help=False,description="Creating source spectrum objects")
+        self.registerStage(self.setup_source,"setup-source",help=False,description="Creating source spectrum objects",dependencies=["setup-config","setup-constants"])
         self.registerStage(self.setup_noise,"setup-noise",help=False,description="Setting up Dark/Bias frames",dependencies=["setup-config","setup-cameras"])
         self.registerStage(self.setup_sky,"setup-sky",help=False,description="Setting up Sky spectrum object",dependencies=["setup-config","setup-constants"])
         self.registerStage(self.flat_source,"flat-source",help="Make a constant value source",description="Replacing default source with a flat one.",include=False,replaces=["setup-source"])
@@ -326,6 +326,7 @@ class SEDSimulator(Simulator,ImageObject):
         FL *= 1e10 #Spectrum was per Angstrom, should now be per Meter
         WL *= 1e-10
         self.Spectrum = FLambdaSpectrum(np.array([WL,FL]),self.config["Source"]["Filename"])
+        self.Original = FLambdaSpectrum(np.array([WL,FL]),self.config["Source"]["Filename"])
     
     
     def setup_cameras(self):
@@ -455,6 +456,7 @@ class SEDSimulator(Simulator,ImageObject):
         """Apply the instrument quantum efficiency"""
         self.SkySpectrum *= self.qe[self.config["Instrument"]["Thpt"]["Type"]] * self.config["Instrument"]["tel_area"] * self.config["Observation"]["exposure"]
         self.Spectrum *= self.qe[self.config["Instrument"]["Thpt"]["Type"]] * self.config["Instrument"]["tel_area"] * self.config["Observation"]["exposure"]
+        self.Original *= self.qe[self.config["Instrument"]["Thpt"]["Type"]] * self.config["Instrument"]["tel_area"] * self.config["Observation"]["exposure"]
         self.Spectrum += self.SkySpectrum
         
         
@@ -662,6 +664,8 @@ class SEDSimulator(Simulator,ImageObject):
         plt.semilogy(WL*1e6,FL,'b.',linestyle='-')
         WL,FL = self.SkySpectrum(wavelengths=WL,resolution=RS)
         plt.semilogy(WL*1e6,FL,'g.',linestyle='-')
+        WL,FL = self.Original(wavelengths=WL,resolution=RS)
+        plt.semilogy(WL*1e6,FL,'r.',linestyle='-')
         plt.xlabel("Wavelength ($\mu$m)")
         plt.ylabel("Flux (Photons)")
         FileName = "%(Partials)s/Source-Spectrum%(fmt)s" % dict(fmt=self.config["plot_format"],**self.config["Dirs"])
