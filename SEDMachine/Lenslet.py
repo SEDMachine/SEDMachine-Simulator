@@ -13,6 +13,9 @@ import pyfits as pf
 import scipy as sp
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm # Python Color Systems
+from matplotlib.colors import Normalize # Math Normailzation
+
 
 import scipy.signal
 import scipy.interpolate
@@ -528,7 +531,7 @@ class Lenslet(ImageObject):
         rotation =  self.config["Instrument"]["lenslets"]["rotation"] * (np.pi/180.0) #Absolute angle of rotation for hexagons
         A = self.rotate(self.ps + np.array([radius,0]),rotation,self.ps)
         points = [A]
-        for i in range(6):
+        for i in range(5):
             A = self.rotate(A,angle,self.ps)
             points.append(A)
         self.shape = sh.geometry.Polygon(tuple(points))
@@ -538,15 +541,25 @@ class Lenslet(ImageObject):
         x, y = self.shape.exterior.xy
         plt.fill(x, y, color=color, aa=True) 
         plt.plot(x, y, color='#666600', aa=True, lw=0.25)
-        
+    
+    def setup_crosstalk(self,n):
+        """docstring for setup_crosstalk"""
+        self.pixelValues = np.zeros((n))
+        self.spectrum = FlatSpectrum(1.0)
+    
     def find_crosstalk(self,pixel):
         """Find the crosstalk overlap with another pixel"""
         if self.shape.disjoint(pixel.shape):
             return
         overlap = (self.shape.intersection(pixel.shape).area) / self.shape.area
         self.spectrum += pixel * overlap
-        self.pixelValues[pixel.num] = overlap
+        self.pixelValues[pixel.idx] = overlap
+        pixel.pixelValues[self.idx] = overlap
         
+    def find_normalized_overlap(self):
+        """docstring for find_normalized_overlap"""
+        matrix = self.pixelValues
+        self.Norm_overlaps = Normalize(matrix)
 
         
 class SourcePixel(FLambdaSpectrum):
@@ -585,5 +598,13 @@ class SourcePixel(FLambdaSpectrum):
         x, y = self.shape.exterior.xy
         plt.fill(x, y, color=color, aa=True) 
         plt.plot(x, y, color='#666600', aa=True, lw=0.25)
-    
+        
+    def setup_crosstalk(self,n):
+        """docstring for setup_crosstalk"""
+        self.pixelValues = np.zeros((n))
+            
+    def get_color(self,idx):
+        """docstring for get_color"""
+        self.vals = Normalize()(self.pixelValues)
+        return cm.jet(self.vals[idx])
     

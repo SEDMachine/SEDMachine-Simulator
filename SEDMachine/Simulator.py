@@ -161,6 +161,7 @@ class SEDSimulator(Simulator,ImageObject):
         'PreAmp' : 100.0,
         'PXSize' : { 'mm' : 0.005 },
         'Rotation' : np.pi/4.0,
+        'Sample_Lenslet' : 2000
     }
     
     def setup_stages(self):
@@ -202,8 +203,11 @@ class SEDSimulator(Simulator,ImageObject):
         self.registerStage(self.use_sky,"use-sky",help="Use only sky spectrum",description="Using only Sky spectrum",dependencies=["setup-sky","apply-qe"],include=False)
         
         self.registerStage(self.plot_hexagons,"plot-hexagons",help="Plot Lenslet hexagons",description="Plotting Lenslet hexagons",include=False,dependencies=["setup-hexagons"])
+        self.registerStage(self.plot_invalid_hexagons,"plot-invalid-hexagons",help="Plot Shapely-invalid hexagons",description="Plotting invalid hexagons",include=False,dependencies=["setup-hexagons"])
         self.registerStage(self.plot_pixels,"plot-pixels",help="Plot Pixel positions",description="Plotting pixel squares",include=False,dependencies=["setup-source-pixels"])
         self.registerStage(self.plot_geometry,"plot-geometry",help="Plot geometry",description="Plotting Lenslet-plane geometry",include=False,dependencies=["setup-source-pixels","setup-hexagons"])
+        
+        self.registerStage(self.plot_resample,"plot-resample",help="Plot reample matrix",description="Plotting resample matrix",include=False,dependencies=["geometric-resample"])
         
         self.registerStage(self.plot_source,"plot-source",help="Plot sky spectrum",description="Plotting Source Spectrum",include=False,dependencies=["setup-sky","setup-source","apply-qe"])
         self.registerStage(self.plot_sky,"plot-sky",help="Plot sky spectrum",description="Plotting Sky Spectrum",include=False,dependencies=["setup-sky","apply-qe"])
@@ -332,6 +336,8 @@ class SEDSimulator(Simulator,ImageObject):
            self.lensletIndex = self.lensletIndex[:self.config["Lenslets"]["number"]]
        self.total = len(self.lensletIndex)
        self.lenslets = {x:self.lenslets[x] for x in self.lensletIndex}
+       for ix,lx in enumerate(self.lenslets.values()):
+           lx.idx = ix
     
     def setup_blank(self):
         """Establish a blank Image"""
@@ -373,7 +379,8 @@ class SEDSimulator(Simulator,ImageObject):
         self.Spectrum = FLambdaSpectrum(np.array([WL,FL]),self.config["Source"]["Filename"])
         self.Original = FLambdaSpectrum(np.array([WL,FL]),self.config["Source"]["Filename"])
         self.SourcePixels = [SourcePixel(0,0,data=np.array([WL,FL]),label="Source Pixel",config=self.config,num=1)]
-    
+        for ix,px in enumerate(self.SourcePixels):
+            px.idx = ix
     
     def setup_cameras(self):
         """Set up camera configuration values"""
@@ -516,8 +523,14 @@ class SEDSimulator(Simulator,ImageObject):
         
     def geometric_resample(self):
         """docstring for fname"""
+        n = len(self.SourcePixels)
+        m = len(self.lenslets)
+        self.map_over_lenslets(lambda l:l.setup_crosstalk(n),color=False)
+        self.map_over_pixels(lambda p:p.setup_crosstalk(m),color=False)
+        
         self.map_over_lenslets(lambda l:self.map_over_pixels(lambda p:l.find_crosstalk(p),color=False),color="green")
-                
+        
+
         
     def use_sky(self):
         """Use the sky spectrum only"""
@@ -771,6 +784,23 @@ class SEDSimulator(Simulator,ImageObject):
         plt.savefig(FileName)
         plt.clf()
         
+    def plot_invalid_hexagons(self):
+        """Plot invalid shapes"""
+        plt.figure()
+        plt.clf()
+        plt.title("Position of invalid hexagons")
+        self.map_over_lenslets(self._plot_invalid_hexagon,color="cyan")
+        plt.xlabel("x")
+        plt.ylabel("y")
+        FileName = "%(Partials)s/Lenslet-Invalid-Geometry%(fmt)s" % dict(fmt=self.config["plot_format"],**self.config["Dirs"])
+        plt.savefig(FileName)
+        plt.clf()
+    
+    def _plot_invalid_hexagon(self,lenslet):
+        """docstring for _plot_invalid_hexagon"""
+        if not lenslet.shape.is_valid:
+            lenslet.show_geometry()
+        
     def plot_geometry(self):
         """Plot all of the geomoetry stacked"""
         plt.figure()
@@ -783,6 +813,29 @@ class SEDSimulator(Simulator,ImageObject):
         FileName = "%(Partials)s/System-Geometry%(fmt)s" % dict(fmt=self.config["plot_format"],**self.config["Dirs"])
         plt.savefig(FileName)
         plt.clf()
+    
+    def plot_resample(self):
+        """Show the geometric resample"""
+        self.map_over_pixels(self._show_resample,color="cyan")
+    
+    def _show_resample(self,pixel):
+        """docstring for _show_resample"""
+        plt.figure()
+        plt.clf()
+        plt.title("Resample for pixel %g" % pixel.num)
+        pixel.show_geometry()
+        self.map_over_lenslets(lambda l:self._show_lenslet_resample(l,pixel),color=False)
+        # plt.colorbar()
+        
+        FileName = "%(Partials)s/System-Geometry-%(pixel)g%(fmt)s" % dict(pixel=pixel.num,fmt=self.config["plot_format"],**self.config["Dirs"])
+        
+        plt.savefig(FileName)
+        plt.clf()
+        
+        
+    def _show_lenslet_resample(self,lenslet,pixel):
+        """docstring for _show_lenslet_resample"""
+        lenslet.show_geometry(color=pixel.get_color(lenslet.idx))
     
     
     #######################
