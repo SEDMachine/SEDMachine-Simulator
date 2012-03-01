@@ -560,7 +560,7 @@ class SEDSimulator(Simulator,ImageObject):
         
     def lenslet_trace(self):
         """Trace out each lenslet"""
-        self.map_over_lenslets(lambda l: l.get_trace(self.Spectrum),color="blue")
+        self.map_over_lenslets(lambda l: l.get_trace(l.spectrum),color="blue")
 
     def lenslet_place(self):
         """Place each spectrum into the subimage"""
