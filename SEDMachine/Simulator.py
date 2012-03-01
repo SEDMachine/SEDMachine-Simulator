@@ -133,8 +133,8 @@ class SEDSimulator(Simulator,ImageObject):
         'gain': 5,
         'eADU' : 3.802,
         'lenslets' : {
-              'radius' : 0.25e-2,
-              'rotation' : 20.0,
+              'radius' : 0.245e-2,
+              'rotation' : 27.0,
         },
         'Sky' : {
             'Use' : "TurnroseSKY",
@@ -198,7 +198,8 @@ class SEDSimulator(Simulator,ImageObject):
             dependencies=["setup-caches","setup-lenslets","setup-hexagons","setup-blank","setup-source","setup-noise","setup-constants","setup-sky","setup-cameras"],
             )
         
-        self.registerStage(self.apply_qe,"apply-qe",help=False,description="Applying Quantum Efficiency Functions",dependencies=["setup-source","setup-sky"])
+        self.registerStage(self.apply_sky,"apply-sky",help=False,description="Including sky spectrum",dependencies=["setup-sky"])
+        self.registerStage(self.apply_qe,"apply-qe",help=False,description="Applying Quantum Efficiency Functions",dependencies=["setup-source"])
         
         self.registerStage(self.use_sky,"use-sky",help="Use only sky spectrum",description="Using only Sky spectrum",dependencies=["setup-sky","apply-qe"],include=False)
         
@@ -512,9 +513,22 @@ class SEDSimulator(Simulator,ImageObject):
     def setup_source_pixels(self):
         """Setup source pixels"""
         self.map_over_pixels(lambda p: p.make_pixel_square(),color="green")
+       
+    def apply_sky(self):
+        """Apply Sky Spectrum to each lenslet"""
+        self.map_over_lenslets(self._apply_sky_spectrum,color="Magenta")
+        
+    def _apply_sky_spectrum(self,lenslet):
+        """docstring for _apply_sky_spectrum"""
+        lenslet.spectrum += self.SkySpectrum
+        
+    def _apply_qe_spectrum(self,lenslet):
+        """Apply qe to each lenslet"""
+        lenslet.spectrum *= self.qe[self.config["Instrument"]["Thpt"]["Type"]] * self.config["Instrument"]["tel_area"] * self.config["Observation"]["exposure"]
         
     def apply_qe(self):
         """Apply the instrument quantum efficiency"""
+        self.map_over_lenslets(self._apply_qe_spectrum,color="Magenta")
         self.SkySpectrum *= self.qe[self.config["Instrument"]["Thpt"]["Type"]] * self.config["Instrument"]["tel_area"] * self.config["Observation"]["exposure"]
         self.Spectrum *= self.qe[self.config["Instrument"]["Thpt"]["Type"]] * self.config["Instrument"]["tel_area"] * self.config["Observation"]["exposure"]
         self.Original *= self.qe[self.config["Instrument"]["Thpt"]["Type"]] * self.config["Instrument"]["tel_area"] * self.config["Observation"]["exposure"]
