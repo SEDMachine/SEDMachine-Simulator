@@ -158,7 +158,7 @@ class SEDSimulator(Simulator,ImageObject):
     source = {
         'Filename' : "Data/SNIa.R1000.dat",
         'CubeName' : "Data/CUBE.fits",
-        'PreAmp' : 100.0,
+        'PreAmp' : 1e-7,
         'PXSize' : { 'mm' : 0.005 },
         'Rotation' : np.pi/4.0,
         'Sample_Lenslet' : 2000
