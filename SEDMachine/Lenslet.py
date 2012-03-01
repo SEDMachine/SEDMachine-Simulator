@@ -532,16 +532,32 @@ class Lenslet(ImageObject):
             A = self.rotate(A,angle,self.ps)
             points.append(A)
         self.shape = sh.geometry.Polygon(tuple(points))
+        
+    def show_geometry(self,color='#cccc00'):
+        """Show the source geometry"""
+        x, y = self.shape.exterior.xy
+        plt.fill(x, y, color=color, aa=True) 
+        plt.plot(x, y, color='#666600', aa=True, lw=0.25)
+        
+    def find_crosstalk(self,pixel):
+        """Find the crosstalk overlap with another pixel"""
+        if self.shape.disjoint(pixel.shape):
+            return
+        overlap = (self.shape.intersection(pixel.shape).area) / self.shape.area
+        self.spectrum += pixel * overlap
+        self.pixelValues[pixel.num] = overlap
+        
 
         
 class SourcePixel(FLambdaSpectrum):
     """Source Pixels are objects which handle the source shape and size for resampling"""
-    def __init__(self,x,y,config,**kwargs):
+    def __init__(self,x,y,config,num,**kwargs):
         super(SourcePixel, self).__init__(**kwargs)
         self.x = x
         self.y = y
         self.config = config
         self.ps = np.array([x,y])
+        self.num = num
     
     def make_pixel_square(self):
         """Make a specific pixel square"""
@@ -563,4 +579,11 @@ class SourcePixel(FLambdaSpectrum):
         R = np.matrix([[np.cos(angle),-1*np.sin(angle)],[np.sin(angle),np.cos(angle)]]).T
         pB = pA * R
         return np.array(pB + origin)[0]
+        
+    def show_geometry(self,color='#cccc00'):
+        """Show the source geometry"""
+        x, y = self.shape.exterior.xy
+        plt.fill(x, y, color=color, aa=True) 
+        plt.plot(x, y, color='#666600', aa=True, lw=0.25)
+    
     

@@ -47,6 +47,7 @@ class SEDSimulator(Simulator,ImageObject):
     def __init__(self):
         super(SEDSimulator, self).__init__(name="SEDMachine")
         self.debug = False
+        self.mapping = False
         self.dataClasses = [SubImage]
         self.lenslets = []
         self.config.merge(self.basics)
@@ -158,8 +159,8 @@ class SEDSimulator(Simulator,ImageObject):
         'Filename' : "Data/SNIa.R1000.dat",
         'CubeName' : "Data/CUBE.fits",
         'PreAmp' : 100.0,
-        'PXSize' : { 'mm' : 0.5 },
-        'Rotation' : 0,
+        'PXSize' : { 'mm' : 0.005 },
+        'Rotation' : np.pi/4.0,
     }
     
     def setup_stages(self):
@@ -179,12 +180,19 @@ class SEDSimulator(Simulator,ImageObject):
         self.registerStage(self.setup_lenslets,"setup-lenslets",help=False,description="Setting up lenslets",dependencies=["setup-config"])
         self.registerStage(self.setup_hexagons,"setup-hexagons",help=False,description="Setting up lenslet hexagons",dependencies=["setup-lenslets"])
         self.registerStage(self.setup_blank,"setup-blank",help=False,description="Creating blank image",dependencies=["setup-config"])
-        self.registerStage(self.setup_source,"setup-source",help=False,description="Creating source spectrum objects",dependencies=["setup-config","setup-constants"])
+        
         self.registerStage(self.setup_simple_source,"setup-source-simple",help=False,description="Creating simple source spectrum object",dependencies=["setup-config","setup-constants"],include=False,replaces=["setup-source"])
+        self.registerStage(None,"simple-source",help="Use a simple, centered source object",description="Replacing default source with a simple one",include=False,dependencies=["setup-source-simple"])
+        
+        self.registerStage(self.setup_source,"setup-source",help=False,description="Creating source spectrum objects",dependencies=["setup-config","setup-constants"])
+        self.registerStage(self.setup_source_pixels,"setup-source-pixels",help=False,description="Making source pixels",dependencies=["setup-source"])
+        
         self.registerStage(self.setup_noise,"setup-noise",help=False,description="Setting up Dark/Bias frames",dependencies=["setup-config","setup-cameras"])
         self.registerStage(self.setup_sky,"setup-sky",help=False,description="Setting up Sky spectrum object",dependencies=["setup-config","setup-constants"])
         self.registerStage(self.flat_source,"flat-source",help="Make a constant value source",description="Replacing default source with a flat one.",include=False,replaces=["setup-source"])
-        self.registerStage(None,"simple-source",help="Use a simple, centered source object",description="Replacing default source with a simple one",include=False,dependencies=["setup-source-simple"])
+        
+        self.registerStage(self.geometric_resample,"geometric-resample",help=False,description="Performing geometric resample",dependencies=["setup-source-pixels","setup-hexagons"])
+        
         self.registerStage(None,"setup",help="System Setup",description="Set up simulator",
             dependencies=["setup-caches","setup-lenslets","setup-hexagons","setup-blank","setup-source","setup-noise","setup-constants","setup-sky","setup-cameras"],
             )
@@ -192,6 +200,10 @@ class SEDSimulator(Simulator,ImageObject):
         self.registerStage(self.apply_qe,"apply-qe",help=False,description="Applying Quantum Efficiency Functions",dependencies=["setup-source","setup-sky"])
         
         self.registerStage(self.use_sky,"use-sky",help="Use only sky spectrum",description="Using only Sky spectrum",dependencies=["setup-sky","apply-qe"],include=False)
+        
+        self.registerStage(self.plot_hexagons,"plot-hexagons",help="Plot Lenslet hexagons",description="Plotting Lenslet hexagons",include=False,dependencies=["setup-hexagons"])
+        self.registerStage(self.plot_pixels,"plot-pixels",help="Plot Pixel positions",description="Plotting pixel squares",include=False,dependencies=["setup-source-pixels"])
+        self.registerStage(self.plot_geometry,"plot-geometry",help="Plot geometry",description="Plotting Lenslet-plane geometry",include=False,dependencies=["setup-source-pixels","setup-hexagons"])
         
         self.registerStage(self.plot_source,"plot-source",help="Plot sky spectrum",description="Plotting Source Spectrum",include=False,dependencies=["setup-sky","setup-source","apply-qe"])
         self.registerStage(self.plot_sky,"plot-sky",help="Plot sky spectrum",description="Plotting Sky Spectrum",include=False,dependencies=["setup-sky","apply-qe"])
@@ -215,7 +227,7 @@ class SEDSimulator(Simulator,ImageObject):
         self.registerStage(self.save_file,"save",help="Save image to file",description="Saving image to disk",dependencies=["setup-blank"])
         self.registerStage(None,"cached-only",help="Use cached subimages to construct final image",description="Building image from caches",dependencies=["merge-cached","crop","add-noise","save"],include=False)
         
-        self.registerStage(None,"plot",help="Create all plots",description="Plotting everything",dependencies=["plot-lenslet-xy","plot-lenslets","plot-sky","plot-qe","plot-source"],include=False)
+        self.registerStage(None,"plot",help="Create all plots",description="Plotting everything",dependencies=["plot-lenslet-xy","plot-lenslets","plot-sky","plot-qe","plot-source","plot-geometry","plot-hexagons","plot-pixels"],include=False)
         
     def setup_caches(self):
         """Register all of the cache objects and types"""
@@ -344,9 +356,9 @@ class SEDSimulator(Simulator,ImageObject):
         self.SourcePixels = []
         for i in range(shape[0]):
             for j in range(shape[1]):
-                self.SourcePixels.append(SourcePixel(i,j,data=data[i,j],label="Source Pixel %d,%d" % (i,j)))
                 progress = int((finished/float(total)) * 100)
                 finished += 1
+                self.SourcePixels.append(SourcePixel(i,j,data=data[i,j],label="Source Pixel %d,%d" % (i,j),config=self.config,num=finished))
                 PBar.render(progress,"L:%4d,%4d %6d/%-6d" % (i,j,finished,total))
         
         PBar.render(1,"L:%4s,%4s %6d/%-6d" % ("Done","",finished,total))
@@ -360,7 +372,7 @@ class SEDSimulator(Simulator,ImageObject):
         WL *= 1e-10
         self.Spectrum = FLambdaSpectrum(np.array([WL,FL]),self.config["Source"]["Filename"])
         self.Original = FLambdaSpectrum(np.array([WL,FL]),self.config["Source"]["Filename"])
-        self.SourcePixels = [SourcePixel(0,0,data=np.array([WL,FL]),label="Source Pixel",config=self.config)]
+        self.SourcePixels = [SourcePixel(0,0,data=np.array([WL,FL]),label="Source Pixel",config=self.config,num=1)]
     
     
     def setup_cameras(self):
@@ -490,6 +502,10 @@ class SEDSimulator(Simulator,ImageObject):
         """Make the lenslet hexagons"""
         self.map_over_lenslets(lambda l: l.make_hexagon(),color="green")
         
+    def setup_source_pixels(self):
+        """Setup source pixels"""
+        self.map_over_pixels(lambda p: p.make_pixel_square(),color="green")
+        
     def apply_qe(self):
         """Apply the instrument quantum efficiency"""
         self.SkySpectrum *= self.qe[self.config["Instrument"]["Thpt"]["Type"]] * self.config["Instrument"]["tel_area"] * self.config["Observation"]["exposure"]
@@ -497,6 +513,11 @@ class SEDSimulator(Simulator,ImageObject):
         self.Original *= self.qe[self.config["Instrument"]["Thpt"]["Type"]] * self.config["Instrument"]["tel_area"] * self.config["Observation"]["exposure"]
         self.Spectrum += self.SkySpectrum
         
+        
+    def geometric_resample(self):
+        """docstring for fname"""
+        self.map_over_lenslets(lambda l:self.map_over_pixels(lambda p:l.find_crosstalk(p),color=False),color="green")
+                
         
     def use_sky(self):
         """Use the sky spectrum only"""
@@ -726,47 +747,90 @@ class SEDSimulator(Simulator,ImageObject):
         plt.savefig(FileName)
         plt.clf()
     
+    def plot_hexagons(self):
+        """Plot the lenslet Hexagons"""
+        plt.figure()
+        plt.clf()
+        plt.title("Position of Lenslets")
+        self.map_over_lenslets(lambda l:l.show_geometry(),color="cyan")
+        plt.xlabel("x")
+        plt.ylabel("y")
+        FileName = "%(Partials)s/Lenslet-Hexagons%(fmt)s" % dict(fmt=self.config["plot_format"],**self.config["Dirs"])
+        plt.savefig(FileName)
+        plt.clf()
+        
+    def plot_pixels(self):
+        """Plot the source pixels"""
+        plt.figure()
+        plt.clf()
+        plt.title("Position of pixels")
+        self.map_over_pixels(lambda p:p.show_geometry(),color="cyan")
+        plt.xlabel("x")
+        plt.ylabel("y")
+        FileName = "%(Partials)s/Pixel-Geometry%(fmt)s" % dict(fmt=self.config["plot_format"],**self.config["Dirs"])
+        plt.savefig(FileName)
+        plt.clf()
+        
+    def plot_geometry(self):
+        """Plot all of the geomoetry stacked"""
+        plt.figure()
+        plt.clf()
+        plt.title("Lenslet Plane Geometry")
+        self.map_over_lenslets(lambda l:l.show_geometry(color="#cccc00"),color="cyan")
+        self.map_over_pixels(lambda p:p.show_geometry(color="#cc00cc"),color="cyan")
+        plt.xlabel("x")
+        plt.ylabel("y")
+        FileName = "%(Partials)s/System-Geometry%(fmt)s" % dict(fmt=self.config["plot_format"],**self.config["Dirs"])
+        plt.savefig(FileName)
+        plt.clf()
+    
+    
+    #######################
+    ## Mapping Functions ##
+    #######################
     
     def map_over_lenslets(self,function,exceptions=True,color="green"):
         """Maps a given function to operate on each lenslet, and displays a progress bar along the way."""
-        if exceptions == True:
-            exceptions = Exception
         collection = self.lenslets.values()
-        self.progress = 0.0
-        self.errors = 0
-        self.bar = arpytools.progressbar.ProgressBar(color=color)
-        self.log.useConsole(False)
-        self.bar.render(0,"L:%4s %4d/%-4d" % ("",self.progress,self.total))
-        map(lambda l:self._collection_map(l,function,exceptions,l.num),collection)
-        self.bar.render(100,"L:%4s %4d/%-4d" % ("Done",self.progress,self.total))
-        self.log.useConsole(True)
-        if self.progress != self.total:
-            self.log.warning("Progress and Total are different at end of loop: %d != %d" % (self.progress,self.total))
-        if self.errors != 0:
-            self.log.warning("Trapped %d errors" % self.errors)
+        self.map_over_collection(function,lambda l:l.num,collection,exceptions,color)
         
     def map_over_pixels(self,function,exceptions=True,color="green"):
         """Maps some function over a bunch of source pixels"""
+        collection = self.SourcePixels
+        self.map_over_collection(function,lambda p:p.num,collection,exceptions,color)
+        
+    
+    def map_over_collection(self,function,idfun,collection,exceptions=True,color="green"):
+        """docstring for map_over_collection"""
         if exceptions == True:
             exceptions = Exception
-        collection = self.SourcePixels
-        self.progress = 0.0
         self.errors = 0
-        self.bar = arpytools.progressbar.ProgressBar(color=color)
-        self.log.useConsole(False)
-        self.bar.render(0,"L:%4s %4d/%-4d" % ("",self.progress,self.total))
-        map(lambda l:self._collection_map(l,function,exceptions,l.num),collection)
-        self.bar.render(100,"L:%4s %4d/%-4d" % ("Done",self.progress,self.total))
-        self.log.useConsole(True)
-        if self.progress != self.total:
-            self.log.warning("Progress and Total are different at end of loop: %d != %d" % (self.progress,self.total))
+        showBar = False
+        if not self.mapping and isinstance(color,str):
+            showBar = True
+            self.progress = 0.0
+            self.total = len(collection)
+            self.bar = arpytools.progressbar.ProgressBar(color=color)
+            self.log.useConsole(False)
+            self.bar.render(0,"L:%4s %4d/%-4d" % ("",self.progress,self.total))
+        self.mapping = True
+        map(lambda l:self._collection_map(l,function,exceptions,idfun,showBar),collection)
+        if showBar:
+            self.bar.render(100,"L:%4s %4d/%-4d" % ("Done",self.progress,self.total))
+            self.log.useConsole(True)
+            if self.progress != self.total:
+                self.log.warning("Progress and Total are different at end of loop: %d != %d" % (self.progress,self.total))
         if self.errors != 0:
             self.log.warning("Trapped %d errors" % self.errors)
+        self.mapping = False
         
+    
             
-    def _collection_map(self,lenslet,function,exceptions,identity):
+    def _collection_map(self,lenslet,function,exceptions,idfun,showBar):
         """Maps something over a bunch of lenslets"""
-        self.bar.render(int(self.progress/self.total * 100),"L:%4d %4d/%-4d" % (identity,self.progress,self.total))
+        identity = idfun(lenslet)
+        if showBar:
+            self.bar.render(int(self.progress/self.total * 100),"L:%4d %4d/%-4d" % (identity,self.progress,self.total))
         try:
             function(lenslet)
         except exceptions as e:
@@ -774,10 +838,12 @@ class SEDSimulator(Simulator,ImageObject):
             self.log.error(str(e))
             self.errors += 1
             if self.config["Debug"]:
+                self.log.useConsole(True)
                 raise
         finally:
-            self.progress += 1.0
-            self.bar.render(int(self.progress/self.total * 100),"L:%4d %4d/%-4d" % (identity,self.progress,self.total))
+            if showBar:
+                self.progress += 1.0
+                self.bar.render(int(self.progress/self.total * 100),"L:%4d %4d/%-4d" % (identity,self.progress,self.total))
         
         
         
