@@ -156,7 +156,10 @@ class SEDSimulator(Simulator,ImageObject):
     
     source = {
         'Filename' : "Data/SNIa.R1000.dat",
+        'CubeName' : "Data/CUBE.fits",
         'PreAmp' : 100.0,
+        'PXSize' : { 'mm' : 0.5 },
+        'Rotation' : 0,
     }
     
     def setup_stages(self):
@@ -174,13 +177,16 @@ class SEDSimulator(Simulator,ImageObject):
         self.registerStage(self.setup_constants,"setup-constants",help=False,description="Setting up physical constants")
         self.registerStage(self.setup_cameras,"setup-cameras",help=False,description="Setting up Cameras")
         self.registerStage(self.setup_lenslets,"setup-lenslets",help=False,description="Setting up lenslets",dependencies=["setup-config"])
+        self.registerStage(self.setup_hexagons,"setup-hexagons",help=False,description="Setting up lenslet hexagons",dependencies=["setup-lenslets"])
         self.registerStage(self.setup_blank,"setup-blank",help=False,description="Creating blank image",dependencies=["setup-config"])
         self.registerStage(self.setup_source,"setup-source",help=False,description="Creating source spectrum objects",dependencies=["setup-config","setup-constants"])
+        self.registerStage(self.setup_simple_source,"setup-source-simple",help=False,description="Creating simple source spectrum object",dependencies=["setup-config","setup-constants"],include=False,replaces=["setup-source"])
         self.registerStage(self.setup_noise,"setup-noise",help=False,description="Setting up Dark/Bias frames",dependencies=["setup-config","setup-cameras"])
         self.registerStage(self.setup_sky,"setup-sky",help=False,description="Setting up Sky spectrum object",dependencies=["setup-config","setup-constants"])
         self.registerStage(self.flat_source,"flat-source",help="Make a constant value source",description="Replacing default source with a flat one.",include=False,replaces=["setup-source"])
+        self.registerStage(None,"simple-source",help="Use a simple, centered source object",description="Replacing default source with a simple one",include=False,dependencies=["setup-source-simple"])
         self.registerStage(None,"setup",help="System Setup",description="Set up simulator",
-            dependencies=["setup-caches","setup-lenslets","setup-blank","setup-source","setup-noise","setup-constants","setup-sky","setup-cameras"],
+            dependencies=["setup-caches","setup-lenslets","setup-hexagons","setup-blank","setup-source","setup-noise","setup-constants","setup-sky","setup-cameras"],
             )
         
         self.registerStage(self.apply_qe,"apply-qe",help=False,description="Applying Quantum Efficiency Functions",dependencies=["setup-source","setup-sky"])
@@ -321,12 +327,40 @@ class SEDSimulator(Simulator,ImageObject):
 
     def setup_source(self):
         """Sets up a uniform source file based spectrum"""
+        
+        
+        Source = ImageObject()
+        Source.read(self.config["Source"]["CubeName"])
+        data = Source.data()
+        shape = data.shape
+        
+        # Progress bar for lenslet creation and validation
+        PBar = arpytools.progressbar.ProgressBar(color="green")
+        finished = 0.0
+        total = shape[0] * shape[1]
+        self.log.useConsole(False)
+        PBar.render(0,"L:%4s,%4s %6d/%-6d" % ("","",finished,total))
+        
+        self.SourcePixels = []
+        for i in range(shape[0]):
+            for j in range(shape[1]):
+                self.SourcePixels.append(SourcePixel(i,j,data=data[i,j],label="Source Pixel %d,%d" % (i,j)))
+                progress = int((finished/float(total)) * 100)
+                finished += 1
+                PBar.render(progress,"L:%4d,%4d %6d/%-6d" % (i,j,finished,total))
+        
+        PBar.render(1,"L:%4s,%4s %6d/%-6d" % ("Done","",finished,total))
+        
+        
+    def setup_simple_source(self):
+        """docstring for setup_simple_source"""        
         WL,FL = np.genfromtxt(self.config["Source"]["Filename"]).T
         FL /= self.const["hc"] / WL
         FL *= 1e10 #Spectrum was per Angstrom, should now be per Meter
         WL *= 1e-10
         self.Spectrum = FLambdaSpectrum(np.array([WL,FL]),self.config["Source"]["Filename"])
         self.Original = FLambdaSpectrum(np.array([WL,FL]),self.config["Source"]["Filename"])
+        self.SourcePixels = [SourcePixel(0,0,data=np.array([WL,FL]),label="Source Pixel",config=self.config)]
     
     
     def setup_cameras(self):
@@ -451,6 +485,10 @@ class SEDSimulator(Simulator,ImageObject):
         
         self.Sky_Original = InterpolatedSpectrum(np.array([WL,FL]),"SkySpectrum")
         self.SkySpectrum = FLambdaSpectrum(np.array([WL,FL]),"SkySpectrum")
+        
+    def setup_hexagons(self):
+        """Make the lenslet hexagons"""
+        self.map_over_lenslets(lambda l: l.make_hexagon(),color="green")
         
     def apply_qe(self):
         """Apply the instrument quantum efficiency"""
@@ -693,34 +731,53 @@ class SEDSimulator(Simulator,ImageObject):
         """Maps a given function to operate on each lenslet, and displays a progress bar along the way."""
         if exceptions == True:
             exceptions = Exception
-        
+        collection = self.lenslets.values()
         self.progress = 0.0
         self.errors = 0
         self.bar = arpytools.progressbar.ProgressBar(color=color)
         self.log.useConsole(False)
         self.bar.render(0,"L:%4s %4d/%-4d" % ("",self.progress,self.total))
-        map(lambda l:self._lenslet_map(l,function,exceptions),self.lenslets.values())
+        map(lambda l:self._collection_map(l,function,exceptions,l.num),collection)
         self.bar.render(100,"L:%4s %4d/%-4d" % ("Done",self.progress,self.total))
         self.log.useConsole(True)
         if self.progress != self.total:
             self.log.warning("Progress and Total are different at end of loop: %d != %d" % (self.progress,self.total))
         if self.errors != 0:
             self.log.warning("Trapped %d errors" % self.errors)
+        
+    def map_over_pixels(self,function,exceptions=True,color="green"):
+        """Maps some function over a bunch of source pixels"""
+        if exceptions == True:
+            exceptions = Exception
+        collection = self.SourcePixels
+        self.progress = 0.0
+        self.errors = 0
+        self.bar = arpytools.progressbar.ProgressBar(color=color)
+        self.log.useConsole(False)
+        self.bar.render(0,"L:%4s %4d/%-4d" % ("",self.progress,self.total))
+        map(lambda l:self._collection_map(l,function,exceptions,l.num),collection)
+        self.bar.render(100,"L:%4s %4d/%-4d" % ("Done",self.progress,self.total))
+        self.log.useConsole(True)
+        if self.progress != self.total:
+            self.log.warning("Progress and Total are different at end of loop: %d != %d" % (self.progress,self.total))
+        if self.errors != 0:
+            self.log.warning("Trapped %d errors" % self.errors)
+        
             
-    def _lenslet_map(self,lenslet,function,exceptions):
+    def _collection_map(self,lenslet,function,exceptions,identity):
         """Maps something over a bunch of lenslets"""
-        self.bar.render(int(self.progress/self.total * 100),"L:%4d %4d/%-4d" % (lenslet.num,self.progress,self.total))
+        self.bar.render(int(self.progress/self.total * 100),"L:%4d %4d/%-4d" % (identity,self.progress,self.total))
         try:
             function(lenslet)
         except exceptions as e:
-            self.log.error("Caught %s in Lenslet %d" % (e.__class__.__name__,lenslet.num))
+            self.log.error("Caught %s in %d" % (e.__class__.__name__,identity))
             self.log.error(str(e))
             self.errors += 1
             if self.config["Debug"]:
                 raise
         finally:
             self.progress += 1.0
-            self.bar.render(int(self.progress/self.total * 100),"L:%4d %4d/%-4d" % (lenslet.num,self.progress,self.total))
+            self.bar.render(int(self.progress/self.total * 100),"L:%4d %4d/%-4d" % (identity,self.progress,self.total))
         
         
         

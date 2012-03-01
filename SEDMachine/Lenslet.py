@@ -35,12 +35,12 @@ import AstroObject.AstroSimulator
 from AstroObject.AstroCache import *
 from AstroObject.AstroSpectra import SpectraObject
 from AstroObject.AstroImage import ImageObject,ImageFrame
-from AstroObject.AnalyticSpectra import BlackBodySpectrum, AnalyticSpectrum, FlatSpectrum
+from AstroObject.AnalyticSpectra import BlackBodySpectrum, AnalyticSpectrum, FlatSpectrum, FLambdaSpectrum
 from AstroObject.Utilities import *
 
 
 __version__ = getVersion(__name__)
-__all__ = ["SEDLimits","Lenslet","SubImage"]
+__all__ = ["SEDLimits","Lenslet","SubImage","SourcePixel"]
 
 class SEDLimits(Exception):
     """A Basic Error-Differentiation Class.
@@ -523,7 +523,7 @@ class Lenslet(ImageObject):
     
     def make_hexagon(self):
         """Generates a hexagonal polygon for this lenslet, to be used for area calculations"""
-        radius = self.conifg["Instrument"]["lenslets"]["radius"]
+        radius = self.config["Instrument"]["lenslets"]["radius"]
         angle = np.pi/3.0
         rotation =  self.config["Instrument"]["lenslets"]["rotation"] * (np.pi/180.0) #Absolute angle of rotation for hexagons
         A = self.rotate(self.ps + np.array([radius,0]),rotation,self.ps)
@@ -534,10 +534,33 @@ class Lenslet(ImageObject):
         self.shape = sh.geometry.Polygon(tuple(points))
 
         
-class SourcePixel(object):
+class SourcePixel(FLambdaSpectrum):
     """Source Pixels are objects which handle the source shape and size for resampling"""
-    def __init__(self):
-        super(SourcePixel, self).__init__()
+    def __init__(self,x,y,config,**kwargs):
+        super(SourcePixel, self).__init__(**kwargs)
+        self.x = x
+        self.y = y
+        self.config = config
+        self.ps = np.array([x,y])
+    
+    def make_pixel_square(self):
+        """Make a specific pixel square"""
+        radius = self.config["Source"]["PXSize"]["mm"]
+        rotation = self.config["Source"]["Rotation"]
+        angle = np.pi/2.0
+        A = self.rotate(self.ps+np.array([0,radius]),rotation,self.ps)
+        points = [A]
+        for i in range(4):
+            A = self.rotate(A,angle)
+            points.append(A)
+        self.shape = sh.geometry.Polygon(tuple(points))
         
-                
-
+    def rotate(self,point,angle,origin=None):
+        """Rotate a given point by the provided angle around the origin given"""
+        if origin == None:
+            origin = np.array([0,0])
+        pA = np.matrix((point - origin))
+        R = np.matrix([[np.cos(angle),-1*np.sin(angle)],[np.sin(angle),np.cos(angle)]]).T
+        pB = pA * R
+        return np.array(pB + origin)[0]
+    
