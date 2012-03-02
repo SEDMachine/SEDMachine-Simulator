@@ -130,8 +130,8 @@ class SEDSimulator(Simulator,ImageObject):
         'image_size': { 'mm': 40.0}, 
         'tel_radii': { 'px': 1.2},
         'tel_area' : 18242. * 0.9,
-        'gain': 5e-5,
-        'eADU' : 3.802,
+        'gain': 5,
+        'eADU' : 3.802e-2,
         'lenslets' : {
               'radius' : 0.245e-2,
               'rotation' : 27.0,
@@ -206,10 +206,12 @@ class SEDSimulator(Simulator,ImageObject):
         self.registerStage(self.plot_hexagons,"plot-hexagons",help="Plot Lenslet hexagons",description="Plotting Lenslet hexagons",include=False,dependencies=["setup-hexagons"])
         self.registerStage(self.plot_invalid_hexagons,"plot-invalid-hexagons",help="Plot Shapely-invalid hexagons",description="Plotting invalid hexagons",include=False,dependencies=["setup-hexagons"])
         self.registerStage(self.plot_pixels,"plot-pixels",help="Plot Pixel positions",description="Plotting pixel squares",include=False,dependencies=["setup-source-pixels"])
+        self.registerStage(self.plot_invalid_pixels,"plot-invalid-pixels",help="Plot Shapely-invalid Pixel positions",description="Plotting invalid pixel squares",include=False,dependencies=["setup-source-pixels"])
+
         self.registerStage(self.plot_geometry,"plot-geometry",help="Plot geometry",description="Plotting Lenslet-plane geometry",include=False,dependencies=["setup-source-pixels","setup-hexagons"])
-        self.registerStage(None,"plot-geo",help="Do all geometry plots",description="Plotting geometries",include=False,dependencies=["plot-hexagons","plot-invalid-hexagons","plot-pixels","plot-geometry"])
+        self.registerStage(None,"plot-geo",help="Do all geometry plots",description="Plotting geometries",include=False,dependencies=["plot-hexagons","plot-invalid-hexagons","plot-pixels","plot-geometry","plot-resample"])
         
-        
+        self.registerStage(self.write_resample,"write-resample",help="Output Resample Matrix",description="Writing resample Matrix",include=False,dependencies=["geometric-resample"])
         self.registerStage(self.plot_resample,"plot-resample",help="Plot reample matrix",description="Plotting resample matrix",include=False,dependencies=["geometric-resample"])
         
         self.registerStage(self.plot_source,"plot-source",help="Plot sky spectrum",description="Plotting Source Spectrum",include=False,dependencies=["setup-sky","setup-source","apply-sky","apply-qe"])
@@ -344,7 +346,7 @@ class SEDSimulator(Simulator,ImageObject):
     
     def setup_blank(self):
         """Establish a blank Image"""
-        self.save(np.zeros((self.config["Instrument"]["image_size"]["px"],self.config["Instrument"]["image_size"]["px"])).astype(np.int16),"Blank")
+        self.save(np.zeros((self.config["Instrument"]["image_size"]["px"],self.config["Instrument"]["image_size"]["px"])).astype(np.int32),"Blank")
 
     def setup_source(self):
         """Sets up a uniform source file based spectrum"""
@@ -381,7 +383,7 @@ class SEDSimulator(Simulator,ImageObject):
         WL *= 1e-10
         self.Spectrum = FLambdaSpectrum(np.array([WL,FL]),self.config["Source"]["Filename"])
         self.Original = FLambdaSpectrum(np.array([WL,FL]),self.config["Source"]["Filename"])
-        self.SourcePixels = [SourcePixel(-0.13,0,data=np.array([WL,FL]),label="Source Pixel",config=self.config,num=1)]
+        self.SourcePixels = [SourcePixel(-0.13,0,data=np.array([WL,FL]),label="Source Pixel",config=self.config,num=1),SourcePixel(0,0,data=np.array([WL,FL]),label="Source Pixel",config=self.config,num=2),SourcePixel(0.05,0.05,data=np.array([WL,FL]),label="Source Pixel",config=self.config,num=3)]
         for ix,px in enumerate(self.SourcePixels):
             px.idx = ix
     
@@ -800,6 +802,24 @@ class SEDSimulator(Simulator,ImageObject):
         FileName = "%(Partials)s/Pixel-Geometry%(fmt)s" % dict(fmt=self.config["plot_format"],**self.config["Dirs"])
         plt.savefig(FileName)
         plt.clf()
+    
+    def plot_invalid_pixels(self):
+        """Plot invalid shapes"""
+        plt.figure()
+        plt.clf()
+        plt.title("Position of invalid pixels")
+        self.map_over_pixels(self._plot_invalid_pixels,color="cyan")
+        plt.xlabel("x")
+        plt.ylabel("y")
+        FileName = "%(Partials)s/Pixel-Invalid-Geometry%(fmt)s" % dict(fmt=self.config["plot_format"],**self.config["Dirs"])
+        plt.savefig(FileName)
+        plt.clf()
+    
+    def _plot_invalid_pixels(self,pixel):
+        """docstring for _plot_invalid_hexagon"""
+        if not pixel.shape.is_valid:
+            pixel.show_geometry()
+    
         
     def plot_invalid_hexagons(self):
         """Plot invalid shapes"""
@@ -854,6 +874,20 @@ class SEDSimulator(Simulator,ImageObject):
         """docstring for _show_lenslet_resample"""
         lenslet.show_geometry(color=pixel.get_color(lenslet.idx))
     
+    
+    def write_resample(self):
+        """Write the resample matrix to file"""
+        with open("%(Partials)s/Resample-info.dat" % dict(**self.config["Dirs"]),"w") as infostream:
+            with open("%(Partials)s/Resample.dat" % dict(**self.config["Dirs"]),"w") as rawstream:
+                infostream.write("# Resample Matrix \n")
+                self.map_over_lenslets(lambda l: self._write_resample(l,infostream,rawstream),color="cyan")
+    
+    def _write_resample(self,lenslet,streama,streamb):
+        """Write the resampleing matrix"""
+        string = "%(lenslet)d %(info)s %(spec)s\n" % { 'lenslet': lenslet.num, 'info': npArrayInfo(lenslet.pixelValues), 'array': lenslet.pixelValues , 'spec' : str(lenslet.spectrum)}
+        streama.write(string)
+        np.savetxt(streamb,lenslet.pixelValues)
+        
     
     #######################
     ## Mapping Functions ##
