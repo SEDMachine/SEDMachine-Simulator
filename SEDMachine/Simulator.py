@@ -130,7 +130,7 @@ class SEDSimulator(Simulator,ImageObject):
         'image_size': { 'mm': 40.0}, 
         'tel_radii': { 'px': 1.2},
         'tel_area' : 18242. * 0.9,
-        'gain': 5,
+        'gain': 5e-5,
         'eADU' : 3.802,
         'lenslets' : {
               'radius' : 0.245e-2,
@@ -199,24 +199,26 @@ class SEDSimulator(Simulator,ImageObject):
             )
         
         self.registerStage(self.apply_sky,"apply-sky",help=False,description="Including sky spectrum",dependencies=["setup-sky","setup-lenslets","geometric-resample"])
-        self.registerStage(self.apply_qe,"apply-qe",help=False,description="Applying Quantum Efficiency Functions",dependencies=["setup-source","setup-lenslets","geometric-resample"])
+        self.registerStage(self.apply_qe,"apply-qe",help=False,description="Applying Quantum Efficiency Functions",dependencies=["setup-sky","setup-source","setup-lenslets","geometric-resample"])
         
-        self.registerStage(self.use_sky,"use-sky",help="Use only sky spectrum",description="Using only Sky spectrum",dependencies=["setup-sky","apply-qe"],include=False)
+        self.registerStage(self.use_sky,"use-sky",help="Use only sky spectrum",description="Using only Sky spectrum",dependencies=["setup-sky","apply-sky","apply-qe"],include=False)
         
         self.registerStage(self.plot_hexagons,"plot-hexagons",help="Plot Lenslet hexagons",description="Plotting Lenslet hexagons",include=False,dependencies=["setup-hexagons"])
         self.registerStage(self.plot_invalid_hexagons,"plot-invalid-hexagons",help="Plot Shapely-invalid hexagons",description="Plotting invalid hexagons",include=False,dependencies=["setup-hexagons"])
         self.registerStage(self.plot_pixels,"plot-pixels",help="Plot Pixel positions",description="Plotting pixel squares",include=False,dependencies=["setup-source-pixels"])
         self.registerStage(self.plot_geometry,"plot-geometry",help="Plot geometry",description="Plotting Lenslet-plane geometry",include=False,dependencies=["setup-source-pixels","setup-hexagons"])
+        self.registerStage(None,"plot-geo",help="Do all geometry plots",description="Plotting geometries",include=False,dependencies=["plot-hexagons","plot-invalid-hexagons","plot-pixels","plot-geometry"])
+        
         
         self.registerStage(self.plot_resample,"plot-resample",help="Plot reample matrix",description="Plotting resample matrix",include=False,dependencies=["geometric-resample"])
         
-        self.registerStage(self.plot_source,"plot-source",help="Plot sky spectrum",description="Plotting Source Spectrum",include=False,dependencies=["setup-sky","setup-source","apply-qe"])
-        self.registerStage(self.plot_sky,"plot-sky",help="Plot sky spectrum",description="Plotting Sky Spectrum",include=False,dependencies=["setup-sky","apply-qe"])
+        self.registerStage(self.plot_source,"plot-source",help="Plot sky spectrum",description="Plotting Source Spectrum",include=False,dependencies=["setup-sky","setup-source","apply-sky","apply-qe"])
+        self.registerStage(self.plot_sky,"plot-sky",help="Plot sky spectrum",description="Plotting Sky Spectrum",include=False,dependencies=["setup-sky","apply-sky","apply-qe"])
         self.registerStage(self.plot_qe,"plot-qe",help="Plot QE spectrum",description="Plotting QE Spectrum",include=False,dependencies=["setup-sky"])
         self.registerStage(self.plot_lenslet_data,"plot-lenslet-xy",help="Plot Lenslets",description="Plotting lenslet positions",include=False,dependencies=["setup-lenslets"])
         
         self.registerStage(self.lenslet_dispersion,"dispersion",help="Calculate dispersion",description="Calculating dispersion for each lenslet",dependencies=["setup-lenslets","setup-caches"])
-        self.registerStage(self.lenslet_trace,"trace",help="Trace Lenslets",description="Tracing lenslet dispersion",dependencies=["dispersion","setup-caches","apply-qe"])
+        self.registerStage(self.lenslet_trace,"trace",help="Trace Lenslets",description="Tracing lenslet dispersion",dependencies=["dispersion","setup-caches","apply-sky","apply-qe"])
         self.registerStage(self.lenslet_place,"place",help="Place Subimages",description="Placing lenslet spectra",dependencies=["trace"])
         
         self.registerStage(self.plot_dispersion_data,"plot-dispersion",help=False,description="Plotting dispersion for each lenslet",dependencies=["dispersion"],include=False)
@@ -379,7 +381,7 @@ class SEDSimulator(Simulator,ImageObject):
         WL *= 1e-10
         self.Spectrum = FLambdaSpectrum(np.array([WL,FL]),self.config["Source"]["Filename"])
         self.Original = FLambdaSpectrum(np.array([WL,FL]),self.config["Source"]["Filename"])
-        self.SourcePixels = [SourcePixel(0,0,data=np.array([WL,FL]),label="Source Pixel",config=self.config,num=1)]
+        self.SourcePixels = [SourcePixel(-0.13,0,data=np.array([WL,FL]),label="Source Pixel",config=self.config,num=1)]
         for ix,px in enumerate(self.SourcePixels):
             px.idx = ix
     
@@ -516,7 +518,9 @@ class SEDSimulator(Simulator,ImageObject):
        
     def apply_sky(self):
         """Apply Sky Spectrum to each lenslet"""
-        self.map_over_lenslets(self._apply_sky_spectrum,color="Magenta")
+        self.map_over_lenslets(self._apply_sky_spectrum,color=False)
+        self.Spectrum += self.SkySpectrum
+        
         
     def _apply_sky_spectrum(self,lenslet):
         """docstring for _apply_sky_spectrum"""
@@ -528,11 +532,10 @@ class SEDSimulator(Simulator,ImageObject):
         
     def apply_qe(self):
         """Apply the instrument quantum efficiency"""
-        self.map_over_lenslets(self._apply_qe_spectrum,color="Magenta")
+        self.map_over_lenslets(self._apply_qe_spectrum,color=False)
         self.SkySpectrum *= self.qe[self.config["Instrument"]["Thpt"]["Type"]] * self.config["Instrument"]["tel_area"] * self.config["Observation"]["exposure"]
         self.Spectrum *= self.qe[self.config["Instrument"]["Thpt"]["Type"]] * self.config["Instrument"]["tel_area"] * self.config["Observation"]["exposure"]
         self.Original *= self.qe[self.config["Instrument"]["Thpt"]["Type"]] * self.config["Instrument"]["tel_area"] * self.config["Observation"]["exposure"]
-        self.Spectrum += self.SkySpectrum
         
         
     def geometric_resample(self):
