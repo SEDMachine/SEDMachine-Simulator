@@ -545,7 +545,7 @@ class Lenslet(ImageObject):
     def setup_crosstalk(self,n):
         """docstring for setup_crosstalk"""
         self.pixelValues = np.zeros((n))
-        self.spectrum = FlatSpectrum(1.0)
+        self.spectrum = FlatSpectrum(0.0)
     
     def find_crosstalk(self,pixel):
         """Find the crosstalk overlap with another pixel"""
@@ -580,7 +580,7 @@ class SourcePixel(FLambdaSpectrum):
         A = self.rotate(self.ps+np.array([0,radius]),rotation,self.ps)
         points = [A]
         for i in range(4):
-            A = self.rotate(A,angle)
+            A = self.rotate(A,angle,self.ps)
             points.append(A)
         self.shape = sh.geometry.Polygon(tuple(points))
         
