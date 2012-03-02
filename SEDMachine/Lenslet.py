@@ -536,7 +536,7 @@ class Lenslet(ImageObject):
             points.append(A)
         self.shape = sh.geometry.Polygon(tuple(points))
         
-    def show_geometry(self,color='#cccc00'):
+    def show_geometry(self,color='#cccc00',label=False):
         """Show the source geometry"""
         x, y = self.shape.exterior.xy
         plt.fill(x, y, color=color, aa=True) 
@@ -579,7 +579,7 @@ class SourcePixel(FLambdaSpectrum):
         angle = np.pi/2.0
         A = self.rotate(self.ps+np.array([0,radius]),rotation,self.ps)
         points = [A]
-        for i in range(4):
+        for i in range(3):
             A = self.rotate(A,angle,self.ps)
             points.append(A)
         self.shape = sh.geometry.Polygon(tuple(points))
