@@ -34,7 +34,7 @@ import AstroObject
 from AstroObject.AstroSimulator import Simulator
 from AstroObject.AstroCache import *
 from AstroObject.AstroConfig import *
-from AstroObject.AstroSpectra import SpectraObject
+from AstroObject.AstroSpectra import SpectraObject,SpectraFrame
 from AstroObject.AstroImage import ImageObject,ImageFrame
 from AstroObject.AnalyticSpectra import BlackBodySpectrum, AnalyticSpectrum, FlatSpectrum, ResampledSpectrum, FLambdaSpectrum, InterpolatedSpectrum
 from AstroObject.Utilities import *
@@ -136,6 +136,15 @@ class SEDSimulator(Simulator,ImageObject):
               'radius' : 0.245e-2,
               'rotation' : 27.0,
         },
+        'wavelengths' : {
+            'max' : 9300e-10,
+            'min' : 3700e-10,
+            'resolution' : 100,
+        },
+        'scatter' : {
+            'wavelength' : 4500e-10,
+            'radius' : 800,  
+        },
         'Sky' : {
             'Use' : "TurnroseSKY",
             'Files' : {
@@ -190,9 +199,12 @@ class SEDSimulator(Simulator,ImageObject):
         
         self.registerStage(self.setup_noise,"setup-noise",help=False,description="Setting up Dark/Bias frames",dependencies=["setup-config","setup-cameras"])
         self.registerStage(self.setup_sky,"setup-sky",help=False,description="Setting up Sky spectrum object",dependencies=["setup-config","setup-constants"])
+        
         self.registerStage(self.flat_source,"flat-source",help="Make a constant value source",description="Replacing default source with a flat one.",include=False,replaces=["setup-source"])
         
         self.registerStage(self.geometric_resample,"geometric-resample",help=False,description="Performing geometric resample",dependencies=["setup-source-pixels","setup-hexagons"])
+
+        self.registerStage(self.setup_scatter,"setup-scatter",help=False,description="Setting up scattered light calculations",dependencies=["setup-config","geometric-resample"])
         
         self.registerStage(None,"setup",help="System Setup",description="Set up simulator",
             dependencies=["setup-caches","setup-lenslets","setup-hexagons","setup-blank","setup-source","setup-noise","setup-constants","setup-sky","setup-cameras"],
@@ -233,8 +245,9 @@ class SEDSimulator(Simulator,ImageObject):
         
         self.registerStage(self.ccd_crop,"crop",help="Crop Final Image",description="Cropping image to CCD size",dependencies=["setup-blank"])
         self.registerStage(self.apply_noise,"add-noise",help="Add Dark/Bias noise to image",description="Adding Dark/Bias noise",dependencies=["crop","setup-noise"])
+        self.registerStage(self.transpose,"transpose",help="Transpose the image",description="Transposing Image",dependencies=["crop"])
         self.registerStage(self.save_file,"save",help="Save image to file",description="Saving image to disk",dependencies=["setup-blank"])
-        self.registerStage(None,"cached-only",help="Use cached subimages to construct final image",description="Building image from caches",dependencies=["merge-cached","crop","add-noise","save"],include=False)
+        self.registerStage(None,"cached-only",help="Use cached subimages to construct final image",description="Building image from caches",dependencies=["merge-cached","crop","add-noise","transpose","save"],include=False)
         
         self.registerStage(None,"plot",help="Create all plots",description="Plotting everything",dependencies=["plot-lenslet-xy","plot-lenslets","plot-sky","plot-qe","plot-source","plot-geometry","plot-hexagons","plot-pixels"],include=False)
         
@@ -591,6 +604,21 @@ class SEDSimulator(Simulator,ImageObject):
         self.place(lenslet.data(),lenslet.subcorner,self.config["Output"]["FrameLabel"])
         lenslet.clear(delete=True)
     
+    def setup_scatter(self):
+        """Sets up scattered light level"""
+        self.full = FlatSpectrum(0.0)
+        self.map_over_lenslets(self._scatter_addition,"green")
+        self.full_resolved = InterpolatedSpectrum(data=self.full(wavelengths=self.config["Instrument"]["wavelengths"]["values"],resolution=self.config["Instrument"]["wavelengths"]["resolutions"]),label="Full Addition")
+        scatter_mag = self.full_resolved(wavelengths=np.array(self.config["Instrument"]["scatter"]["wavelength"]))
+        self.save(self.gauss_kern(self.config["Instrument"]["scatter"]["radius"],size=self.config["Instrument"]["ccd_size"]["px"]) * scatter_mag,"Scatter")
+        print self.list()
+        
+    def _scatter_addition(self,lenslet):
+        """Add all spectra together for scattered light purposes"""
+        self.full += lenslet.spectrum
+        
+        
+        
     def ccd_crop(self):
         """Crops the image to the appropriate ccd size"""
         x,y = self.center
@@ -620,6 +648,25 @@ class SEDSimulator(Simulator,ImageObject):
         
         self.remove(self.config["Output"]["FrameLabel"])
         self.save(data,self.config["Output"]["FrameLabel"])
+    
+    def apply_scatter(self):
+        """Apply the scattered light frame"""
+        
+        scatter = self.data("Scatter")
+        
+        data = self.data(self.config["Output"]["FrameLabel"])
+        
+        data += scatter
+        
+        self.remove(self.config["Output"]["FrameLabel"])
+        self.save(data,self.config["Output"]["FrameLabel"])
+        
+    
+    def transpose(self):
+        """transpose the final image"""
+        data = self.data(self.config["Output"]["FrameLabel"])
+        self.save(data.T,self.config["Output"]["FrameLabel"])
+        
     
     def save_file(self):
         """Saves the file"""
@@ -1103,6 +1150,9 @@ class SEDSimulator(Simulator,ImageObject):
         self.config["Instrument"] = self._setUnits(self.config["Instrument"],None)
         
         self.config["Instrument"]["image_size"]["px"] = np.round( self.config["Instrument"]["image_size"]["px"] , 0 )
+        self.config["Instrument"]["wavelengths"]["values"] = np.linspace(self.config["Instrument"]["wavelengths"]["min"],self.config["Instrument"]["wavelengths"]["max"],num=500)
+        self.config["Instrument"]["wavelengths"]["resolutions"] = np.ones(self.config["Instrument"]["wavelengths"]["values"].shape) * self.config["Instrument"]["wavelengths"]["resolution"]
+        sys.setrecursionlimit(10000000)
     
     def _setUnits(self,config,parent):
         """docstring for _setUnits"""
