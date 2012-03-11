@@ -665,6 +665,8 @@ class SEDSimulator(Simulator,ImageObject):
     def transpose(self):
         """transpose the final image"""
         data = self.data(self.config["Output"]["FrameLabel"])
+
+        self.remove(self.config["Output"]["FrameLabel"])
         self.save(data.T,self.config["Output"]["FrameLabel"])
         
     
