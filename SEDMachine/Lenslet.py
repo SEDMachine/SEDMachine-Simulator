@@ -38,7 +38,7 @@ import AstroObject.AstroSimulator
 from AstroObject.AstroCache import *
 from AstroObject.AstroSpectra import SpectraObject
 from AstroObject.AstroImage import ImageObject,ImageFrame
-from AstroObject.AnalyticSpectra import BlackBodySpectrum, AnalyticSpectrum, FlatSpectrum, FLambdaSpectrum
+from AstroObject.AnalyticSpectra import BlackBodySpectrum, AnalyticSpectrum, FlatSpectrum, InterpolatedSpectrum
 from AstroObject.Utilities import *
 
 
@@ -562,7 +562,7 @@ class Lenslet(ImageObject):
         self.Norm_overlaps = Normalize(matrix)
 
         
-class SourcePixel(FLambdaSpectrum):
+class SourcePixel(InterpolatedSpectrum):
     """Source Pixels are objects which handle the source shape and size for resampling"""
     def __init__(self,x,y,config,num,**kwargs):
         super(SourcePixel, self).__init__(**kwargs)
@@ -571,6 +571,7 @@ class SourcePixel(FLambdaSpectrum):
         self.config = config
         self.ps = np.array([x,y])
         self.num = num
+        self.method = self.integrate
     
     def make_pixel_square(self):
         """Make a specific pixel square"""

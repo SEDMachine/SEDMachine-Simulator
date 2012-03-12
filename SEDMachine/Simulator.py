@@ -36,7 +36,7 @@ from AstroObject.AstroCache import *
 from AstroObject.AstroConfig import *
 from AstroObject.AstroSpectra import SpectraObject,SpectraFrame
 from AstroObject.AstroImage import ImageObject,ImageFrame
-from AstroObject.AnalyticSpectra import BlackBodySpectrum, AnalyticSpectrum, FlatSpectrum, ResampledSpectrum, FLambdaSpectrum, InterpolatedSpectrum
+from AstroObject.AnalyticSpectra import BlackBodySpectrum, AnalyticSpectrum, FlatSpectrum, InterpolatedSpectrum, UniarySpectrum
 from AstroObject.Utilities import *
 
 from Lenslet import *
@@ -394,8 +394,8 @@ class SEDSimulator(Simulator,ImageObject):
         FL /= self.const["hc"] / WL
         FL *= 1e10 #Spectrum was per Angstrom, should now be per Meter
         WL *= 1e-10
-        self.Spectrum = FLambdaSpectrum(np.array([WL,FL]),self.config["Source"]["Filename"])
-        self.Original = FLambdaSpectrum(np.array([WL,FL]),self.config["Source"]["Filename"])
+        self.Spectrum = InterpolatedSpectrum(np.array([WL,FL]),self.config["Source"]["Filename"],method="resolve_and_resample")
+        self.Original = InterpolatedSpectrum(np.array([WL,FL]),self.config["Source"]["Filename"],method="resolve_and_resample")
         self.SourcePixels = [SourcePixel(-0.13,0,data=np.array([WL,FL]),label="Source Pixel",config=self.config,num=1),SourcePixel(0,0,data=np.array([WL,FL]),label="Source Pixel",config=self.config,num=2),SourcePixel(0.05,0.05,data=np.array([WL,FL]),label="Source Pixel",config=self.config,num=3)]
         for ix,px in enumerate(self.SourcePixels):
             px.idx = ix
@@ -521,7 +521,7 @@ class SEDSimulator(Simulator,ImageObject):
         WL *= 1e-10
         
         self.Sky_Original = InterpolatedSpectrum(np.array([WL,FL]),"SkySpectrum")
-        self.SkySpectrum = FLambdaSpectrum(np.array([WL,FL]),"SkySpectrum")
+        self.SkySpectrum = InterpolatedSpectrum(np.array([WL,FL]),"SkySpectrum",method="resolve_and_resample")
         
     def setup_hexagons(self):
         """Make the lenslet hexagons"""
