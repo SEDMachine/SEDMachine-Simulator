@@ -755,10 +755,8 @@ class SEDSimulator(Simulator,ImageObject):
     
     def plot_sky(self):
         """Plot sky spectrum"""
-        WL = np.arange(3300,9000,100) * 1e-10
-        DWL = np.diff(WL) 
-        WL = WL[:-1]
-        RS = np.ones(WL.shape) * 100
+        WL = self.config["Instrument"]["wavelengths"]["values"]
+        RS = self.config["Instrument"]["wavelengths"]["resolutions"]
         plt.figure()
         plt.title("Resolution")
         plt.plot(WL*1e6,RS,'g.')
@@ -784,10 +782,8 @@ class SEDSimulator(Simulator,ImageObject):
 
     def plot_source(self):
         """Plot the source spectrum"""
-        WL = np.arange(3300,10000,100) * 1e-10
-        DWL = np.diff(WL) 
-        WL = WL[:-1]
-        RS = np.ones(WL.shape) * 100
+        WL = self.config["Instrument"]["wavelengths"]["values"]
+        RS = self.config["Instrument"]["wavelengths"]["resolutions"]
         plt.figure()
         plt.title("Resolution")
         plt.plot(WL*1e6,RS,'g.')
@@ -814,7 +810,7 @@ class SEDSimulator(Simulator,ImageObject):
 
     def plot_qe(self):
         """Plot sky spectrum"""
-        WL = np.arange(3300,10000,100) * 1e-10
+        WL = self.config["Instrument"]["wavelengths"]["values"]
         plt.figure()
         plt.clf()
         plt.title("QE Spectrum")
