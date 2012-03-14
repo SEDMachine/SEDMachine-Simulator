@@ -414,6 +414,7 @@ class Lenslet(ImageObject):
         self.trs = RS
         self.subshape = (xsize,ysize)
         self.subcorner = corner
+        self.spectrum = spectrum
         self.traced = True
         
         return self.traced
@@ -476,6 +477,8 @@ class Lenslet(ImageObject):
         self.log.debug(npArrayInfo(self.twl*1e6,"Wavlength"))
         self.log.debug(npArrayInfo(self.tfl,"Flux"))
         plt.clf()
+        WL,FL = self.spectrum(wavelength=self.twl,self.)
+        plt.semilogy()
         plt.semilogy(self.twl*1e6,self.tfl,"b.")
         plt.title("Generated, Fluxed Spectra")
         plt.xlabel("Wavelength ($\mu m$)")
@@ -571,7 +574,7 @@ class SourcePixel(InterpolatedSpectrum):
         self.config = config
         self.ps = np.array([x,y])
         self.num = num
-        self.method = self.integrate
+        self.method = self.resolve_and_resample
     
     def make_pixel_square(self):
         """Make a specific pixel square"""
