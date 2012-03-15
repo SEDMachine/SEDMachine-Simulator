@@ -391,7 +391,7 @@ class Lenslet(ImageObject):
         WLS = self.dwl
         DWL = np.diff(WLS) 
         WLS = WLS[:-1]
-        RS = WLS/DWL/self.config["Instrument"]["density"]
+        RS = WLS/DWL#/self.config["Instrument"]["density"]
         
         
         # Call and evaluate the spectrum
@@ -405,6 +405,7 @@ class Lenslet(ImageObject):
          
         # if self.log.getEffectiveLevel() <= logging.DEBUG:
             # np.savetxt("%(Partials)s/Instrument-Subimage-Values.dat" % self.config["Dirs"],np.array([x,y,self.dwl[:-1],DWL,flux]).T)
+        self.log.debug(npArrayInfo(RS,"Saving Resolution"))
         
         self.txs = x
         self.tys = y
@@ -464,7 +465,7 @@ class Lenslet(ImageObject):
         # The graph should produce all data points close to each other, except a variety of much lower
         # data points which are caused by the arc crossing between pixels.
         plt.figure()
-        plt.title("$\Delta$Distance Along Arc")
+        plt.title("$\Delta$Distance Along Arc (%d)" % self.num)
         plt.xlabel("x (px)")
         plt.ylabel("$\Delta$Distance along arc (px)")
         plt.plot(self.dys[:-1],np.diff(self.drs) * self.config["Instrument"]["convert"]["mmtopx"],'g.')
@@ -477,10 +478,8 @@ class Lenslet(ImageObject):
         self.log.debug(npArrayInfo(self.twl*1e6,"Wavlength"))
         self.log.debug(npArrayInfo(self.tfl,"Flux"))
         plt.clf()
-        WL,FL = self.spectrum(wavelength=self.twl,self.)
-        plt.semilogy()
         plt.semilogy(self.twl*1e6,self.tfl,"b.")
-        plt.title("Generated, Fluxed Spectra")
+        plt.title("Generated, Fluxed Spectra (%d)" % self.num)
         plt.xlabel("Wavelength ($\mu m$)")
         plt.ylabel("Flux (Electrons)")
         plt.savefig("%(Partials)s/Instrument-%(num)04d-Flux%(ext)s" % dict(num=self.num, ext=self.config["plot_format"],**self.config["Dirs"]))
@@ -493,15 +492,16 @@ class Lenslet(ImageObject):
         assert self.traced
         plt.clf()
         plt.plot(self.twl*1e6,self.tdw*1e6,"g.")
-        plt.title("$\Delta\lambda$ for each pixel")
+        plt.title("$\Delta\lambda$ for each pixel (%d)" % self.num)
         plt.xlabel("Wavelength ($\mu m$)")
         plt.ylabel("$\Delta\lambda$ per pixel")
         plt.savefig("%(Partials)s/Instrument-%(num)04d-DeltaWL%(ext)s" % dict(num=self.num, ext=self.config["plot_format"],**self.config["Dirs"]))
         plt.clf()
+        self.log.debug(npArrayInfo(self.trs,"Trace RS"))
         plt.semilogy(self.twl*1e6,self.trs,"g.")
-        plt.title("$R = \\frac{\lambda}{\Delta\lambda}$ for each pixel")
+        plt.title("$R = \\frac{\lambda}{\Delta\lambda}$ for each pixel (%d)" % self.num)
         plt.xlabel("Wavelength ($\mu m$)")
-        plt.ylabel("Resolution $R = \\frac{\Delta\lambda}{\lambda}$ per pixel")
+        plt.ylabel("Resolution $R = \\frac{\lambda}{\Delta\lambda}$ per pixel")
         plt.savefig("%(Partials)s/Instrument-%(num)04d-Resolution%(ext)s" % dict(num=self.num, ext=self.config["plot_format"],**self.config["Dirs"]))
         plt.clf()
     
