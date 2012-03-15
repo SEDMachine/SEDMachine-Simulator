@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 # 
 #  Simulator.py
 #  SEDM-Dev
@@ -67,8 +68,6 @@ class SEDSimulator(Simulator,ImageObject):
             "FrameLabel": "Final",
         },
         "Configurations": {
-            "Instrument" : "SED.instrument.config.yaml",
-            "Source" : "SED.source.config.yaml",
             "Main" : "SED.main.config.yaml",
         },
         "Dirs": {
@@ -173,87 +172,90 @@ class SEDSimulator(Simulator,ImageObject):
         'PreAmp' : 1e-7,
         'PXSize' : { 'mm' : 0.005 },
         'Rotation' : np.pi/4.0,
-        'Sample_Lenslet' : 2000
+        'Sample_Lenslet' : 2000,
+        'Value' : 10,
     }
     
     def setup_stages(self):
         """Sets up all simulator stages"""
-        self.registerConfigOpts("D",{"Lenslets":{"start":2100,"number":50},"Debug":True},help="Debug, Limit lenslets (50,start from 2100)")
-        self.registerConfigOpts("S",{"Lenslets":{"start":2100,"number":5},"Debug":True},help="Debug, Limit lenslets (5,start from 2100)")
-        self.registerConfigOpts("T",{"Lenslets":{"start":2100,"number":50},"Debug":False},help="Limit lenslets (50,start from 2100)")
-        self.registerConfigOpts("M",{"Lenslets":{"start":1000,"number":500},"Debug":True},help="Limit lenslets (500,start from 1000)")
-        self.registerConfigOpts("A",{"Lenslets":{"start":2100,"number":1},"Debug":True},help="Debug, Single lenslets (start from 2100)")
+        self.registerConfigOpts("D",{"Lenslets":{"start":2100,"number":50},"Debug":True,"Output":{"Label":"DFlag",},},help="Debug, Limit lenslets (50,start from 2100)")
+        self.registerConfigOpts("S",{"Lenslets":{"start":2100,"number":5},"Debug":True,"Output":{"Label":"SFlag",},},help="Debug, Limit lenslets (5,start from 2100)")
+        self.registerConfigOpts("T",{"Lenslets":{"start":2100,"number":50},"Debug":False,"Output":{"Label":"TFlag",},},help="Limit lenslets (50,start from 2100)")
+        self.registerConfigOpts("M",{"Lenslets":{"start":1000,"number":500},"Debug":True,"Output":{"Label":"MFlag",},},help="Limit lenslets (500,start from 1000)")
+        self.registerConfigOpts("A",{"Lenslets":{"start":2100,"number":1},"Debug":True,"Output":{"Label":"AFlag",},},help="Debug, Single lenslets (start from 2100)")
         
-        
-        
+        # SETUP Stages
         self.registerStage(self.setup_caches,"setup-caches",help=False,description="Setting up caches")
         self.registerStage(self.setup_configuration,"setup-config",help=False,description="Setting up dynamic configuration")
         self.registerStage(self.setup_constants,"setup-constants",help=False,description="Setting up physical constants")
         self.registerStage(self.setup_cameras,"setup-cameras",help=False,description="Setting up Cameras")
         self.registerStage(self.setup_lenslets,"setup-lenslets",help=False,description="Setting up lenslets",dependencies=["setup-config"])
         self.registerStage(self.setup_hexagons,"setup-hexagons",help=False,description="Setting up lenslet hexagons",dependencies=["setup-lenslets"])
-        self.registerStage(self.setup_blank,"setup-blank",help=False,description="Creating blank image",dependencies=["setup-config"])
-        
+        self.registerStage(self.setup_blank,"setup-blank",help=False,description="Creating blank image",dependencies=["setup-config"])        
         self.registerStage(self.setup_simple_source,"setup-source-simple",help=False,description="Creating simple source spectrum object",dependencies=["setup-config","setup-constants"],include=False,replaces=["setup-source"])
         self.registerStage(None,"simple-source",help="Use a simple, centered source object",description="Replacing default source with a simple one",include=False,dependencies=["setup-source-simple"])
-        
         self.registerStage(self.setup_source,"setup-source",help=False,description="Creating source spectrum objects",dependencies=["setup-config","setup-constants"])
         self.registerStage(self.setup_source_pixels,"setup-source-pixels",help=False,description="Making source pixels",dependencies=["setup-source"])
-        
         self.registerStage(self.setup_noise,"setup-noise",help=False,description="Setting up Dark/Bias frames",dependencies=["setup-config","setup-cameras"])
         self.registerStage(self.setup_sky,"setup-sky",help=False,description="Setting up Sky spectrum object",dependencies=["setup-config","setup-constants"])
-        
-        self.registerStage(self.flat_source,"flat-source",help="Make a constant value source",description="Replacing default source with a flat one.",include=False,replaces=["setup-source"])
-        
         self.registerStage(self.geometric_resample,"geometric-resample",help=False,description="Performing geometric resample",dependencies=["setup-source-pixels","setup-hexagons"])
-
+        self.registerStage(self.flat_source,"flat-source",help="Make a constant value source",description="Replacing default source with a flat one.",include=False,dependencies=["geometric-resample"],replaces=["setup-source"])
         self.registerStage(self.setup_scatter,"setup-scatter",help=False,description="Setting up scattered light calculations",dependencies=["setup-config","geometric-resample"])
-        
+        # Setup Macro
         self.registerStage(None,"setup",help="System Setup",description="Set up simulator",
             dependencies=["setup-caches","setup-lenslets","setup-hexagons","setup-blank","setup-source","setup-noise","setup-constants","setup-sky","setup-cameras"],
             )
         
+        # Apply spectral properties
         self.registerStage(self.apply_sky,"apply-sky",help=False,description="Including sky spectrum",dependencies=["setup-sky","setup-lenslets","geometric-resample"])
         self.registerStage(self.apply_qe,"apply-qe",help=False,description="Applying Quantum Efficiency Functions",dependencies=["setup-sky","setup-source","setup-lenslets","geometric-resample"])
         self.registerStage(self.apply_atmosphere,"apply-atmosphere",help=False,description="Applying Atmospheric Extinction",dependencies=["setup-sky","setup-source","setup-lenslets","geometric-resample"])
         
+        # Adjust spectra
         self.registerStage(self.use_sky,"use-sky",help="Use only sky spectrum",description="Using only Sky spectrum",dependencies=["setup-sky","apply-sky","apply-qe","apply-atmosphere"],include=False)
         
+        # Plotting geometry functions
         self.registerStage(self.plot_hexagons,"plot-hexagons",help="Plot Lenslet hexagons",description="Plotting Lenslet hexagons",include=False,dependencies=["setup-hexagons"])
-        self.registerStage(self.plot_invalid_hexagons,"plot-invalid-hexagons",help="Plot Shapely-invalid hexagons",description="Plotting invalid hexagons",include=False,dependencies=["setup-hexagons"])
+        self.registerStage(self.plot_invalid_hexagons,"plot-bad-hexagons",help="Plot Shapely-invalid hexagons",description="Plotting invalid hexagons",include=False,dependencies=["setup-hexagons"])
         self.registerStage(self.plot_pixels,"plot-pixels",help="Plot Pixel positions",description="Plotting pixel squares",include=False,dependencies=["setup-source-pixels"])
-        self.registerStage(self.plot_invalid_pixels,"plot-invalid-pixels",help="Plot Shapely-invalid Pixel positions",description="Plotting invalid pixel squares",include=False,dependencies=["setup-source-pixels"])
-
-        self.registerStage(self.plot_geometry,"plot-geometry",help="Plot geometry",description="Plotting Lenslet-plane geometry",include=False,dependencies=["setup-source-pixels","setup-hexagons"])
-        self.registerStage(None,"plot-geo",help="Do all geometry plots",description="Plotting geometries",include=False,dependencies=["plot-hexagons","plot-invalid-hexagons","plot-pixels","plot-geometry","plot-resample"])
-        
+        self.registerStage(self.plot_invalid_pixels,"plot-bad-pixels",help="Plot Shapely-invalid Pixel positions",description="Plotting invalid pixel squares",include=False,dependencies=["setup-source-pixels"])
+        self.registerStage(self.plot_geometry,"plot-geometry",help="Plot lenslet and source geometry",description="Plotting Lenslet-plane geometry",include=False,dependencies=["setup-source-pixels","setup-hexagons"])
         self.registerStage(self.write_resample,"write-resample",help="Output Resample Matrix",description="Writing resample Matrix",include=False,dependencies=["geometric-resample"])
         self.registerStage(self.plot_resample,"plot-resample",help="Plot reample matrix",description="Plotting resample matrix",include=False,dependencies=["geometric-resample"])
+        self.registerStage(None,"plot-all-geo",help="Do all geometry plots",description="Plotting geometries",include=False,dependencies=["plot-hexagons","plot-invalid-hexagons","plot-pixels","plot-geometry","plot-resample"])
         
+        # Spectrum Plotting Functions
         self.registerStage(self.compare_methods,"plot-spectrum-tests",description="Plotting Spectrum Tests",include=False,dependencies=["setup-sky","setup-source","apply-sky","apply-qe","apply-atmosphere"])
-        self.registerStage(self.plot_source,"plot-source",help="Plot sky spectrum",description="Plotting Source Spectrum",include=False,dependencies=["setup-sky","setup-source","apply-sky","apply-qe","apply-atmosphere"])
-        self.registerStage(self.plot_sky,"plot-sky",help="Plot sky spectrum",description="Plotting Sky Spectrum",include=False,dependencies=["setup-sky","apply-sky","apply-qe"])
+        self.registerStage(self.plot_original_source,"plot-source-o",help="Plot generic source spectrum",description="Plotting Original Source Spectrum",include=False,dependencies=["setup-source"])
+        self.registerStage(self.plot_source,"plot-source",help="Plot generic source spectrum",description="Plotting Source Spectrum",include=False,dependencies=["setup-sky","setup-source","apply-sky","apply-qe","apply-atmosphere","plot-source-o"])
+        self.registerStage(self.plot_sky_original,"plot-sky-o",help="Plot generic sky spectrum",description="Plotting Original Sky Spectrum",include=False,dependencies=["setup-sky"])
+        self.registerStage(self.plot_sky,"plot-sky",help="Plot sky spectrum",description="Plotting Sky Spectrum",include=False,dependencies=["setup-sky","apply-sky","apply-qe","simple-source","plot-sky-o"])
         self.registerStage(self.plot_qe,"plot-qe",help="Plot QE spectrum",description="Plotting QE Spectrum",include=False,dependencies=["setup-sky"])
-        self.registerStage(self.plot_lenslet_data,"plot-lenslet-xy",help="Plot Lenslets",description="Plotting lenslet positions",include=False,dependencies=["setup-lenslets"])
+        self.registerStage(self.plot_lenslet_data,"plot-lenslet-xy",help="Plot lenslet positions",description="Plotting lenslet positions",include=False,dependencies=["setup-lenslets"])
         
-        self.registerStage(self.lenslet_dispersion,"dispersion",help="Calculate dispersion",description="Calculating dispersion for each lenslet",dependencies=["setup-lenslets","setup-caches"])
-        self.registerStage(self.lenslet_trace,"trace",help="Trace Lenslets",description="Tracing lenslet dispersion",dependencies=["dispersion","setup-caches","apply-sky","apply-qe","apply-atmosphere"])
-        self.registerStage(self.lenslet_place,"place",help="Place Subimages",description="Placing lenslet spectra",dependencies=["trace"])
+        # Dispersion functions
+        self.registerStage(self.lenslet_dispersion,"dispersion",help="Calculate lenslet dispersion",description="Calculating dispersion for each lenslet",dependencies=["setup-lenslets","setup-caches"])
+        self.registerStage(self.lenslet_trace,"trace",help="Trace lenslet spectra dispersion",description="Tracing lenslet spectra dispersion",dependencies=["dispersion","setup-caches","apply-sky","apply-qe","apply-atmosphere"])
+        self.registerStage(self.lenslet_place,"place",help="Place subimages",description="Placing lenslet spectra",dependencies=["trace"])
         
+        # Dispersion plotting functions
         self.registerStage(self.plot_dispersion_data,"plot-dispersion",help=False,description="Plotting dispersion for each lenslet",dependencies=["dispersion"],include=False)
         self.registerStage(self.plot_trace_data,"plot-trace",help=False,description="Plotting trace data for each lenslet",dependencies=["trace"],include=False)
         self.registerStage(self.plot_spectrum_data,"plot-spectrum",help=False,description="Plotting spectral data for each lenslet",dependencies=["trace"],include=False)
-        self.registerStage(None,"plot-lenslets",help="Plot data about each lenslet",description="Plotting data about each lenslet",include=False,dependencies=["plot-dispersion","plot-trace","plot-spectrum"])
+        self.registerStage(None,"plot-lenslets",help="Plot trace and spectra for each lenslet",description="Plotting data about each lenslet",include=False,dependencies=["plot-dispersion","plot-trace","plot-spectrum"])
         
-        self.registerStage(self.image_merge,"merge-cached",help="Merge Cached Subimages",description="Merging subimages",dependencies=["setup-blank","setup-lenslets"])
+        # Merge images back together
+        self.registerStage(self.image_merge,"merge-cached",help=False,description="Merging subimages",dependencies=["setup-blank","setup-lenslets"])
         self.registerStage(None,"merge",help="Merge Subimages",description="Merging subimage into master image",dependencies=["place","merge-cached"])
         
+        # Final Image work
         self.registerStage(self.ccd_crop,"crop",help="Crop Final Image",description="Cropping image to CCD size",dependencies=["setup-blank"])
         self.registerStage(self.apply_noise,"add-noise",help="Add Dark/Bias noise to image",description="Adding Dark/Bias noise",dependencies=["crop","setup-noise"])
         self.registerStage(self.transpose,"transpose",help="Transpose the image",description="Transposing Image",dependencies=["crop"])
         self.registerStage(self.save_file,"save",help="Save image to file",description="Saving image to disk",dependencies=["setup-blank"])
-        self.registerStage(None,"cached-only",help="Use cached subimages to construct final image",description="Building image from caches",dependencies=["merge-cached","crop","add-noise","transpose","save"],include=False)
         
+        # Alternative work macros
+        self.registerStage(None,"cached-only",help="Use cached subimages to construct final image",description="Building image from caches",dependencies=["merge-cached","crop","add-noise","transpose","save"],include=False)
         self.registerStage(None,"plot",help="Create all plots",description="Plotting everything",dependencies=["plot-lenslet-xy","plot-lenslets","plot-sky","plot-qe","plot-source","plot-geometry","plot-hexagons","plot-pixels"],include=False)
         
     def setup_caches(self):
@@ -401,6 +403,7 @@ class SEDSimulator(Simulator,ImageObject):
         WL *= 1e-10
         self.Spectrum = InterpolatedSpectrum(np.array([WL,FL]),self.config["Source"]["Filename"],method="resolve_and_resample")
         self.Original = InterpolatedSpectrum(np.array([WL,FL]),self.config["Source"]["Filename"]+" (O)",method="resolve_and_resample")
+        self.SpectrumData = np.array([WL,FL])
         self.SourcePixels = [SourcePixel(-0.13,0,data=np.array([WL,FL]),label="Source Pixel",config=self.config,num=1),SourcePixel(0,0,data=np.array([WL,FL]),label="Source Pixel",config=self.config,num=2),SourcePixel(0.05,0.05,data=np.array([WL,FL]),label="Source Pixel",config=self.config,num=3)]
         for ix,px in enumerate(self.SourcePixels):
             px.idx = ix
@@ -493,7 +496,7 @@ class SEDSimulator(Simulator,ImageObject):
         moon_r = np.array([2.3e-17,2.3e-17,2.3e-17,3.3e-17,3.5e-17,8.3e-17,1.3e-16])
         moon_i = np.array([2.8e-17,3.0e-17,3.0e-17,3.3e-17,3.8e-17,7.0e-17,9.0e-17])
 
-        sky_ls = np.array([4868., 6290., 7706., 10000])
+        sky_ls = np.array([4868., 6290., 7706., 10000]) * 1e-10
 
         self.moon_specs = []
         for i in xrange(len(moon_phase)):
@@ -503,8 +506,7 @@ class SEDSimulator(Simulator,ImageObject):
             zm = im
             fluxes = np.array([gm, rm, im, zm])
             # fluxes /= self.const["hc"] / sky_ls
-            moon_spec = InterpolatedSpectrum(np.array([sky_ls,fluxes]),"Moon Phase %s" % i)
-            moon_spec.func = np.poly1d(np.polyfit(sky_ls,fluxes, 2))
+            moon_spec = InterpolatedSpectrum(np.array([sky_ls,fluxes]),"Moon Phase %s" % i,method='polyfit')
             self.moon_specs.append(moon_spec)
         
         # Throughputs are generated from Nick's simulation scripts in throughput.py
@@ -531,7 +533,7 @@ class SEDSimulator(Simulator,ImageObject):
         FL *= 1e10 #Spectrum was per Angstrom, should now be per Meter
         
         
-        M_FL = self.moon_specs[self.config["Instrument"]["Moon"]["Phase"]](wavelengths=WL)[1]
+        M_FL = self.moon_specs[self.config["Instrument"]["Moon"]["Phase"]](wavelengths=WL*1e-10)[1]
         M_FL /= self.const["hc"] / WL
         M_FL *= 1e10
         
@@ -552,7 +554,7 @@ class SEDSimulator(Simulator,ImageObject):
         
     def _apply_atmosphere(self,lenslet):
         """docstring for _apply_atmosphere"""
-        lenslet.spectrum += self.Extinction
+        lenslet.spectrum *= self.Extinction
         
     def setup_hexagons(self):
         """Make the lenslet hexagons"""
@@ -602,10 +604,18 @@ class SEDSimulator(Simulator,ImageObject):
     def use_sky(self):
         """Use the sky spectrum only"""
         self.Spectrum = self.SkySpectrum
+        self.Original = self.SkyOriginal
+        self.map_over_lenslets(self._flat_source,color=False)
         
     def flat_source(self):
         """Replace the default file-source with a flat spectrum"""
         self.Spectrum = FlatSpectrum(self.config["Source"]["Value"]) * self.config["Source"]["PreAmp"]
+        self.Original = FlatSpectrum(self.config["Source"]["Value"]) * self.config["Source"]["PreAmp"]
+        self.map_over_lenslets(self._flat_source,color=False)
+    
+    def _flat_source(self,lenslet):
+        """docstring for _flat_source"""
+        lenslet.spectrum = self.Spectrum
 
     def lenslet_dispersion(self):
         """Calculate the dispersion for each lenslet"""
@@ -792,8 +802,8 @@ class SEDSimulator(Simulator,ImageObject):
         """A plot for comparing resolving methods"""
         WL = self.config["Instrument"]["wavelengths"]["values"]
         RS = self.config["Instrument"]["wavelengths"]["resolutions"]
-        DWL,DRS = self.get_resolution_spectrum(WL,1000)
-        SWL,SRS = self.get_resolution_spectrum(WL,500)
+        DWL,DRS = self.get_resolution_spectrum(np.min(WL),np.max(WL),1000)
+        SWL,SRS = self.get_resolution_spectrum(np.min(WL),np.max(WL),500)
         plt.figure()
         plt.title("Resolutions")
         plt.plot(WL*1e6,RS,'g.')
@@ -806,26 +816,29 @@ class SEDSimulator(Simulator,ImageObject):
         plt.clf()
         plt.title("Resolve \& Resample Tests")
         self.log.debug(npArrayInfo(WL,"Wavelength for Sky Plot"))
-        
-        WL,FL = self.Original(wavelengths=WL,resolution=RS)
-        plt.semilogy(WL*1e6,FL,'-',label="LR R\&R")
-        WL,FL = self.Original(wavelengths=WL,resolution=RS,method="integrate")
-        plt.semilogy(WL*1e6,FL,'-',label="LR Integrate")
+                
+        WL,FL = self.Original(wavelengths=WL,resolution=RS,method="integrate_quad")
+        Result = np.sum(FL)
+        plt.semilogy(WL*1e6,FL,'.',label="LR Integrate %.3e" % (np.sum(FL)))
+        WL,FL = self.Original(wavelengths=WL,resolution=RS,method="resolve_and_resample")
+        plt.semilogy(WL*1e6,FL,'.',label="LR R\&R %.3e %03.2f\\%%" % (np.sum(FL),100.*np.abs(np.sum(FL)-Result)/Result))
         
         DWL,FL = self.Original(wavelengths=DWL,resolution=DRS,method="resolve_and_resample")
-        plt.semilogy(DWL*1e6,FL,'-',label="HR R\&R")
-        DWL,FL = self.Original(wavelengths=DWL,resolution=DRS,method="integrate")
-        plt.semilogy(DWL*1e6,FL,'-',label="HR Integrate")
+        plt.semilogy(DWL*1e6,FL,'.',label="HR R\&R %.3e %03.2f\\%%" % (np.sum(FL),100.*np.abs(np.sum(FL)-Result)/Result))
+        DWL,FL = self.Original(wavelengths=DWL,resolution=DRS,method="integrate_quad")
+        plt.semilogy(DWL*1e6,FL,'.',label="HR Integrate %.3e %03.2f\\%%" % (np.sum(FL),100.*np.abs(np.sum(FL)-Result)/Result))
 
         SWL,FL = self.Original(wavelengths=SWL,resolution=SRS,method="resolve_and_resample")
-        plt.semilogy(SWL*1e6,FL,'-',label="SR R\&R")
-        SWL,FL = self.Original(wavelengths=SWL,resolution=SRS,method="integrate")
-        plt.semilogy(SWL*1e6,FL,'-',label="SR Integrate")
-
+        plt.semilogy(SWL*1e6,FL,'.',label="SR R\&R %.3e %03.2f\\%%" % (np.sum(FL),100.*np.abs(np.sum(FL)-Result)/Result))
+        SWL,FL = self.Original(wavelengths=SWL,resolution=SRS,method="integrate_quad")
+        plt.semilogy(SWL*1e6,FL,'.',label="SR Integrate %.3e %03.2f\\%%" % (np.sum(FL),100.*np.abs(np.sum(FL)-Result)/Result))
+        
+        
+        
         
         plt.xlabel("Wavelength ($\mu$m)")
         plt.ylabel("Flux (Photons)")
-        plt.legend(loc=4)
+        plt.legend(loc=8,ncol=2)
         FileName = "%(Partials)s/Test-R-and-R%(fmt)s" % dict(fmt=self.config["plot_format"],**self.config["Dirs"])
         plt.savefig(FileName)
         plt.clf()
@@ -873,7 +886,7 @@ class SEDSimulator(Simulator,ImageObject):
         plt.title("Sky Spectrum")
 
         WL,FL = self.SkySpectrum(wavelengths=WL,resolution=RS)
-        plt.semilogy(WL*1e6,FL,'b.',linestyle='-',label="Sky (qe)")
+        plt.semilogy(WL*1e6,FL,'b.',linestyle='-',label="Sky + Moon (qe)")
         
         WL,FL = self.SkyMoon(wavelengths=WL,resolution=RS)
         plt.semilogy(WL*1e6,FL,'m.',linestyle='-',label="Sky + Moon")
@@ -897,14 +910,65 @@ class SEDSimulator(Simulator,ImageObject):
         FileName = "%(Partials)s/Sky-Spectrum%(fmt)s" % dict(fmt=self.config["plot_format"],**self.config["Dirs"])
         plt.savefig(FileName)
         plt.clf()
+    
+    def plot_sky_original(self):
+        """Plot sky spectrum"""
+        WL = self.config["Instrument"]["wavelengths"]["values"]
+        RS = self.config["Instrument"]["wavelengths"]["resolutions"]
+        plt.figure()
+        plt.title("Resolution")
+        plt.plot(WL*1e6,RS,'g.')
+        FileName = "%(Partials)s/Sky-Spectrum-Res%(fmt)s" % dict(fmt=self.config["plot_format"],**self.config["Dirs"])
+        plt.savefig(FileName)
 
+        plt.clf()
+        plt.title("Sky Spectrum")
+
+        WL,FL = self.SkyOriginal(wavelengths=WL,resolution=RS)
+        plt.semilogy(WL*1e6,FL,'g.',linestyle='-',label="Sky")
+        
+        plt.legend(loc=2)
+
+        plt.xlabel("Wavelength ($\mu$m)")
+        plt.ylabel("Flux (Photons)")
+        FileName = "%(Partials)s/Sky-Original-Spectrum%(fmt)s" % dict(fmt=self.config["plot_format"],**self.config["Dirs"])
+        plt.savefig(FileName)
+        plt.clf()
+    
+    
+    def plot_original_source(self):
+        """Plot the original source spectrum only"""
+        WL = self.config["Instrument"]["wavelengths"]["values"]
+        RS = self.config["Instrument"]["wavelengths"]["resolutions"]
+        plt.figure()
+        plt.title("Resolution")
+        plt.plot(WL*1e6,RS,'g.')
+        FileName = "%(Partials)s/Source-Spectrum-Res%(fmt)s" % dict(fmt=self.config["plot_format"],**self.config["Dirs"])
+        plt.savefig(FileName)
+
+        plt.clf()
+        plt.title("Source Spectrum")
+        WL,FL = self.Original(wavelengths=WL,resolution=RS)
+        plt.semilogy(WL*1e6,FL,'r.',linestyle='-',label="Source")
+        
+        plt.xlabel("Wavelength ($\mu$m)")
+        plt.ylabel("Flux (Photons)")
+        plt.legend(loc=4)
+        FileName = "%(Partials)s/Source-Original-Spectrum%(fmt)s" % dict(fmt=self.config["plot_format"],**self.config["Dirs"])
+        plt.savefig(FileName)
+        plt.clf()
+        
+    
     def plot_source(self):
         """Plot the source spectrum"""
         WL = self.config["Instrument"]["wavelengths"]["values"]
         RS = self.config["Instrument"]["wavelengths"]["resolutions"]
         plt.figure()
         plt.title("Resolution")
-        plt.plot(WL*1e6,RS,'g.')
+        plt.plot(WL*1e6,RS,'g.',label="Requested R")
+        GWL,GFL = self.SpectrumData
+        plt.plot(GWL[:-1]*1e6,GWL[:-1]/np.diff(GWL),label="Given R")
+        plt.legend()
         FileName = "%(Partials)s/Source-Spectrum-Res%(fmt)s" % dict(fmt=self.config["plot_format"],**self.config["Dirs"])
         plt.savefig(FileName)
 
@@ -1064,6 +1128,26 @@ class SEDSimulator(Simulator,ImageObject):
         
         plt.savefig(FileName)
         plt.clf()
+   
+    def plot_kernel_partials(self):
+        """Plots the kernel data partials"""
+        self.log.debug("Generating Kernel Plots and Images")
+        plt.clf()
+        plt.imshow(self.Caches.get("TEL"))
+        plt.title("Telescope Image")
+        plt.colorbar()
+        plt.savefig("%s/Instrument-TEL-Kernel%s" % (self.config["Dirs"]["Partials"],self.config["plot_format"]))
+        plt.clf()
+        plt.imshow(self.Caches.get("PSF"))
+        plt.title("PSF Image")
+        plt.colorbar()
+        plt.savefig("%s/Instrument-PSF-Kernel%s" % (self.config["Dirs"]["Partials"],self.config["plot_format"]))
+        plt.clf()
+        plt.imshow(self.Caches.get("CONV"))
+        plt.title("Convolved Tel + PSF Image")
+        plt.colorbar()
+        plt.savefig("%s/Instrument-FIN-Kernel%s" % (self.config["Dirs"]["Partials"],self.config["plot_format"]))
+        plt.clf()
         
         
     def _show_lenslet_resample(self,lenslet,pixel):
@@ -1134,8 +1218,8 @@ class SEDSimulator(Simulator,ImageObject):
         try:
             function(lenslet)
         except exceptions as e:
-            self.log.error("Caught %s in %d" % (e.__class__.__name__,identity))
-            self.log.error(str(e))
+            self.log.error(u"Caught %s in %d" % (e.__class__.__name__,identity))
+            self.log.error(u"%s" % e)
             self.errors += 1
             if self.config["Debug"]:
                 self.log.useConsole(True)
@@ -1299,28 +1383,22 @@ class SEDSimulator(Simulator,ImageObject):
         self.config["Instrument"] = self._setUnits(self.config["Instrument"],None)
         
         self.config["Instrument"]["image_size"]["px"] = np.round( self.config["Instrument"]["image_size"]["px"] , 0 )
-        
-
-        wavelengths = np.linspace(self.config["Instrument"]["wavelengths"]["min"],self.config["Instrument"]["wavelengths"]["max"],num=500)
-        
-        wl,r = self.get_resolution_spectrum(wavelengths,self.config["Instrument"]["wavelengths"]["resolution"])
+                
+        wl,r = self.get_resolution_spectrum(self.config["Instrument"]["wavelengths"]["min"],self.config["Instrument"]["wavelengths"]["max"],self.config["Instrument"]["wavelengths"]["resolution"])
         
         self.config["Instrument"]["wavelengths"]["values"] = wl
         self.config["Instrument"]["wavelengths"]["resolutions"] = r
+        
         sys.setrecursionlimit(10000000)
     
-    def get_resolution_spectrum(self,wavelengths,resolution):
+    def get_resolution_spectrum(self,minwl,maxwl,resolution):
         """docstring for get_resolution_spectrum"""
         
-        dense_resolution = np.ones(wavelengths.shape)  * resolution
-            
-        min_wl = np.min(wavelengths)
-        dwl = [min_wl]
-        new_wl = min_wl
-        for R,wl in zip(dense_resolution,wavelengths):
-            while new_wl <= wl:
-                new_wl += (new_wl / R)
-                dwl += [new_wl]
+        dwl = [minwl]
+        new_wl = minwl
+        while new_wl <= maxwl:
+            new_wl += (new_wl / resolution)
+            dwl += [new_wl]
             
         dense_wavelengths = np.array(dwl)
         dense_resolution = dense_wavelengths[:-1] / np.diff(dense_wavelengths)
