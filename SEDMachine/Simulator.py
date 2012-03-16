@@ -135,8 +135,9 @@ class SEDSimulator(Simulator,ImageObject):
         'camera' : "PI",
         'convert': {
             'pxtomm': 0.0135 }, 
-        'density': 5, 
-        'tel_obsc': {'px': 0.2}, 
+        'density': 5,
+        'dispfitorder' : 2, 
+        'tel_obsc': {'px': 0.2 , 'ratio': 0.1}, 
         'plot': False, 
         'ccd_size': {'px': 2048}, 
         'padding': 5, 
@@ -654,7 +655,7 @@ class SEDSimulator(Simulator,ImageObject):
         
     def _lenslet_place(self,l):
         """docstring for _lenslet_place"""
-        l.place_trace(self.get_psf)
+        l.place_trace(self.get_conv)
         l.write_subimage()
         with open("%(Partials)s/LensletAudit.dat" % self.config["Dirs"],"a") as s:
             s.write("%s\n" % vars(l) )
@@ -806,7 +807,7 @@ class SEDSimulator(Simulator,ImageObject):
         plt.clf()
         self.log.info("Plotting lenslet arc positions in CCD (x,y) space")
         FileName = "%(Partials)s/Lenslet-xy%(fmt)s" % dict(fmt=self.config["Plots"]["format"],**self.config["Dirs"])
-        self.map_over_lenslets(lambda l: plt.plot(l.xs,l.ys,linestyle='-'),color="cyan")
+        self.map_over_lenslets(lambda l: plt.plot(l.xcs,l.ycs,linestyle='-'),color="cyan")
         plt.title("Lenslet x-y positions")
         plt.savefig(FileName)
         
@@ -1184,6 +1185,24 @@ class SEDSimulator(Simulator,ImageObject):
     def plot_kernel_partials(self):
         """Plots the kernel data partials"""
         self.log.debug("Generating Kernel Plots and Images")
+        major = self.config["Instrument"]["tel_radii"]["px"] * self.config["Instrument"]["density"] * 1.2
+        minor = self.config["Instrument"]["tel_radii"]["px"] * self.config["Instrument"]["density"]
+        ETEL = self.get_tel_kern(major,minor)
+        ECONV = sp.signal.convolve(self.Caches.get("PSF"),ETEL,mode='same')
+        plt.clf()
+        plt.imshow(ETEL,interpolation='nearest')
+        plt.title("Telescope Image (Ellipse)")
+        plt.colorbar()
+        plt.savefig("%s/Instrument-ETEL-Kernel%s" % (self.config["Dirs"]["Partials"],self.config["Plots"]["format"]))
+        plt.clf()
+        plt.clf()
+        plt.imshow(ECONV,interpolation='nearest')
+        plt.title("Convolved ETel + PSF Image")
+        plt.colorbar()
+        plt.savefig("%s/Instrument-ECONV-Kernel%s" % (self.config["Dirs"]["Partials"],self.config["Plots"]["format"]))
+        plt.clf()
+        
+        
         plt.clf()
         plt.imshow(self.Caches.get("TEL"),interpolation='nearest')
         plt.title("Telescope Image")
@@ -1299,8 +1318,11 @@ class SEDSimulator(Simulator,ImageObject):
         noise = distribution(*arguments)
         self.save(noise,label)
     
-    def get_psf(self,wavelength):
+    def get_conv(self,wavelength,a=None,b=None):
         """Return a PSF for a given wavelength in the system"""
+        if a and b:
+            ETEL = self.get_tel_kern(a,b)
+            self.CONV = sp.signal.convolve(self.Caches.get("PSF"),ETEL,mode='same')
         if not hasattr(self,"found"):
             self.found = True
             self.CONV = self.Caches.get("CONV") 
@@ -1337,24 +1359,29 @@ class SEDSimulator(Simulator,ImageObject):
         return val / np.sum(val)
     
     
-    def elipse_kern(self,major,minor,size=0,sizey=0,normalize=False):
+    def ellipse_kern(self,major,minor,size=0,sizey=False,normalize=False):
         """docstring for elipse_kern"""
-        if size < major:
-            size = int(major)
+        size /= 2
+        if sizey:
+            sizey /= 2
+        if size < minor:
+            size = int(minor) + 1
         else:
             size = int(size)
-        if sizey < minor:
-            sizey = np.int(minor)
+        if not sizey:
+            sizey = int(size)
+        if sizey < major:
+            sizey = np.int(major) + 1
         else:
             sizey = np.int(sizey)
         
-        major = int(major)
-        minor = int(minor)
+        major = float(major)
+        minor = float(minor)
         
         x, y = np.mgrid[-size:size+1, -sizey:sizey+1]
         
-        d = np.sqrt(x**2.0 + y**2.0)
-        v = (d <= radius).astype(np.float)
+        d = np.sqrt((x/minor)**2.0 + (y/major)**2.0)
+        v = (d <= 1).astype(np.float)
         if normalize:
             return v / np.sum(v)
         else:
@@ -1362,12 +1389,13 @@ class SEDSimulator(Simulator,ImageObject):
         
         
         
-    def circle_kern(self,radius,size=0,normalize=False):
+    def circle_kern(self,radius,size=0,sizey=0,normalize=False):
         """Generate a Circle Kernel for modeling the \"Image of the Telescope\". The radius should be set in array units.
         
         `size` will determine the size of the array image, unless `size` is less than `radius`, in which case the image will be automatically increased to fit the entire circle.
         
         `normalize` controls whether the data is normalized or not. If it is not normalized, the data will have only 1.0 and 0.0 values, where 1.0 is within the radius, and 0.0 is outside the raidus."""
+        size /= 2
         if size < radius:
             size = int(radius)
         else:
@@ -1406,11 +1434,15 @@ class SEDSimulator(Simulator,ImageObject):
         
         return g / g.sum()
     
-    def get_tel_kern(self):
+    def get_tel_kern(self,major=None,minor=None):
         """Returns the telescope kernel. This kernel is built by creating a circle mask for the size of the telescope mirror, and then subtracting a telescope obscuration from the center of the mirror image. The values for all of these items are set in the configuration file."""
-        TELIMG = self.circle_kern( self.config["Instrument"]["tel_radii"]["px"] * self.config["Instrument"]["density"] )
-        center = self.circle_kern( self.config["Instrument"]["tel_obsc"]["px"] * self.config["Instrument"]["density"] ,
-            self.config["Instrument"]["tel_radii"]["px"] * self.config["Instrument"]["density"] , False )
+        if major or minor:
+            TELIMG = self.ellipse_kern( major, minor )
+            center = self.ellipse_kern( major * self.config["Instrument"]["tel_obsc"]["ratio"], minor * self.config["Instrument"]["tel_obsc"]["ratio"], *TELIMG.shape )
+        else:
+            TELIMG = self.circle_kern( self.config["Instrument"]["tel_radii"]["px"] * self.config["Instrument"]["density"] )
+            center = self.circle_kern( self.config["Instrument"]["tel_obsc"]["px"] * self.config["Instrument"]["density"] ,
+                *TELIMG.shape )
         TELIMG -= center
         TELIMG = TELIMG / np.sum(TELIMG)
         self.log.debug("Generated a Telescpe Kernel with shape %s" % (str(TELIMG.shape)))
