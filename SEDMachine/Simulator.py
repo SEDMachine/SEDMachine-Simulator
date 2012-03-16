@@ -256,7 +256,7 @@ class SEDSimulator(Simulator,ImageObject):
         
         # Alternative work macros
         self.registerStage(None,"cached-only",help="Use cached subimages to construct final image",description="Building image from caches",dependencies=["merge-cached","crop","add-noise","transpose","save"],include=False)
-        self.registerStage(None,"plot",help="Create all plots",description="Plotting everything",dependencies=["plot-lenslet-xy","plot-lenslets","plot-sky","plot-qe","plot-source","plot-geometry","plot-hexagons","plot-pixels"],include=False)
+        self.registerStage(None,"plot",help="Create all plots",description="Plotting everything",dependencies=["plot-lenslet-xy","plot-lenslets","plot-sky","plot-qe","plot-source","plot-geometry","plot-hexagons","plot-pixels","plot-spectrum-tests"],include=False)
         
     def setup_caches(self):
         """Register all of the cache objects and types"""
@@ -816,32 +816,59 @@ class SEDSimulator(Simulator,ImageObject):
         plt.clf()
         plt.title("Resolve \& Resample Tests")
         self.log.debug(npArrayInfo(WL,"Wavelength for Sky Plot"))
-                
-        WL,FL = self.Original(wavelengths=WL,resolution=RS,method="integrate_quad")
-        Result = np.sum(FL)
-        plt.semilogy(WL*1e6,FL,'.',label="LR Integrate %.3e" % (np.sum(FL)))
-        WL,FL = self.Original(wavelengths=WL,resolution=RS,method="resolve_and_resample")
-        plt.semilogy(WL*1e6,FL,'.',label="LR R\&R %.3e %03.2f\\%%" % (np.sum(FL),100.*np.abs(np.sum(FL)-Result)/Result))
         
-        DWL,FL = self.Original(wavelengths=DWL,resolution=DRS,method="resolve_and_resample")
-        plt.semilogy(DWL*1e6,FL,'.',label="HR R\&R %.3e %03.2f\\%%" % (np.sum(FL),100.*np.abs(np.sum(FL)-Result)/Result))
-        DWL,FL = self.Original(wavelengths=DWL,resolution=DRS,method="integrate_quad")
-        plt.semilogy(DWL*1e6,FL,'.',label="HR Integrate %.3e %03.2f\\%%" % (np.sum(FL),100.*np.abs(np.sum(FL)-Result)/Result))
-
-        SWL,FL = self.Original(wavelengths=SWL,resolution=SRS,method="resolve_and_resample")
-        plt.semilogy(SWL*1e6,FL,'.',label="SR R\&R %.3e %03.2f\\%%" % (np.sum(FL),100.*np.abs(np.sum(FL)-Result)/Result))
-        SWL,FL = self.Original(wavelengths=SWL,resolution=SRS,method="integrate_quad")
-        plt.semilogy(SWL*1e6,FL,'.',label="SR Integrate %.3e %03.2f\\%%" % (np.sum(FL),100.*np.abs(np.sum(FL)-Result)/Result))
+        Results = {}
+        master = "H Iq"
         
+        for wl,rs,Label in zip([WL,DWL,SWL],[RS,DRS,SRS],["L","M","H"]):
+            identity = "%s Iq" % Label                
+            wl,FL = self.Original(wavelengths=wl,resolution=rs,method="integrate_quad")
+            Results[identity] = np.sum(FL)
+            plt.semilogy(wl*1e6,FL,'g.',linestyle="-",label="%s $\Sigma$%.2e" % (identity,Results[identity]))
+            
+            identity = "%s Ih" % Label                
+            wl,FL = self.Original(wavelengths=wl,resolution=rs,method="integrate_hist")
+            Results[identity] = np.sum(FL)
+            plt.semilogy(wl*1e6,FL,'b.',linestyle="-",label="%s $\Sigma$%.2e" % (identity,Results[identity]))
+            
+            identity = "%s RR" % Label                
+            wl,FL = self.Original(wavelengths=wl,resolution=rs,method="resolve_and_resample")
+            Results[identity] = np.sum(FL)
+            plt.semilogy(wl*1e6,FL,'r.',linestyle="-",label="%s $\Sigma$%.2e" % (identity,Results[identity]))
         
-        
-        
+        text = "Error relative to %s in integration and resolution spectrum methods:\n" % master
+        mv = Results[master]
+        for Label in ["L","M","H"]:
+            for method in ["Iq","Ih","RR"]:
+                identity = "%(label)s %(method)s" % {'label':Label,'method':method}
+                val = Results[identity]
+                perr = (np.abs(val - mv) / mv) * 100.0
+                line = "%(identity)s $\Sigma = $%(value).3e Error %(perr).2f \%%\n" % {'identity':identity,'value':val,'perr':perr}
+                self.log.debug(line)
+                if identity == master:
+                    line = line.rstrip("\n")
+                    line += " MASTER\n"
+                text += line
+        text = text.rstrip("\n")
         plt.xlabel("Wavelength ($\mu$m)")
         plt.ylabel("Flux (Photons)")
-        plt.legend(loc=8,ncol=2)
+        plt.legend(loc=3, mode="expand", borderaxespad=0.,ncol=3)
         FileName = "%(Partials)s/Test-R-and-R%(fmt)s" % dict(fmt=self.config["plot_format"],**self.config["Dirs"])
         plt.savefig(FileName)
         plt.clf()
+        
+        
+        
+        plt.title("Resolve \& Resample Test Results")
+        self.log.debug(text)
+        ax = plt.gca()
+        plt.text(0.2, 0.5,text,
+            horizontalalignment='left',
+            verticalalignment='center',
+            transform = ax.transAxes)
+        FileName = "%(Partials)s/Test-R-and-R-vals%(fmt)s" % dict(fmt=self.config["plot_format"],**self.config["Dirs"])
+        plt.savefig(FileName)
+        
         
         plt.clf()
         plt.title("Resample Tests")

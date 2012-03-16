@@ -471,6 +471,13 @@ class Lenslet(ImageObject):
         plt.plot(self.dys[:-1],np.diff(self.drs) * self.config["Instrument"]["convert"]["mmtopx"],'g.')
         plt.savefig("%(Partials)s/Instrument-%(num)04d-Delta-Distances%(ext)s" % dict(num=self.num, ext=self.config["plot_format"],**self.config["Dirs"]))
         plt.clf()
+        plt.plot(self.drs,self.dwl*1e6,"g.")
+        plt.title("$\lambda$ for each pixel (%d)" % self.num)
+        plt.ylabel("Wavelength ($\mu m$)")
+        plt.xlabel("Arc Distance")
+        plt.savefig("%(Partials)s/Instrument-%(num)04d-WL%(ext)s" % dict(num=self.num, ext=self.config["plot_format"],**self.config["Dirs"]))
+        plt.clf()
+        
         
     def plot_spectrum(self):
         """Plots the generated spectrum for this lenslet"""
