@@ -124,20 +124,21 @@ class SubImage(ImageFrame):
 
 class Lenslet(ImageObject):
     """An object-representation of a lenslet"""
-    def __init__(self,xs,ys,xpixs,ypixs,p1s,p2s,ls,ix,config,caches):
+    def __init__(self,xs,ys,p1s,p2s,ls,ix,config,caches):
         super(Lenslet, self).__init__()
         self.dataClasses = [SubImage]
         self.log = logging.getLogger("SEDMachine")
+        self.config = config
         self.num = ix
         self.xs = xs
         self.ys = ys
         self.points = np.array([xs,ys]).T
-        self.xpixs = xpixs
-        self.ypixs = ypixs
-        self.pixs = np.array([xpixs,ypixs]).T
+        # Convert the xs and ys to pixel positions
+        self.xpixs = np.round(xs * self.config["Instrument"]["convert"]["mmtopx"],0).astype(np.int)
+        self.ypixs = np.round(ys * self.config["Instrument"]["convert"]["mmtopx"],0).astype(np.int)
+        self.pixs = np.array([self.xpixs,self.ypixs]).T
         self.ps = np.array([p1s,p2s]).T
         self.ls = np.array(ls)
-        self.config = config
                 
         self.dispersion = False
         self.checked = False
@@ -221,6 +222,12 @@ class Lenslet(ImageObject):
         
         if self.distance == 0:
             self.log.debug("Lenslet %d failed: The points have no separating distance" % self.num)
+            return self.passed
+        
+        # Find the xs and ys that are not within 0.1 mm of the edge of the detector...
+        padding = self.config["Instrument"]["image_pad"]["mm"]
+        if not ((self.xs > 0.1) & (self.xs < self.config["Instrument"]["image_size"]["mm"]-padding) & (self.ys > padding) & (self.ys < self.config["Instrument"]["image_size"]["mm"]-padding)).any():
+            self.log.debug("Lenslet %d failed: The points are too close to the image edge" % self.num)
             return self.passed
         
         self.passed = True
@@ -391,7 +398,7 @@ class Lenslet(ImageObject):
         WLS = self.dwl
         DWL = np.diff(WLS) 
         WLS = WLS[:-1]
-        RS = WLS/DWL#/self.config["Instrument"]["density"]
+        RS = WLS/DWL
         
         
         # Call and evaluate the spectrum
@@ -399,12 +406,8 @@ class Lenslet(ImageObject):
         self.log.debug(npArrayInfo(RS,"Calling Resolution"))
 
         wl,flux = spectrum(wavelengths=WLS,resolution=RS) 
-        self.log.debug("Converting to ADU by %g (Instrument.eADU)" % self.config["Instrument"]["eADU"])
-        flux *= self.config["Instrument"]["eADU"]
+                
         self.log.debug(npArrayInfo(flux,"Final Flux"))
-         
-        # if self.log.getEffectiveLevel() <= logging.DEBUG:
-            # np.savetxt("%(Partials)s/Instrument-Subimage-Values.dat" % self.config["Dirs"],np.array([x,y,self.dwl[:-1],DWL,flux]).T)
         self.log.debug(npArrayInfo(RS,"Saving Resolution"))
         
         self.txs = x
@@ -457,6 +460,17 @@ class Lenslet(ImageObject):
     def bin_subimage(self):
         """Bin the selected subimage"""
         self.save(self.bin(self.data(),self.config["Instrument"]["density"]).astype(np.int16),"Binned Spectrum")
+    
+    def plot_raw_data(self):
+        """Debugging plots for raw lenslet data."""
+        plt.clf()
+        plt.plot(self.ls*1e6,self.ys,".",linestyle='-')
+        plt.title("$\lambda$ along y-axis (%d)" % self.num)
+        plt.xlabel("Wavelength ($\mu m$)")
+        plt.ylabel("Y-position ($mm$)")
+        plt.savefig("%(Partials)s/Lenslet-%(num)04d-WL%(ext)s" % dict(num=self.num, ext=self.config["Plots"]["format"],**self.config["Dirs"]))
+        plt.clf()
+        
         
     def plot_dispersion(self):
         """Debugging for the dispersion process"""
@@ -474,14 +488,8 @@ class Lenslet(ImageObject):
         plt.plot(self.drs,self.dwl*1e6,"g.")
         plt.title("$\lambda$ for each pixel (%d)" % self.num)
         plt.ylabel("Wavelength ($\mu m$)")
-        plt.xlabel("Arc Distance")
+        plt.xlabel("Resolution $R = \\frac{\lambda}{\Delta\lambda}$ per pixel")
         plt.savefig("%(Partials)s/Instrument-%(num)04d-WL%(ext)s" % dict(num=self.num, ext=self.config["Plots"]["format"],**self.config["Dirs"]))
-        plt.clf()
-        plt.plot(self.ys,self.ls)
-        plt.title("$\lambda$ for each pixel (%d)" % self.num)
-        plt.ylabel("Wavelength ($\mu m$)")
-        plt.xlabel("Y-position ($mm$)")
-        plt.savefig("%(Partials)s/Lenslet-%(num)04d-WL%(ext)s" % dict(num=self.num, ext=self.config["Plots"]["format"],**self.config["Dirs"]))
         plt.clf()
         
         

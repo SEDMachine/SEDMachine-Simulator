@@ -144,6 +144,7 @@ class SEDSimulator(Simulator,ImageObject):
         'bias': 20, 
         'psf_size': { 'px': 2.4}, 
         'image_size': { 'mm': 40.0}, 
+        'image_pad' : { 'mm' : 0.1},
         'tel_radii': { 'px': 1.2},
         'tel_area' : 18242. * 0.9,
         'gain': 5,
@@ -227,7 +228,7 @@ class SEDSimulator(Simulator,ImageObject):
         self.registerStage(self.apply_atmosphere,"apply-atmosphere",help=False,description="Applying Atmospheric Extinction",dependencies=["setup-sky","setup-source","setup-lenslets","geometric-resample"])
         
         # Plotting geometry functions
-        self.registerStage(self.plot_kernel_partials,"plot-kernel",help="Plot PSF Kernels",description="Plotting PSF Kernels",include=False,dependencies=["setup=caches","setup-config"])
+        self.registerStage(self.plot_kernel_partials,"plot-kernel",help="Plot PSF Kernels",description="Plotting PSF Kernels",include=False,dependencies=["setup-caches","setup-config"])
         self.registerStage(self.plot_hexagons,"plot-hexagons",help="Plot Lenslet hexagons",description="Plotting Lenslet hexagons",include=False,dependencies=["setup-hexagons"])
         self.registerStage(self.plot_invalid_hexagons,"plot-bad-hexagons",help="Plot Shapely-invalid hexagons",description="Plotting invalid hexagons",include=False,dependencies=["setup-hexagons"])
         self.registerStage(self.plot_pixels,"plot-pixels",help="Plot Pixel positions",description="Plotting pixel squares",include=False,dependencies=["setup-source-pixels"])
@@ -319,17 +320,9 @@ class SEDSimulator(Simulator,ImageObject):
        ys += (self.config["Instrument"]["image_size"]["mm"]/2)
         
        lams *= 1e-6 # Convert wavelength to SI units (m)
-       # Find the xs and ys that are not within 0.1 mm of the edge of the detector...
-       ok = (xs > 0.1) & (xs < self.config["Instrument"]["image_size"]["mm"]-0.1) & (ys > 0.1) & (ys < self.config["Instrument"]["image_size"]["mm"]-0.1)
-       ix, p1, p2, lams, xs, ys = ix[ok], p1[ok], p2[ok], lams[ok], xs[ok], ys[ok]
-       # We remove these positions because we don't want to generate spectra for them.
         
        # This simply generates a list of all of the lenslets
        self.lensletIndex = np.unique(ix)
-        
-       # Convert the xs and ys to pixel positions
-       xpix = np.round(xs * self.config["Instrument"]["convert"]["mmtopx"],0).astype(np.int)
-       ypix = np.round(ys * self.config["Instrument"]["convert"]["mmtopx"],0).astype(np.int)
         
        # Determine the center of the whole system by finding the x position that is closest to 0,0 in pupil position
        cntix = np.argmin(p1**2 + p2**2)
@@ -349,7 +342,7 @@ class SEDSimulator(Simulator,ImageObject):
        with open(FileName,'w') as stream:
            for idx in self.lensletIndex:
                select = idx == ix
-               lenslet = Lenslet(xs[select],ys[select],xpix[select],ypix[select],p1[select],p2[select],lams[select],idx,self.config,self.Caches)
+               lenslet = Lenslet(xs[select],ys[select],p1[select],p2[select],lams[select],idx,self.config,self.Caches)
                if lenslet.valid():
                    self.lenslets[idx] = lenslet
                    stream.write(lenslet.introspect())
@@ -591,18 +584,18 @@ class SEDSimulator(Simulator,ImageObject):
         
     def _apply_qe_spectrum(self,lenslet):
         """Apply qe to each lenslet"""
-        lenslet.spectrum *= self.qe[self.config["Instrument"]["Thpt"]["Type"]] * self.config["Instrument"]["tel_area"] * self.config["Observation"]["exposure"]
+        lenslet.spectrum *= self.qe[self.config["Instrument"]["Thpt"]["Type"]] * self.config["Instrument"]["tel_area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"]
         
     def apply_qe(self):
         """Apply the instrument quantum efficiency"""
         self.map_over_lenslets(self._apply_qe_spectrum,color=False)
-        self.SkySpectrum *= self.qe[self.config["Instrument"]["Thpt"]["Type"]] * self.config["Instrument"]["tel_area"] * self.config["Observation"]["exposure"]
-        self.Spectrum *= self.qe[self.config["Instrument"]["Thpt"]["Type"]] * self.config["Instrument"]["tel_area"] * self.config["Observation"]["exposure"]
-        self.Original *= self.config["Instrument"]["tel_area"] * self.config["Observation"]["exposure"]
-        self.SkyOriginal *= self.config["Instrument"]["tel_area"] * self.config["Observation"]["exposure"]
-        self.SkyMoon *= self.config["Instrument"]["tel_area"] * self.config["Observation"]["exposure"]
-        self.MoonSpectrum *= self.config["Instrument"]["tel_area"] * self.config["Observation"]["exposure"]
-        self.MoonSpectrumQE = self.MoonSpectrum * self.qe[self.config["Instrument"]["Thpt"]["Type"]]
+        self.SkySpectrum *= self.qe[self.config["Instrument"]["Thpt"]["Type"]] * self.config["Instrument"]["tel_area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"]
+        self.Spectrum *= self.qe[self.config["Instrument"]["Thpt"]["Type"]] * self.config["Instrument"]["tel_area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"]
+        self.Original *= self.config["Instrument"]["tel_area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"]
+        self.SkyOriginal *= self.config["Instrument"]["tel_area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"]
+        self.SkyMoon *= self.config["Instrument"]["tel_area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"]
+        self.MoonSpectrum *= self.config["Instrument"]["tel_area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"]
+        self.MoonSpectrumQE = self.MoonSpectrum * self.qe[self.config["Instrument"]["Thpt"]["Type"]] * self.config["Instrument"]["eADU"]
         
         
     def geometric_resample(self):
@@ -615,7 +608,7 @@ class SEDSimulator(Simulator,ImageObject):
         
     def setup_line_list(self):
         """Set up a line-list based spectrum for wavelength calibration."""
-        List = np.genfromtxt(self.config["Source"])
+        List = np.genfromtxt(self.config["Source"]["WLCal"]["List"])
         CalSpec = FlatSpectrum(0.0)
         for line in List:
             CalSpec += GaussianSpectrum(line,self.config["Source"]["WLCal"]["sigma"],self.config["Source"]["WLCal"]["value"],"Line %g" % line)
@@ -827,6 +820,8 @@ class SEDSimulator(Simulator,ImageObject):
         plt.savefig(FileName)
         
         plt.clf()
+        
+        self.map_over_lenslets(lambda l: l.plot_raw_data(),color="cyan")
     
     def compare_methods(self):
         """A plot for comparing resolving methods"""
@@ -1190,17 +1185,17 @@ class SEDSimulator(Simulator,ImageObject):
         """Plots the kernel data partials"""
         self.log.debug("Generating Kernel Plots and Images")
         plt.clf()
-        plt.imshow(self.Caches.get("TEL"))
+        plt.imshow(self.Caches.get("TEL"),interpolation='nearest')
         plt.title("Telescope Image")
         plt.colorbar()
         plt.savefig("%s/Instrument-TEL-Kernel%s" % (self.config["Dirs"]["Partials"],self.config["Plots"]["format"]))
         plt.clf()
-        plt.imshow(self.Caches.get("PSF"))
+        plt.imshow(self.Caches.get("PSF"),interpolation='nearest')
         plt.title("PSF Image")
         plt.colorbar()
         plt.savefig("%s/Instrument-PSF-Kernel%s" % (self.config["Dirs"]["Partials"],self.config["Plots"]["format"]))
         plt.clf()
-        plt.imshow(self.Caches.get("CONV"))
+        plt.imshow(self.Caches.get("CONV"),interpolation='nearest')
         plt.title("Convolved Tel + PSF Image")
         plt.colorbar()
         plt.savefig("%s/Instrument-FIN-Kernel%s" % (self.config["Dirs"]["Partials"],self.config["Plots"]["format"]))
@@ -1341,6 +1336,32 @@ class SEDSimulator(Simulator,ImageObject):
         self.log.debug("Generated a PSF Kernel for the encircled energy file %s with shape %s" % (filename,str(v.shape)))
         return val / np.sum(val)
     
+    
+    def elipse_kern(self,major,minor,size=0,sizey=0,normalize=False):
+        """docstring for elipse_kern"""
+        if size < major:
+            size = int(major)
+        else:
+            size = int(size)
+        if sizey < minor:
+            sizey = np.int(minor)
+        else:
+            sizey = np.int(sizey)
+        
+        major = int(major)
+        minor = int(minor)
+        
+        x, y = np.mgrid[-size:size+1, -sizey:sizey+1]
+        
+        d = np.sqrt(x**2.0 + y**2.0)
+        v = (d <= radius).astype(np.float)
+        if normalize:
+            return v / np.sum(v)
+        else:
+            return v
+        
+        
+        
     def circle_kern(self,radius,size=0,normalize=False):
         """Generate a Circle Kernel for modeling the \"Image of the Telescope\". The radius should be set in array units.
         
