@@ -469,14 +469,21 @@ class Lenslet(ImageObject):
         plt.xlabel("x (px)")
         plt.ylabel("$\Delta$Distance along arc (px)")
         plt.plot(self.dys[:-1],np.diff(self.drs) * self.config["Instrument"]["convert"]["mmtopx"],'g.')
-        plt.savefig("%(Partials)s/Instrument-%(num)04d-Delta-Distances%(ext)s" % dict(num=self.num, ext=self.config["plot_format"],**self.config["Dirs"]))
+        plt.savefig("%(Partials)s/Instrument-%(num)04d-Delta-Distances%(ext)s" % dict(num=self.num, ext=self.config["Plots"]["format"],**self.config["Dirs"]))
         plt.clf()
         plt.plot(self.drs,self.dwl*1e6,"g.")
         plt.title("$\lambda$ for each pixel (%d)" % self.num)
         plt.ylabel("Wavelength ($\mu m$)")
         plt.xlabel("Arc Distance")
-        plt.savefig("%(Partials)s/Instrument-%(num)04d-WL%(ext)s" % dict(num=self.num, ext=self.config["plot_format"],**self.config["Dirs"]))
+        plt.savefig("%(Partials)s/Instrument-%(num)04d-WL%(ext)s" % dict(num=self.num, ext=self.config["Plots"]["format"],**self.config["Dirs"]))
         plt.clf()
+        plt.plot(self.ys,self.ls)
+        plt.title("$\lambda$ for each pixel (%d)" % self.num)
+        plt.ylabel("Wavelength ($\mu m$)")
+        plt.xlabel("Y-position ($mm$)")
+        plt.savefig("%(Partials)s/Lenslet-%(num)04d-WL%(ext)s" % dict(num=self.num, ext=self.config["Plots"]["format"],**self.config["Dirs"]))
+        plt.clf()
+        
         
         
     def plot_spectrum(self):
@@ -489,7 +496,7 @@ class Lenslet(ImageObject):
         plt.title("Generated, Fluxed Spectra (%d)" % self.num)
         plt.xlabel("Wavelength ($\mu m$)")
         plt.ylabel("Flux (Electrons)")
-        plt.savefig("%(Partials)s/Instrument-%(num)04d-Flux%(ext)s" % dict(num=self.num, ext=self.config["plot_format"],**self.config["Dirs"]))
+        plt.savefig("%(Partials)s/Instrument-%(num)04d-Flux%(ext)s" % dict(num=self.num, ext=self.config["Plots"]["format"],**self.config["Dirs"]))
         plt.clf()
 
         
@@ -502,14 +509,14 @@ class Lenslet(ImageObject):
         plt.title("$\Delta\lambda$ for each pixel (%d)" % self.num)
         plt.xlabel("Wavelength ($\mu m$)")
         plt.ylabel("$\Delta\lambda$ per pixel")
-        plt.savefig("%(Partials)s/Instrument-%(num)04d-DeltaWL%(ext)s" % dict(num=self.num, ext=self.config["plot_format"],**self.config["Dirs"]))
+        plt.savefig("%(Partials)s/Instrument-%(num)04d-DeltaWL%(ext)s" % dict(num=self.num, ext=self.config["Plots"]["format"],**self.config["Dirs"]))
         plt.clf()
         self.log.debug(npArrayInfo(self.trs,"Trace RS"))
         plt.semilogy(self.twl*1e6,self.trs,"g.")
         plt.title("$R = \\frac{\lambda}{\Delta\lambda}$ for each pixel (%d)" % self.num)
         plt.xlabel("Wavelength ($\mu m$)")
         plt.ylabel("Resolution $R = \\frac{\lambda}{\Delta\lambda}$ per pixel")
-        plt.savefig("%(Partials)s/Instrument-%(num)04d-Resolution%(ext)s" % dict(num=self.num, ext=self.config["plot_format"],**self.config["Dirs"]))
+        plt.savefig("%(Partials)s/Instrument-%(num)04d-Resolution%(ext)s" % dict(num=self.num, ext=self.config["Plots"]["format"],**self.config["Dirs"]))
         plt.clf()
     
     def bin(self,array,factor):
