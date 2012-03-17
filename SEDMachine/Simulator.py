@@ -37,7 +37,7 @@ from AstroObject.AstroCache import *
 from AstroObject.AstroConfig import *
 from AstroObject.AstroSpectra import SpectraObject,SpectraFrame
 from AstroObject.AstroImage import ImageObject,ImageFrame
-from AstroObject.AnalyticSpectra import BlackBodySpectrum,GaussianSpectrum, AnalyticSpectrum, FlatSpectrum, InterpolatedSpectrum
+from AstroObject.AnalyticSpectra import BlackBodySpectrum,GaussianSpectrum, AnalyticSpectrum, FlatSpectrum, InterpolatedSpectrum, UnitarySpectrum
 from AstroObject.Utilities import *
 
 from Lenslet import *
@@ -97,10 +97,11 @@ class SEDSimulator(Simulator,ImageObject):
     }
     
     caches = {
-        'Telescope' : "SED.Instrument.tel.npy",
-        'PSF' : "SED.Instrument.psf.npy",
-        'CONV' : "SED.Instrument.conv.npy",
-        'config' : "SED.Instrument.config.yaml",
+        'Telescope' : "SED.tel.npy",
+        'PSF' : "SED.psf.npy",
+        'CONV' : "SED.conv.npy",
+        'config' : "SED.config.yaml",
+        'const' : "SED.const.yaml"
     }
     
     observation = {
@@ -178,9 +179,9 @@ class SEDSimulator(Simulator,ImageObject):
             'value' : 1e-6,
         },
         'WLCal' : {
-            'linelist' : "Data/Lines.dat",
+            'List' : "Data/Lines.dat",
             'sigma' : 1e-9,
-            'value' : 1,
+            'value' : 1e8,
         },
         'PXSize' : { 'mm' : 0.005 },
         'Rotation' : np.pi/4.0,
@@ -199,7 +200,7 @@ class SEDSimulator(Simulator,ImageObject):
         # SETUP Stages
         self.registerStage(self.setup_caches,"setup-caches",help=False,description="Setting up caches")
         self.registerStage(self.setup_configuration,"setup-config",help=False,description="Setting up dynamic configuration")
-        self.registerStage(self.setup_constants,"setup-constants",help=False,description="Setting up physical constants")
+        self.registerStage(self.setup_constants,"setup-constants",help=False,description="Setting up physical constants",dependencies=["setup-caches"])
         self.registerStage(self.setup_cameras,"setup-cameras",help=False,description="Setting up Cameras")
         self.registerStage(self.setup_lenslets,"setup-lenslets",help=False,description="Setting up lenslets",dependencies=["setup-config"])
         self.registerStage(self.setup_hexagons,"setup-hexagons",help=False,description="Setting up lenslet hexagons",dependencies=["setup-lenslets"])
@@ -221,7 +222,7 @@ class SEDSimulator(Simulator,ImageObject):
         # Adjust spectra
         self.registerStage(self.sky_source,"sky-source",help="Use only sky spectrum",description="Using only Sky spectrum",dependencies=["setup-sky","apply-sky","apply-qe","apply-atmosphere","setup-lenslets"],include=False,replaces=["setup-source"])
         self.registerStage(self.flat_source,"flat-source",help="Make a constant value source",description="Using flat source",include=False,dependencies=["geometric-resample"],replaces=["setup-source"])
-        self.registerStage(self.line_source,"line-source",help="Use a calibration lamp source",description="Using calibration lamp source",include=False,dependencies=["setup-lines"],replaces=["setup-source"])
+        self.registerStage(self.line_source,"line-source",help="Use a calibration lamp source",description="Using calibration lamp source",include=False,dependencies=["geometric-resample","setup-lines","apply-sky","apply-atmosphere"],replaces=["setup-source"])
         
         # Apply spectral properties
         self.registerStage(self.apply_sky,"apply-sky",help=False,description="Including sky spectrum",dependencies=["setup-sky","setup-lenslets","geometric-resample"])
@@ -241,6 +242,7 @@ class SEDSimulator(Simulator,ImageObject):
         
         # Spectrum Plotting Functions
         self.registerStage(self.compare_methods,"plot-spectrum-tests",description="Plotting Spectrum Tests",include=False,dependencies=["setup-sky","setup-source","apply-sky","apply-qe","apply-atmosphere"])
+        self.registerStage(self.plot_original_calibration,"plot-cal-o",help="Plot generic source spectrum",description="Plotting Original Source Spectrum",include=False,dependencies=["setup-lines"])
         self.registerStage(self.plot_original_source,"plot-source-o",help="Plot generic source spectrum",description="Plotting Original Source Spectrum",include=False,dependencies=["setup-source"])
         self.registerStage(self.plot_source,"plot-source",help="Plot generic source spectrum",description="Plotting Source Spectrum",include=False,dependencies=["setup-sky","setup-source","apply-sky","apply-qe","apply-atmosphere","plot-source-o"])
         self.registerStage(self.plot_sky_original,"plot-sky-o",help="Plot generic sky spectrum",description="Plotting Original Sky Spectrum",include=False,dependencies=["setup-sky"])
@@ -275,25 +277,29 @@ class SEDSimulator(Simulator,ImageObject):
         
     def setup_caches(self):
         """Register all of the cache objects and types"""
-        self.Caches.registerNPY("TEL",self.get_tel_kern,filename=self.config["Caches"]["Telescope"])
-        self.Caches.registerNPY("PSF",self.get_psf_kern,filename=self.config["Caches"]["PSF"])
-        self.Caches.registerNPY("CONV",lambda : sp.signal.convolve(self.Caches.get("PSF"),self.Caches.get("TEL"),mode='same'),filename=self.config["Caches"]["CONV"])
-        self.Caches.registerCustom("CONFIG",kind=YAMLCache,generate=self.config.extract,filename=self.config["Caches"]["config"])
+        for key in self.config["Caches"]:
+            self.config["Caches"][key] = "%s/%s" % (self.config["Dirs"]["Caches"],self.config["Caches"][key])
+        self.Caches["TEL"] = NumpyCache(self.get_tel_kern,filename=self.config["Caches"]["Telescope"])
+        self.Caches["PSF"] = NumpyCache(self.get_psf_kern,filename=self.config["Caches"]["PSF"])
+        self.Caches["CONV"] = NumpyCache(lambda : sp.signal.convolve(self.Caches["PSF"],self.Caches["TEL"],mode='same'),filename=self.config["Caches"]["CONV"])
+        self.Caches["CONFIG"] = ConfigCache(self.config,filename=self.config["Caches"]["config"])
         
         if "clear_cache" in self.options and self.options["clear_cache"]:
-            self.Caches.clear()
-        if "cache" in self.options and not self.options["clear_cache"]:
-            self.Caches.disable()
+            self.Caches.flag('enabled',False)
+        if "cache" in self.options and not self.options["cache"]:
+            self.Caches.flag('saving',False)
         
-        if self.Caches.check(master="CONFIG"):
+        if not self.Caches.check("CONFIG"):
+            self.Caches.reset()
+            cfg = self.Caches["CONFIG"]
             self.log.info("Caches appear to be out of date, regenerating")
-        self.Caches.get("CONFIG")
     
     def setup_constants(self):
         """Establish Physical Constants"""
         self.const = StructuredConfiguration()
         self.const.setFile("const","SED.const.config.yaml")
         self.const["hc"] = 1.98644521e-8 # erg angstrom
+        self.Caches["CONST"] = ConfigCache(self.const,filename=self.config["Caches"]["const"])
         
         
     def setup_lenslets(self):
@@ -373,7 +379,7 @@ class SEDSimulator(Simulator,ImageObject):
     
     def setup_blank(self):
         """Establish a blank Image"""
-        self.save(np.zeros((self.config["Instrument"]["image_size"]["px"],self.config["Instrument"]["image_size"]["px"])).astype(np.int32),"Blank")
+        self["Blank"] = np.zeros((self.config["Instrument"]["image_size"]["px"],self.config["Instrument"]["image_size"]["px"])).astype(np.int32)
 
     def setup_source(self):
         """Sets up a uniform source file based spectrum"""
@@ -613,7 +619,7 @@ class SEDSimulator(Simulator,ImageObject):
         CalSpec = FlatSpectrum(0.0)
         for line in List:
             CalSpec += GaussianSpectrum(line,self.config["Source"]["WLCal"]["sigma"],self.config["Source"]["WLCal"]["value"],"Line %g" % line)
-        self.CalSpec = CalSpec
+        self.CalSpec = UnitarySpectrum(CalSpec,method='resolve_and_integrate',label="Calibration Lamp")
         
     def line_source(self):
         """Use the line spectrum only"""
@@ -989,6 +995,22 @@ class SEDSimulator(Simulator,ImageObject):
         plt.clf()
     
     
+    def plot_original_calibration(self):
+        """Plot the original calibration source"""
+        WL = self.config["Instrument"]["wavelengths"]["values"]
+        RS = self.config["Instrument"]["wavelengths"]["resolutions"]
+        plt.figure()
+        plt.title("Calibration Spectrum")
+        WL,FL = self.CalSpec(wavelengths=WL,resolution=RS)
+        plt.semilogy(WL*1e6,FL,'r.',linestyle='-',label="Source")
+        plt.xlabel("Wavelength ($\mu$m)")
+        plt.ylabel("Flux (Photons)")
+        plt.legend(loc=4)
+        FileName = "%(Partials)s/Cal-Original-Spectrum%(fmt)s" % dict(fmt=self.config["Plots"]["format"],**self.config["Dirs"])
+        plt.savefig(FileName)
+        plt.clf()
+        
+    
     def plot_original_source(self):
         """Plot the original source spectrum only"""
         WL = self.config["Instrument"]["wavelengths"]["values"]
@@ -1188,7 +1210,7 @@ class SEDSimulator(Simulator,ImageObject):
         major = self.config["Instrument"]["tel_radii"]["px"] * self.config["Instrument"]["density"] * 1.2
         minor = self.config["Instrument"]["tel_radii"]["px"] * self.config["Instrument"]["density"]
         ETEL = self.get_tel_kern(major,minor)
-        ECONV = sp.signal.convolve(self.Caches.get("PSF"),ETEL,mode='same')
+        ECONV = sp.signal.convolve(self.Caches["PSF"],ETEL,mode='same')
         plt.clf()
         plt.imshow(ETEL,interpolation='nearest')
         plt.title("Telescope Image (Ellipse)")
@@ -1204,17 +1226,17 @@ class SEDSimulator(Simulator,ImageObject):
         
         
         plt.clf()
-        plt.imshow(self.Caches.get("TEL"),interpolation='nearest')
+        plt.imshow(self.Caches["TEL"],interpolation='nearest')
         plt.title("Telescope Image")
         plt.colorbar()
         plt.savefig("%s/Instrument-TEL-Kernel%s" % (self.config["Dirs"]["Partials"],self.config["Plots"]["format"]))
         plt.clf()
-        plt.imshow(self.Caches.get("PSF"),interpolation='nearest')
+        plt.imshow(self.Caches["PSF"],interpolation='nearest')
         plt.title("PSF Image")
         plt.colorbar()
         plt.savefig("%s/Instrument-PSF-Kernel%s" % (self.config["Dirs"]["Partials"],self.config["Plots"]["format"]))
         plt.clf()
-        plt.imshow(self.Caches.get("CONV"),interpolation='nearest')
+        plt.imshow(self.Caches["CONV"],interpolation='nearest')
         plt.title("Convolved Tel + PSF Image")
         plt.colorbar()
         plt.savefig("%s/Instrument-FIN-Kernel%s" % (self.config["Dirs"]["Partials"],self.config["Plots"]["format"]))
@@ -1322,10 +1344,10 @@ class SEDSimulator(Simulator,ImageObject):
         """Return a PSF for a given wavelength in the system"""
         if a and b:
             ETEL = self.get_tel_kern(a,b)
-            self.CONV = sp.signal.convolve(self.Caches.get("PSF"),ETEL,mode='same')
+            self.CONV = sp.signal.convolve(self.Caches["PSF"],ETEL,mode='same')
         if not hasattr(self,"found"):
             self.found = True
-            self.CONV = self.Caches.get("CONV") 
+            self.CONV = self.Caches["CONV"] 
         return self.CONV
     
     def psf_kern(self,filename,size=0,truncate=False,header_lines=18):

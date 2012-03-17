@@ -451,7 +451,7 @@ class Lenslet(ImageObject):
             br_corner = [ x + tiny_image.shape[0]/2.0, y + tiny_image.shape[0]/2.0 ]
             img[tl_corner[0]:br_corner[0],tl_corner[1]:br_corner[1]] += tiny_image
         self.log.debug(npArrayInfo(img,"DenseSubImage"))
-        self.save(img,"Raw Spectrum")
+        self["Raw Spectrum"] = img
         frame = self.frame()
         frame.lensletNumber = self.num
         frame.corner = self.subcorner
@@ -459,8 +459,8 @@ class Lenslet(ImageObject):
     
     def write_subimage(self):
         """Writes a subimage to file"""
-        self.write("%(Caches)s/Subimage-%(num)4d%(ext)s" % dict(num=self.num,ext=".fits",**self.config["Dirs"]),primaryState="Raw Spectrum",states=["Raw Spectrum"],clobber=True)
-        self.clear(delete=True)
+        self.write("%(Caches)s/Subimage-%(num)4d%(ext)s" % dict(num=self.num,ext=".fits",**self.config["Dirs"]),primaryState="Raw Spectrum",clobber=True)
+        self.clear()
         
     def read_subimage(self):
         """Read a subimage from file"""
@@ -471,7 +471,7 @@ class Lenslet(ImageObject):
         
     def bin_subimage(self):
         """Bin the selected subimage"""
-        self.save(self.bin(self.data(),self.config["Instrument"]["density"]).astype(np.int16),"Binned Spectrum")
+        self["Binned Spectrum"] = self.bin(self.data(),self.config["Instrument"]["density"]).astype(np.int16)
     
     def plot_raw_data(self):
         """Debugging plots for raw lenslet data."""
