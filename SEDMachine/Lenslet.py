@@ -13,6 +13,9 @@ import pyfits as pf
 import scipy as sp
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm # Python Color Systems
+from matplotlib.colors import Normalize # Math Normailzation
+
 
 import scipy.signal
 import scipy.interpolate
@@ -35,12 +38,12 @@ import AstroObject.AstroSimulator
 from AstroObject.AstroCache import *
 from AstroObject.AstroSpectra import SpectraObject
 from AstroObject.AstroImage import ImageObject,ImageFrame
-from AstroObject.AnalyticSpectra import BlackBodySpectrum, AnalyticSpectrum, FlatSpectrum
+from AstroObject.AnalyticSpectra import BlackBodySpectrum, AnalyticSpectrum, FlatSpectrum, InterpolatedSpectrum
 from AstroObject.Utilities import *
 
 
 __version__ = getVersion(__name__)
-__all__ = ["SEDLimits","Lenslet","SubImage"]
+__all__ = ["SEDLimits","Lenslet","SubImage","SourcePixel"]
 
 class SEDLimits(Exception):
     """A Basic Error-Differentiation Class.
@@ -121,20 +124,22 @@ class SubImage(ImageFrame):
 
 class Lenslet(ImageObject):
     """An object-representation of a lenslet"""
-    def __init__(self,xs,ys,xpixs,ypixs,p1s,p2s,ls,ix,config,caches):
+    def __init__(self,xs,ys,p1s,p2s,ls,ix,config,caches):
         super(Lenslet, self).__init__()
         self.dataClasses = [SubImage]
         self.log = logging.getLogger("SEDMachine")
+        self.config = config
         self.num = ix
-        self.xs = xs
-        self.ys = ys
+        self.xcs = xs
+        self.ycs = ys
         self.points = np.array([xs,ys]).T
-        self.xpixs = xpixs
-        self.ypixs = ypixs
-        self.pixs = np.array([xpixs,ypixs]).T
+        # Convert the xs and ys to pixel positions
+        self.xpixs = np.round(xs * self.config["Instrument"]["convert"]["mmtopx"],0).astype(np.int)
+        self.ypixs = np.round(ys * self.config["Instrument"]["convert"]["mmtopx"],0).astype(np.int)
+        self.pixs = np.array([self.xpixs,self.ypixs]).T
         self.ps = np.array([p1s,p2s]).T
         self.ls = np.array(ls)
-        self.config = config
+        self.ellipses = False
                 
         self.dispersion = False
         self.checked = False
@@ -210,14 +215,20 @@ class Lenslet(ImageObject):
         # The spectrum should span some finite distance
         startix = np.argmin(self.ls)
         endix = np.argmax(self.ls)
-        start = np.array([self.xs[startix],self.ys[startix]])
-        end = np.array([self.xs[endix],self.ys[endix]])
+        start = np.array([self.xcs[startix],self.ycs[startix]])
+        end = np.array([self.xcs[endix],self.ycs[endix]])
 
         # Get the total length of the spectra
         self.distance = np.sqrt(np.sum(end-start)**2)
         
         if self.distance == 0:
             self.log.debug("Lenslet %d failed: The points have no separating distance" % self.num)
+            return self.passed
+        
+        # Find the xs and ys that are not within 0.1 mm of the edge of the detector...
+        padding = self.config["Instrument"]["image_pad"]["mm"]
+        if not ((self.xcs > 0.1) & (self.xcs < self.config["Instrument"]["image_size"]["mm"]-padding) & (self.ycs > padding) & (self.ycs < self.config["Instrument"]["image_size"]["mm"]-padding)).any():
+            self.log.debug("Lenslet %d failed: The points are too close to the image edge" % self.num)
             return self.passed
         
         self.passed = True
@@ -240,20 +251,30 @@ class Lenslet(ImageObject):
         if self.dispersion:
             return self.dispersion
         
+        if self.ellipses:
+            # Find ellipse major and minor axis from given data.
+            a = np.sqrt((self.xcs - self.xas)**2.0 + (self.ycs-self.yas)**2.0)
+            b = np.sqrt((self.xcs - self.xbs)**2.0 + (self.ycs-self.ybs)**2.0)
+            self.fa = np.poly1d(np.polyfit(self.ls, a, self.config["Instrument"]["dispfitorder"]))
+            self.fb = np.poly1d(np.polyfit(self.ls, b, self.config["Instrument"]["dispfitorder"]))
+            
+
+            
+        
         # Interpolation to convert from wavelength to pixels.
         #   The accuracy of this interpolation is not important.
         #   Rather, it is used to find the pixels where the light will fall
         #   and is fed an array that is very dense, used on this dense interpolation
         #   and then binned back onto pixels. Thus it will be used to get a list
         #   of all illuminated pixels.
-        fx = np.poly1d(np.polyfit(self.ls, self.xpixs, 2))
-        fy = np.poly1d(np.polyfit(self.ls, self.ypixs, 2))
+        fx = np.poly1d(np.polyfit(self.ls, self.xpixs, self.config["Instrument"]["dispfitorder"]))
+        fy = np.poly1d(np.polyfit(self.ls, self.ypixs, self.config["Instrument"]["dispfitorder"]))
         
         # Find the starting and ending position of the spectra
         startix = np.argmin(self.ls)
         endix = np.argmax(self.ls)
-        start = np.array([self.xs[startix],self.ys[startix]])
-        end = np.array([self.xs[endix],self.ys[endix]])
+        start = np.array([self.xcs[startix],self.ycs[startix]])
+        end = np.array([self.xcs[endix],self.ycs[endix]])
         
         # Get the total length of the spectra
         distance = np.sqrt(np.sum(end-start)**2)
@@ -388,49 +409,47 @@ class Lenslet(ImageObject):
         WLS = self.dwl
         DWL = np.diff(WLS) 
         WLS = WLS[:-1]
-        RS = WLS/DWL/self.config["Instrument"]["density"]
+        RS = WLS/DWL
         
         
         # Call and evaluate the spectrum
-        self.log.debug("Scailing by %g (Instrument.gain)" % self.config["Instrument"]["gain"])
-        radiance = spectrum(wavelengths=WLS,resolution=RS) 
-        radiance *= self.config["Instrument"]["gain"]
-        self.log.debug(npArrayInfo(radiance,"Generated Spectrum"))
-        self.log.debug(npArrayInfo(deltawl,"DeltaWL Rescaling"))
-        flux = radiance[1,:] * deltawl
+        self.log.debug(npArrayInfo(WLS,"Calling Wavelength"))
+        self.log.debug(npArrayInfo(RS,"Calling Resolution"))
+
+        wl,flux = spectrum(wavelengths=WLS,resolution=RS) 
+                
         self.log.debug(npArrayInfo(flux,"Final Flux"))
-         
-        if self.log.getEffectiveLevel() <= logging.DEBUG:
-            np.savetxt("%(Partials)s/Instrument-Subimage-Values.dat" % self.config["Dirs"],np.array([x,y,self.dwl[:-1],deltawl,flux]).T)
+        self.log.debug(npArrayInfo(RS,"Saving Resolution"))
         
         self.txs = x
         self.tys = y
-        self.trd = radiance
         self.tfl = flux
-        self.twl = self.dwl[:-1]
-        self.tdw = deltawl
+        self.twl = WLS
+        self.tdw = DWL
         self.trs = RS
         self.subshape = (xsize,ysize)
         self.subcorner = corner
+        self.spectrum = spectrum
         self.traced = True
         
         return self.traced
         
-    def place_trace(self,get_psf):
+    def place_trace(self,get_conv):
         """Place the trace on the image"""
         
         img = np.zeros(self.subshape)
         
         for x,y,wl,flux in zip(self.txs,self.tys,self.twl,self.tfl):
-            psf = get_psf(wl)
-            tiny_image = psf * flux
+            if self.ellipses:
+                a = self.fa(wl)
+                b = self.fb(wl)
+                conv = get_conv(wl,a,b)
+            else:
+                conv = get_conv(wl)
+            tiny_image = conv * flux
             tl_corner = [ x - tiny_image.shape[0]/2.0, y - tiny_image.shape[0]/2.0 ]
             br_corner = [ x + tiny_image.shape[0]/2.0, y + tiny_image.shape[0]/2.0 ]
             img[tl_corner[0]:br_corner[0],tl_corner[1]:br_corner[1]] += tiny_image
-            del tiny_image
-            del tl_corner
-            del br_corner
-            del psf
         self.log.debug(npArrayInfo(img,"DenseSubImage"))
         self.save(img,"Raw Spectrum")
         frame = self.frame()
@@ -453,6 +472,17 @@ class Lenslet(ImageObject):
     def bin_subimage(self):
         """Bin the selected subimage"""
         self.save(self.bin(self.data(),self.config["Instrument"]["density"]).astype(np.int16),"Binned Spectrum")
+    
+    def plot_raw_data(self):
+        """Debugging plots for raw lenslet data."""
+        plt.clf()
+        plt.plot(self.ls*1e6,self.ycs,".",linestyle='-')
+        plt.title("$\lambda$ along y-axis (%d)" % self.num)
+        plt.xlabel("Wavelength ($\mu m$)")
+        plt.ylabel("Y-position ($mm$)")
+        plt.savefig("%(Partials)s/Lenslet-%(num)04d-WL%(ext)s" % dict(num=self.num, ext=self.config["Plots"]["format"],**self.config["Dirs"]))
+        plt.clf()
+        
         
     def plot_dispersion(self):
         """Debugging for the dispersion process"""
@@ -461,28 +491,32 @@ class Lenslet(ImageObject):
         # The graph should produce all data points close to each other, except a variety of much lower
         # data points which are caused by the arc crossing between pixels.
         plt.figure()
-        plt.title("$\Delta$Distance Along Arc")
+        plt.title("$\Delta$Distance Along Arc (%d)" % self.num)
         plt.xlabel("x (px)")
         plt.ylabel("$\Delta$Distance along arc (px)")
         plt.plot(self.dys[:-1],np.diff(self.drs) * self.config["Instrument"]["convert"]["mmtopx"],'g.')
-        plt.savefig("%(Partials)s/Instrument-%(num)04d-Delta-Distances%(ext)s" % dict(num=self.num, ext=self.config["plot_format"],**self.config["Dirs"]))
+        plt.savefig("%(Partials)s/Instrument-%(num)04d-Delta-Distances%(ext)s" % dict(num=self.num, ext=self.config["Plots"]["format"],**self.config["Dirs"]))
         plt.clf()
+        plt.plot(self.drs,self.dwl*1e6,"g.")
+        plt.title("$\lambda$ for each pixel (%d)" % self.num)
+        plt.ylabel("Wavelength ($\mu m$)")
+        plt.xlabel("Resolution $R = \\frac{\lambda}{\Delta\lambda}$ per pixel")
+        plt.savefig("%(Partials)s/Instrument-%(num)04d-WL%(ext)s" % dict(num=self.num, ext=self.config["Plots"]["format"],**self.config["Dirs"]))
+        plt.clf()
+        
+        
         
     def plot_spectrum(self):
         """Plots the generated spectrum for this lenslet"""
         assert self.traced
+        self.log.debug(npArrayInfo(self.twl*1e6,"Wavlength"))
+        self.log.debug(npArrayInfo(self.tfl,"Flux"))
         plt.clf()
-        plt.plot(self.twl,self.trd[1,:],"b.")
-        plt.title("Retrieved Spectral Radiance with Gain")
+        plt.semilogy(self.twl*1e6,self.tfl,"b.")
+        plt.title("Generated, Fluxed Spectra (%d)" % self.num)
         plt.xlabel("Wavelength ($\mu m$)")
-        plt.ylabel("Radiance (Units undefined)")
-        plt.savefig("%(Partials)s/Instrument-%(num)04d-Radiance%(ext)s" % dict(num=self.num, ext=self.config["plot_format"],**self.config["Dirs"]))
-        plt.clf()
-        plt.plot(self.twl*1e-6,self.tfl,"b.")
-        plt.title("Generated, Fluxed Spectra")
-        plt.xlabel("Wavelength ($\mu m$)")
-        plt.ylabel("Flux (Units undefined)")
-        plt.savefig("%(Partials)s/Instrument-%(num)04d-Flux%(ext)s" % dict(num=self.num, ext=self.config["plot_format"],**self.config["Dirs"]))
+        plt.ylabel("Flux (Electrons)")
+        plt.savefig("%(Partials)s/Instrument-%(num)04d-Flux%(ext)s" % dict(num=self.num, ext=self.config["Plots"]["format"],**self.config["Dirs"]))
         plt.clf()
 
         
@@ -491,17 +525,18 @@ class Lenslet(ImageObject):
         """Plots aspects of the trace"""
         assert self.traced
         plt.clf()
-        plt.plot(self.twl*1e-6,self.tdw*1e-6,"g.")
-        plt.title("$\Delta\lambda$ for each pixel")
+        plt.plot(self.twl*1e6,self.tdw*1e6,"g.")
+        plt.title("$\Delta\lambda$ for each pixel (%d)" % self.num)
         plt.xlabel("Wavelength ($\mu m$)")
         plt.ylabel("$\Delta\lambda$ per pixel")
-        plt.savefig("%(Partials)s/Instrument-%(num)04d-DeltaWL%(ext)s" % dict(num=self.num, ext=self.config["plot_format"],**self.config["Dirs"]))
+        plt.savefig("%(Partials)s/Instrument-%(num)04d-DeltaWL%(ext)s" % dict(num=self.num, ext=self.config["Plots"]["format"],**self.config["Dirs"]))
         plt.clf()
-        plt.semilogy(self.twl*1e-6,self.trs,"g.")
-        plt.title("$R = \\frac{\lambda}{\Delta\lambda}$ for each pixel")
+        self.log.debug(npArrayInfo(self.trs,"Trace RS"))
+        plt.semilogy(self.twl*1e6,self.trs,"g.")
+        plt.title("$R = \\frac{\lambda}{\Delta\lambda}$ for each pixel (%d)" % self.num)
         plt.xlabel("Wavelength ($\mu m$)")
-        plt.ylabel("Resolution $R = \\frac{\Delta\lambda}{\lambda}$ per pixel")
-        plt.savefig("%(Partials)s/Instrument-%(num)04d-Resolution%(ext)s" % dict(num=self.num, ext=self.config["plot_format"],**self.config["Dirs"]))
+        plt.ylabel("Resolution $R = \\frac{\lambda}{\Delta\lambda}$ per pixel")
+        plt.savefig("%(Partials)s/Instrument-%(num)04d-Resolution%(ext)s" % dict(num=self.num, ext=self.config["Plots"]["format"],**self.config["Dirs"]))
         plt.clf()
     
     def bin(self,array,factor):
@@ -528,21 +563,86 @@ class Lenslet(ImageObject):
     
     def make_hexagon(self):
         """Generates a hexagonal polygon for this lenslet, to be used for area calculations"""
-        radius = self.conifg["Instrument"]["lenslets"]["radius"]
+        radius = self.config["Instrument"]["lenslets"]["radius"]
         angle = np.pi/3.0
         rotation =  self.config["Instrument"]["lenslets"]["rotation"] * (np.pi/180.0) #Absolute angle of rotation for hexagons
         A = self.rotate(self.ps + np.array([radius,0]),rotation,self.ps)
         points = [A]
-        for i in range(6):
+        for i in range(5):
             A = self.rotate(A,angle,self.ps)
             points.append(A)
         self.shape = sh.geometry.Polygon(tuple(points))
+        
+    def show_geometry(self,color='#cccc00',label=False):
+        """Show the source geometry"""
+        x, y = self.shape.exterior.xy
+        plt.fill(x, y, color=color, aa=True) 
+        plt.plot(x, y, color='#666600', aa=True, lw=0.25)
+    
+    def setup_crosstalk(self,n):
+        """docstring for setup_crosstalk"""
+        self.pixelValues = np.zeros((n))
+        self.spectrum = FlatSpectrum(0.0)
+    
+    def find_crosstalk(self,pixel):
+        """Find the crosstalk overlap with another pixel"""
+        if self.shape.disjoint(pixel.shape):
+            return
+        overlap = (self.shape.intersection(pixel.shape).area) / self.shape.area
+        self.spectrum += pixel * overlap
+        self.pixelValues[pixel.idx] = overlap
+        pixel.pixelValues[self.idx] = overlap
+        
+    def find_normalized_overlap(self):
+        """docstring for find_normalized_overlap"""
+        matrix = self.pixelValues
+        self.Norm_overlaps = Normalize(matrix)
 
         
-class SourcePixel(object):
+class SourcePixel(InterpolatedSpectrum):
     """Source Pixels are objects which handle the source shape and size for resampling"""
-    def __init__(self):
-        super(SourcePixel, self).__init__()
+    def __init__(self,x,y,config,num,**kwargs):
+        super(SourcePixel, self).__init__(**kwargs)
+        self.x = x
+        self.y = y
+        self.config = config
+        self.ps = np.array([x,y])
+        self.num = num
+        self.method = self.resolve_and_integrate
+    
+    def make_pixel_square(self):
+        """Make a specific pixel square"""
+        radius = self.config["Source"]["PXSize"]["mm"]
+        rotation = self.config["Source"]["Rotation"]
+        angle = np.pi/2.0
+        A = self.rotate(self.ps+np.array([0,radius]),rotation,self.ps)
+        points = [A]
+        for i in range(3):
+            A = self.rotate(A,angle,self.ps)
+            points.append(A)
+        self.shape = sh.geometry.Polygon(tuple(points))
         
-                
-
+    def rotate(self,point,angle,origin=None):
+        """Rotate a given point by the provided angle around the origin given"""
+        if origin == None:
+            origin = np.array([0,0])
+        pA = np.matrix((point - origin))
+        R = np.matrix([[np.cos(angle),-1*np.sin(angle)],[np.sin(angle),np.cos(angle)]]).T
+        pB = pA * R
+        return np.array(pB + origin)[0]
+        
+    def show_geometry(self,color='#cccc00'):
+        """Show the source geometry"""
+        x, y = self.shape.exterior.xy
+        plt.fill(x, y, color=color, aa=True) 
+        plt.plot(x, y, color='#666600', aa=True, lw=0.25)
+        
+    def setup_crosstalk(self,n):
+        """docstring for setup_crosstalk"""
+        self.pixelValues = np.zeros((n))
+            
+    def get_color(self,idx):
+        """docstring for get_color"""
+        self.vals = Normalize()(self.pixelValues)
+        return cm.jet(self.vals[idx])
+    
