@@ -130,8 +130,8 @@ class Lenslet(ImageObject):
         self.log = logging.getLogger("SEDMachine")
         self.config = config
         self.num = ix
-        self.xs = xs
-        self.ys = ys
+        self.xcs = xs
+        self.ycs = ys
         self.points = np.array([xs,ys]).T
         # Convert the xs and ys to pixel positions
         self.xpixs = np.round(xs * self.config["Instrument"]["convert"]["mmtopx"],0).astype(np.int)
@@ -139,6 +139,7 @@ class Lenslet(ImageObject):
         self.pixs = np.array([self.xpixs,self.ypixs]).T
         self.ps = np.array([p1s,p2s]).T
         self.ls = np.array(ls)
+        self.ellipses = False
                 
         self.dispersion = False
         self.checked = False
@@ -214,8 +215,8 @@ class Lenslet(ImageObject):
         # The spectrum should span some finite distance
         startix = np.argmin(self.ls)
         endix = np.argmax(self.ls)
-        start = np.array([self.xs[startix],self.ys[startix]])
-        end = np.array([self.xs[endix],self.ys[endix]])
+        start = np.array([self.xcs[startix],self.ycs[startix]])
+        end = np.array([self.xcs[endix],self.ycs[endix]])
 
         # Get the total length of the spectra
         self.distance = np.sqrt(np.sum(end-start)**2)
@@ -226,7 +227,7 @@ class Lenslet(ImageObject):
         
         # Find the xs and ys that are not within 0.1 mm of the edge of the detector...
         padding = self.config["Instrument"]["image_pad"]["mm"]
-        if not ((self.xs > 0.1) & (self.xs < self.config["Instrument"]["image_size"]["mm"]-padding) & (self.ys > padding) & (self.ys < self.config["Instrument"]["image_size"]["mm"]-padding)).any():
+        if not ((self.xcs > 0.1) & (self.xcs < self.config["Instrument"]["image_size"]["mm"]-padding) & (self.ycs > padding) & (self.ycs < self.config["Instrument"]["image_size"]["mm"]-padding)).any():
             self.log.debug("Lenslet %d failed: The points are too close to the image edge" % self.num)
             return self.passed
         
@@ -250,20 +251,30 @@ class Lenslet(ImageObject):
         if self.dispersion:
             return self.dispersion
         
+        if self.ellipses:
+            # Find ellipse major and minor axis from given data.
+            a = np.sqrt((self.xcs - self.xas)**2.0 + (self.ycs-self.yas)**2.0)
+            b = np.sqrt((self.xcs - self.xbs)**2.0 + (self.ycs-self.ybs)**2.0)
+            self.fa = np.poly1d(np.polyfit(self.ls, a, self.config["Instrument"]["dispfitorder"]))
+            self.fb = np.poly1d(np.polyfit(self.ls, b, self.config["Instrument"]["dispfitorder"]))
+            
+
+            
+        
         # Interpolation to convert from wavelength to pixels.
         #   The accuracy of this interpolation is not important.
         #   Rather, it is used to find the pixels where the light will fall
         #   and is fed an array that is very dense, used on this dense interpolation
         #   and then binned back onto pixels. Thus it will be used to get a list
         #   of all illuminated pixels.
-        fx = np.poly1d(np.polyfit(self.ls, self.xpixs, 2))
-        fy = np.poly1d(np.polyfit(self.ls, self.ypixs, 2))
+        fx = np.poly1d(np.polyfit(self.ls, self.xpixs, self.config["Instrument"]["dispfitorder"]))
+        fy = np.poly1d(np.polyfit(self.ls, self.ypixs, self.config["Instrument"]["dispfitorder"]))
         
         # Find the starting and ending position of the spectra
         startix = np.argmin(self.ls)
         endix = np.argmax(self.ls)
-        start = np.array([self.xs[startix],self.ys[startix]])
-        end = np.array([self.xs[endix],self.ys[endix]])
+        start = np.array([self.xcs[startix],self.ycs[startix]])
+        end = np.array([self.xcs[endix],self.ycs[endix]])
         
         # Get the total length of the spectra
         distance = np.sqrt(np.sum(end-start)**2)
@@ -423,21 +434,22 @@ class Lenslet(ImageObject):
         
         return self.traced
         
-    def place_trace(self,get_psf):
+    def place_trace(self,get_conv):
         """Place the trace on the image"""
         
         img = np.zeros(self.subshape)
         
         for x,y,wl,flux in zip(self.txs,self.tys,self.twl,self.tfl):
-            psf = get_psf(wl)
-            tiny_image = psf * flux
+            if self.ellipses:
+                a = self.fa(wl)
+                b = self.fb(wl)
+                conv = get_conv(wl,a,b)
+            else:
+                conv = get_conv(wl)
+            tiny_image = conv * flux
             tl_corner = [ x - tiny_image.shape[0]/2.0, y - tiny_image.shape[0]/2.0 ]
             br_corner = [ x + tiny_image.shape[0]/2.0, y + tiny_image.shape[0]/2.0 ]
             img[tl_corner[0]:br_corner[0],tl_corner[1]:br_corner[1]] += tiny_image
-            del tiny_image
-            del tl_corner
-            del br_corner
-            del psf
         self.log.debug(npArrayInfo(img,"DenseSubImage"))
         self.save(img,"Raw Spectrum")
         frame = self.frame()
@@ -464,7 +476,7 @@ class Lenslet(ImageObject):
     def plot_raw_data(self):
         """Debugging plots for raw lenslet data."""
         plt.clf()
-        plt.plot(self.ls*1e6,self.ys,".",linestyle='-')
+        plt.plot(self.ls*1e6,self.ycs,".",linestyle='-')
         plt.title("$\lambda$ along y-axis (%d)" % self.num)
         plt.xlabel("Wavelength ($\mu m$)")
         plt.ylabel("Y-position ($mm$)")
@@ -596,7 +608,7 @@ class SourcePixel(InterpolatedSpectrum):
         self.config = config
         self.ps = np.array([x,y])
         self.num = num
-        self.method = self.resolve_and_resample
+        self.method = self.resolve_and_integrate
     
     def make_pixel_square(self):
         """Make a specific pixel square"""

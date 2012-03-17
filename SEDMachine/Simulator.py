@@ -410,8 +410,8 @@ class SEDSimulator(Simulator,ImageObject):
         FL /= self.const["hc"] / WL
         FL *= 1e10 #Spectrum was per Angstrom, should now be per Meter
         WL *= 1e-10
-        self.Spectrum = InterpolatedSpectrum(np.array([WL,FL]),self.config["Source"]["Filename"],method="resolve_and_resample")
-        self.Original = InterpolatedSpectrum(np.array([WL,FL]),self.config["Source"]["Filename"]+" (O)",method="resolve_and_resample")
+        self.Spectrum = InterpolatedSpectrum(np.array([WL,FL]),self.config["Source"]["Filename"],method="resolve_and_integrate")
+        self.Original = InterpolatedSpectrum(np.array([WL,FL]),self.config["Source"]["Filename"]+" (O)",method="resolve_and_integrate")
         self.SpectrumData = np.array([WL,FL])
         self.SourcePixels = [SourcePixel(-0.13,0,data=np.array([WL,FL]),label="Source Pixel",config=self.config,num=1),SourcePixel(0,0,data=np.array([WL,FL]),label="Source Pixel",config=self.config,num=2),SourcePixel(0.05,0.05,data=np.array([WL,FL]),label="Source Pixel",config=self.config,num=3)]
         for ix,px in enumerate(self.SourcePixels):
@@ -549,11 +549,11 @@ class SEDSimulator(Simulator,ImageObject):
         WL *= 1e-10
         
         
-        self.MoonSpectrum = InterpolatedSpectrum(np.array([WL,M_FL]),"Moon Phase",method='resolve_and_resample')
-        self.SkyOriginal = InterpolatedSpectrum(np.array([WL,FL]),"SkySpectrum (O)",method="resolve_and_resample")
+        self.MoonSpectrum = InterpolatedSpectrum(np.array([WL,M_FL]),"Moon Phase",method='resolve_and_integrate')
+        self.SkyOriginal = InterpolatedSpectrum(np.array([WL,FL]),"SkySpectrum (O)",method="resolve_and_integrate")
         FL += M_FL
-        self.SkyMoon = InterpolatedSpectrum(np.array([WL,FL]),"SkySpectrum + Moon",method="resolve_and_resample")
-        self.SkySpectrum = InterpolatedSpectrum(np.array([WL,FL]),"SkySpectrum",method="resolve_and_resample")
+        self.SkyMoon = InterpolatedSpectrum(np.array([WL,FL]),"SkySpectrum + Moon",method="resolve_and_integrate")
+        self.SkySpectrum = InterpolatedSpectrum(np.array([WL,FL]),"SkySpectrum",method="resolve_and_integrate")
         
     def apply_atmosphere(self):
         """Apply the atmospheric extinction term."""
@@ -858,7 +858,7 @@ class SEDSimulator(Simulator,ImageObject):
             plt.semilogy(wl*1e6,FL,'b.',linestyle="-",label="%s $\Sigma$%.2e" % (identity,Results[identity]))
             
             identity = "%s RR" % Label                
-            wl,FL = self.Original(wavelengths=wl,resolution=rs,method="resolve_and_resample")
+            wl,FL = self.Original(wavelengths=wl,resolution=rs,method="resolve_and_integrate")
             Results[identity] = np.sum(FL)
             plt.semilogy(wl*1e6,FL,'r.',linestyle="-",label="%s $\Sigma$%.2e" % (identity,Results[identity]))
         
