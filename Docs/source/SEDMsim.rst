@@ -116,3 +116,115 @@ The program is actually agnostic to the order of arguments. Any argument may com
 ======================================
 
 :program:`SEDMsim` configuration files are YAML files which contain a dictionary structure. All values in the YAML files are basic yaml, and contain no python-specific directives. To find out what the default or current configuration is, use the :option:`--dump` command. The file produced from this will contain a YAML structure for the configuration in use when the system started up. The various directives in the configuration file are described below.
+
+- Caches:
+	- CONV: SED.conv.npy
+	- PSF: SED.psf.npy
+	- Telescope: SED.tel.npy
+	- config: SED.config.yaml
+	- const: SED.const.yaml
+- Configurations:
+	- Main: SED.main.config.yaml
+	- This: SED.main.config.yaml
+- Debug: false
+- Dirs:
+	- Caches: Caches
+	- Images: Images
+	- Logs: Logs
+	- Partials: Partials
+- Instrument:
+	- Thpt:
+	    - File: SEDSpec2/Data/thpt.npy
+	    - Type: prism_pi
+	- bias: 20
+	- camera: PI
+	- ccd_size:
+	    - px: 2048
+	- convert:
+	    - pxtomm: 0.0135
+	- density: 5
+	- dispfitorder: 2
+	- eADU: 0.03802
+	- files:
+		- dispersion: Data/dispersion_12-10-2011.txt
+		- encircledenergy: Data/encircled_energy_4nov11.TXT
+		- lenslets: Data/xy_17nov2011_v57.TXT
+	- gain: 5
+	- image_pad:
+		- mm: 0.1
+	- image_size:
+		- mm: 40.0
+	- lenslets:
+		- radius: 0.00245
+		- rotation: 27.0
+	- padding: 5
+	- plot: false
+	- psf_size:
+	    - px: 2.4
+	- psf_stdev:
+		- px: 1.0
+	- scatter:
+		- radius: 800
+		- wavelength: 4.5e-07
+	- tel_area: 16417.8
+	- tel_obsc:
+	    - px: 0.2
+	    - ratio: 0.1
+	- tel_radii:
+	    - px: 1.2
+	- wavelengths:
+	    - max: 9.3e-07
+	    - min: 3.7e-07
+	    - resolution: 100
+- Lenslets: {}
+- Observation:
+	- Moon:
+	    - Phase: 6
+	- Sky:
+		- Atmosphere: Atmosph
+		- Files:
+			- HansuchikUVES: SEDSpec2/HansuchikUVES.fits
+			- Massey: SEDSpec2/MasseySky.fits
+			- PALext: SEDSpec2/atmosphere.fits
+			- Quimby: SEDSpec2/Quimby.fits
+			- TurnroseSKY: SEDSpec2/TurnroseSKY.fits
+		- Use: TurnroseSKY
+	- airmass: 1
+	- exposure: 1200
+	- number: 3
+- Output:
+	- Format: fits
+	- Label: Generated
+- Plots:
+	- format: .pdf
+- Source:
+	- CubeName: Data/CUBE.fits
+	- Filename: Data/SNIa.R1000.dat
+	- Flat:
+		- value: 1.0e-06
+	- LineList: null
+	- PXSize:
+		- mm: 0.005
+	- PreAmp: 0.001
+	- Rotation: 0.7853981633974483
+	- Sample_Lenslet: 2000
+	- WLCal:
+		- List: Data/Lines.dat
+	    - sigma: 1.0e-09
+	    - value: 100000000.0
+- logging:
+	- console:
+		- enable: true
+	    - format: '%(levelname)-8s... %(message)s'
+	    - level: 20
+	    - message: '...%(message)s'
+	- file:
+	    - dateformat: '%Y-%m-%d-%H:%M:%S'
+	    - enable: true
+	    - filename: SEDMachine
+	    - format: '%(asctime)s : %(levelname)-8s : %(funcName)-20s : %(message)s'
+	    - level: null
+	- growl:
+	    - enable: false
+	    - level: null
+	    - name: SED Machine Simulator

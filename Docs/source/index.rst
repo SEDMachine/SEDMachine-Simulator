@@ -21,6 +21,11 @@ Contents:
    Simulator
    Lenslets
 
+.. toctree::
+    :hidden:
+    
+    SimulatorExample
+
 
 Indices and tables
 ==================
