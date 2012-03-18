@@ -2,16 +2,22 @@
 .. _SEDMsim:
 
 :program:`SEDMsim` Program for running simulations
-============================================================
+==================================================
 
 The master simulator program is a command-line interface to the :meth:`AstroObject.AstroSimulator.Simulator.run` method. Below are the major command line components.
+
+Usage Statement ::
+	
+	SEDMsim [ options ][ configuration ] {stages}
+	
+The program is actually agnostic to the order of arguments. Any argument may come in any position. As such, all arguments must be unique.
 
 
 .. option:: {stages}
 	
-	The stages option specifies individual stages for the program to run. You must specify at least one stage to run in the simulator. By default, two basic stages are provided, ``*all`` and ``*none``. The default simulation is performed by `*all`. To test the simulator without running any stages (for example, to test :meth:`AstroObject.AstroSimulator.Simulator.registerFunction` functionality), us the `*none` stage to opertate without using any stages.
+	The stages option specifies individual stages for the program to run. You must specify at least one stage to run in the simulator. By default, two basic stages are provided, ``*all`` and ``*none``. The default simulation is performed by ``*all``. To test the simulator without running any stages (for example, to test :meth:`AstroObject.AstroSimulator.Simulator.registerFunction` functionality), us the ``*none`` stage to opertate without using any stages.
 	
-	Stages are called with either a ``*``, ``+`` or ``-`` character at the beginning. Their resepctive actions are shown below.
+	Stages are called with either a ``*``, ``+`` or ``-`` character at the beginning. Their resepctive actions are shown below. All commands must include at least one macro. If you don't want any particular macro, use the ``*none`` macro.
 	
 	========= ============ ================================
 	Character  Action      Description
@@ -21,6 +27,19 @@ The master simulator program is a command-line interface to the :meth:`AstroObje
 	``+``     Include-only To include a stage, but not the dependents of that stage, use ``+stage``.
 	========= ============ ================================
 	
+	.. Note ::
+		Including an argument and excluding it simultaneously will have the effect of including it overall. So the following three commands are equivalent::
+			
+			$ SEDMsim +stage -stage *none
+			$ SEDMsim -stage +stage *none
+			$ SEDMsim +stage *none
+			
+		Also, excluding a stage that is included as a macro will exclude that stage and not call it's dependents, so the following calls are equivalent::
+			
+			$ SEDMsim -stage *stage
+			$ SEDMsim *none
+			
+		
 	The commonly used stages in :program:`SEDMsim` are
 	
 	=====================  ========================================

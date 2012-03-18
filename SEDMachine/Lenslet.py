@@ -123,7 +123,18 @@ class SubImage(ImageFrame):
 
 
 class Lenslet(ImageObject):
-    """An object-representation of a lenslet"""
+    """An object-representation of a lenslet. Takes approximately all of the data we know about each lenslet.
+    
+    :param xs: Array of camera-center x positions
+    :param ys: Array of camera-center y positions
+    :param p1s: Array of pupil x positions
+    :param p2s: Array of pupil y positions
+    :param ls: Array of wavelengths
+    :param ix: Index of this lenslet
+    :param config: Configuration object
+    :param caches: Cache object
+    
+    """
     def __init__(self,xs,ys,p1s,p2s,ls,ix,config,caches):
         super(Lenslet, self).__init__()
         self.dataClasses = [SubImage]
@@ -147,7 +158,7 @@ class Lenslet(ImageObject):
         self.traced = False
     
     def reset(self):
-        """Reset Flag Variables"""
+        """Reset Flag Variables for this lenslet. Deletes any calculated varaibles."""
         self.checked = False
         self.passed = False
         
@@ -176,7 +187,7 @@ class Lenslet(ImageObject):
         
     
     def introspect(self):
-        """Show all sorts of fun data about this lenslet"""
+        """Show all sorts of fun data about this lenslet."""
         STR  = "--Lenslet %(index)04d is %(valid)s\n" % {'index':self.num, 'valid': 'valid' if self.valid() else 'invalid'}
         STR += "|    x    |    y    |    xp    |    yp    |    p1    |    p2    |    wl    |\n"
         for xy,pixs,p,wl in zip(self.points,self.pixs,self.ps,self.ls):
@@ -185,7 +196,21 @@ class Lenslet(ImageObject):
         return STR
     
     def valid(self):
-        """Returns true if this is a valid lenslet, false if it fails any of the tests"""
+        """Returns true if this is a valid lenslet, false if it fails any of the tests.
+        
+        :returns: bool
+        
+        Checks performed:
+        
+        - Wavelengths and Points all have the same number of entries.
+        - We have at least three entries.
+        - No entry's pixel position is exactly 0.
+        - The dispersion distance along the x-axis is less than 30 pixels.
+        - The distance between the start and end of the spectrum is non-zero.
+        - The lenslet positions are not within some configured tolerance of the edge of the spectrum.
+        - Warning about the units for wavelengths.
+        
+        """
         if self.checked:
             return self.passed
         
@@ -241,12 +266,39 @@ class Lenslet(ImageObject):
         return self.passed
     
     def return_dispersion(self):
-        """Return the dispersion"""
+        """Return the dispersion values.
+        
+        :returns: Array of [xcs,ycs,wl,distance]
+        
+        See :meth:`find_dispersion` for the calculation performed.
+        """
         self.find_dispersion()
         return self.dis
         
     def find_dispersion(self):
-        """Find the dispersion (dense, pixel aligned wavelength values) for this lenslet"""
+        """Find the dispersion (dense, pixel aligned wavelength values) for this lenslet.
+        
+        To calculate dispersion, we first create an interpolation from (wavelength) -> (xpix) and (wavelength) -> (ypix). Then, using a large array of possible wavelengths (100x the number of oversampled pixel positions) we create arrays of possible overdense x and y pixel positions. These arrays are then truncated to contain only integer (overdense) pixel positions. We then calculate the arc-distance to each of these pixel positions from the start (lowest wavelength) of the spectrum. Taking only unique points along the arc-distance, we find a list of all of the unique x and y pixel positions which are illuminated by the spectrum in the over-dense sample space. This array, along with thier corresponding wavelengths and arc-distances, are stored for later use.
+        
+        Variables which are used:
+        
+        :var xcs: x-camera positions (center of image) in mm
+        :var ycs: y-camera positions (center of image) in mm
+        :var ls: wavelengths
+        :var xpixs: x-camera positions (center of image) in o-px
+        :var ypixs: y-camera positions (center of image) in o-px
+        
+        
+        Variables which are set:
+        
+        :var dxs: x-camera-positions of each illuminated oversampled pixel in o-px
+        :var dys: y-camera-positions of each illuminated oversampled pixel in o-px
+        :var dwl: wavelength of each illuminated oversampled pixel in meters
+        :var drs: arc-distance along spectrum in o-px
+        :var dis: array of ``[dxs,dys,dwl,drs]``
+        :var dispersion: boolean True
+        
+        """
         assert self.valid(), "Lenslet must contain valid data."
         if self.dispersion:
             return self.dispersion
@@ -347,7 +399,28 @@ class Lenslet(ImageObject):
         return self.dispersion
                 
     def get_trace(self,spectrum):
-        """Returns a trace of this """
+        """Returns a trace of this spectrum. The trace will contain x and y over-dense pixel positions, flux values for each of those illuminated pixels, instantaneous resolution at each pixel, and wavelength of each pixel. The trace also determines the corners of the spectrum, and saves those corner positions with ample padding in the image.
+        
+        Variables Used:
+        
+        :var dxs: x-camera-positions of each illuminated oversampled pixel in o-px
+        :var dys: y-camera-positions of each illuminated oversampled pixel in o-px
+        :var dwl: wavelength of each illuminated oversampled pixel in meters
+        
+        Variables set:
+        
+        :var txs: x-subimage-indicies of each illuminated oversampled pixel in o-px
+        :var tys: y-subimage-indicies of each illuminated oversampled pixel in o-px
+        :var tfl: flux of each pixel in counts
+        :var twl: wavelength of each pixel in meters
+        :var tdw: delta wavelength covered by each pixel in meters
+        :var trs: sampling resolution of each pixel
+        :var subshape: shape of subimage to contain spectrum
+        :var subcorner: corner of subimage to contain spectrum in px
+        :var spectrum: the spectrum object used for flux
+        :var traced: bool True
+        
+        """
         
         if self.traced:
             return self.traced
