@@ -187,7 +187,19 @@ class Lenslet(ImageObject):
         
     
     def introspect(self):
-        """Show all sorts of fun data about this lenslet."""
+        """Show all sorts of fun data about this lenslet.
+        
+        ::
+            
+            >>> lenslet.introspect()
+            --Lenslet 0023 is valid
+            |    x    |    y    |    xp    |    yp    |    p1    |    p2    |    wl    |
+            |  37.5052|  39.0077|      2778|      2889|   -0.0692|   -0.1593|   3.7e-07|
+            |  37.8836|  40.6228|      2806|      3009|   -0.0692|   -0.1593|  6.45e-07|
+            |  37.9199|  41.4872|      2809|      3073|   -0.0692|   -0.1593|   9.2e-07|
+            
+        
+        """
         STR  = "--Lenslet %(index)04d is %(valid)s\n" % {'index':self.num, 'valid': 'valid' if self.valid() else 'invalid'}
         STR += "|    x    |    y    |    xp    |    yp    |    p1    |    p2    |    wl    |\n"
         for xy,pixs,p,wl in zip(self.points,self.pixs,self.ps,self.ls):
@@ -280,21 +292,21 @@ class Lenslet(ImageObject):
         
         To calculate dispersion, we first create an interpolation from (wavelength) -> (xpix) and (wavelength) -> (ypix). Then, using a large array of possible wavelengths (100x the number of oversampled pixel positions) we create arrays of possible overdense x and y pixel positions. These arrays are then truncated to contain only integer (overdense) pixel positions. We then calculate the arc-distance to each of these pixel positions from the start (lowest wavelength) of the spectrum. Taking only unique points along the arc-distance, we find a list of all of the unique x and y pixel positions which are illuminated by the spectrum in the over-dense sample space. This array, along with thier corresponding wavelengths and arc-distances, are stored for later use.
         
-        Variables which are used:
+        **Variables which are used**:
         
         :var xcs: x-camera positions (center of image) in mm
         :var ycs: y-camera positions (center of image) in mm
         :var ls: wavelengths
-        :var xpixs: x-camera positions (center of image) in o-px
-        :var ypixs: y-camera positions (center of image) in o-px
+        :var xpixs: x-camera positions (center of image) in px (integer)
+        :var ypixs: y-camera positions (center of image) in px (integer)
         
         
-        Variables which are set:
+        **Variables which are set**:
         
-        :var dxs: x-camera-positions of each illuminated oversampled pixel in o-px
-        :var dys: y-camera-positions of each illuminated oversampled pixel in o-px
+        :var dxs: x-camera-positions of each illuminated oversampled pixel in px (integer o-px)
+        :var dys: y-camera-positions of each illuminated oversampled pixel in px (integer o-px)
         :var dwl: wavelength of each illuminated oversampled pixel in meters
-        :var drs: arc-distance along spectrum in o-px
+        :var drs: arc-distance along spectrum in mm
         :var dis: array of ``[dxs,dys,dwl,drs]``
         :var dispersion: boolean True
         
@@ -401,13 +413,22 @@ class Lenslet(ImageObject):
     def get_trace(self,spectrum):
         """Returns a trace of this spectrum. The trace will contain x and y over-dense pixel positions, flux values for each of those illuminated pixels, instantaneous resolution at each pixel, and wavelength of each pixel. The trace also determines the corners of the spectrum, and saves those corner positions with ample padding in the image.
         
-        Variables Used:
+        To perform the trace, we first get the oversampled point positions in o-px from the ``dxs`` and ``dys`` variables. These points are saved as both ``x,y`` and ``xorig,yorig``, for later use. ``xorig,yorig`` are stored to save an unmodified copy of the points. The ``xint,yint`` variables are used to store the integer (in px) positions of each ``x,y`` pair, essentially, thier containing camera pixel. ``x,y`` are then zeroed, such that (0,0) is the upper-right corner of the spectrum to be inserted. We then calculate the size of the subimage (in ``xdist,ydist``) and adjust this size so that it is an integer number of camera pixels (px) across. This makes the binning much easier later. The pixels ``x,y`` are then padded to provide space for the PSF to be applied on all sides of the single-pixel spectrum. 
         
-        :var dxs: x-camera-positions of each illuminated oversampled pixel in o-px
-        :var dys: y-camera-positions of each illuminated oversampled pixel in o-px
+        We then find the corner of the of the subimage. First, the corner will generally be extracted as the position with a minimum in the ``y`` direction and a maximum in the ``x`` direction. We first find the corner's position in integer camrea-px space (i.e. from ``xint,yint``, stored as ``corner``), and the corner's position in integer o-px space (i.e. from ``xorig,yorig``, stored as ``realcorner``). Converting the camera's position in integer camera-px space, we take the difference between the two corners as the ``offset``. This is the shift we must insert into ``x,y`` in order to ensure that the corner of our subimage will line up with the corner of a binned pixel. Next we add padding distances into the ``corner`` position. Finally, we use the offset to move the ``x,y`` positions to account for aligning the corner of the subimage with the corner of a full camera pixel. I will make a diagram to explain all of this shortly. Next, we add the padding values into ``xdist,ydist`` to get the full size of the subimage in o-px.
+        
+        We are now ready to extract flux values from our spectrum. This is done using the ``dwl`` values as the wavelength values to sample at. Using the ``dwl`` values, we also calculate an effective sampling resolution, which is used to resample the spectra. Feeding both of these, we compute the flux of the spectrum at each pixel position. This computation is not described in this function, but in a separate location in the documentation.
+        
+        After computing the flux at each pixel, we save the ``x,y`` indicies of each pixel, the flux for that pixel, the wavelength of that pixel, and the shape and corner of the subimage for later use.
+        
+        
+        **Variables which are used**:
+        
+        :var dxs: x-camera-positions of each illuminated oversampled pixel in px
+        :var dys: y-camera-positions of each illuminated oversampled pixel in px
         :var dwl: wavelength of each illuminated oversampled pixel in meters
         
-        Variables set:
+        **Variables which are set**:
         
         :var txs: x-subimage-indicies of each illuminated oversampled pixel in o-px
         :var tys: y-subimage-indicies of each illuminated oversampled pixel in o-px
@@ -508,7 +529,24 @@ class Lenslet(ImageObject):
         return self.traced
         
     def place_trace(self,get_conv):
-        """Place the trace on the image"""
+        """Place the trace on the subimage.
+        
+        First a blank image is created using the ``subshape`` variable as a template. Then, iterating through each point, we get the convolved PSF and telescope image for that point (called the "convolution"). The convolution can vary by wavelenght, and can have other variables which are sytem dependent. The convolution is multiplied by the flux value for that point. The corner of the convolution is then calculated (the top-left and bottom right corners are actually calculated) so that the image can be insterted as a 'flattened' array. Each image is inserted by addition, adding on to the image already in place.
+        
+        **Variables which are used**:
+        
+        :var txs: x-subimage-indicies of each illuminated oversampled pixel in o-px
+        :var tys: y-subimage-indicies of each illuminated oversampled pixel in o-px
+        :var tfl: flux of each pixel in counts
+        :var twl: wavelength of each pixel in meters
+        :var subshape: shape of subimage to contain spectrum
+        :var subcorner: corner of subimage to contain spectrum in px
+        
+        **Variables which are set**:
+        
+        :var frame: A frame labeled "Raw Spectrum" with the oversampled spectrum.
+        
+        """
         
         img = np.zeros(self.subshape)
         
@@ -531,23 +569,37 @@ class Lenslet(ImageObject):
         frame.configHash = hash(str(self.config.extract()))
     
     def write_subimage(self):
-        """Writes a subimage to file"""
+        """Writes a subimage to file and then clears the subimage from this lenslet's memory. The subimage is written to a file with a name formatted as ``%(Caches)s/Subimage-%(num)4d.fits`` where the fields to the format string are relatively self explanatory.
+        
+        Subimage writes will clobber old images.
+        """
         self.write("%(Caches)s/Subimage-%(num)4d%(ext)s" % dict(num=self.num,ext=".fits",**self.config["Dirs"]),primaryState="Raw Spectrum",clobber=True)
         self.clear()
         
     def read_subimage(self):
-        """Read a subimage from file"""
+        """Read a subimage from file and set the lenslet number and corner from data contained in the file. The filenames for subimages conform to the format ``%(Caches)s/Subimage-%(num)4d.fits``, similar to :meth:`write_subimage`. Frames are :class:`SubImage` classes so that they can safely store and retrieve their lenslet numbers and corner positions."""
         self.read("%(Caches)s/Subimage-%(num)4d%(ext)s" % dict(num=self.num,ext=".fits",**self.config["Dirs"]))
         frame = self.frame()
         self.num = frame.lensletNumber
         self.subcorner = frame.corner
         
     def bin_subimage(self):
-        """Bin the selected subimage"""
+        """Bin the selected subimage using the :meth:`bin` function, and binning based on the configured density. This function also sets the final data type as ``np.int16``.
+        
+        """
         self["Binned Spectrum"] = self.bin(self.data(),self.config["Instrument"]["density"]).astype(np.int16)
     
     def plot_raw_data(self):
-        """Debugging plots for raw lenslet data."""
+        """Save a plot figure for raw-data from the lenslet.
+        
+        Creates 1 plot of y-position vs. wavelegnth for the given data points for each lenslet. Plot is saved as ``%(Partials)s/Lenslet-%(num)04d-WL%(ext)s``.
+        
+        **Variables which are used**:
+        
+        :var ls: Wavelengths in meters
+        :var ycs: y-camera positions (center of image) in mm
+        
+        """
         plt.clf()
         plt.plot(self.ls*1e6,self.ycs,".",linestyle='-')
         plt.title("$\lambda$ along y-axis (%d)" % self.num)
@@ -558,7 +610,19 @@ class Lenslet(ImageObject):
         
         
     def plot_dispersion(self):
-        """Debugging for the dispersion process"""
+        """Two plots which show results from dispersion calculations.
+        
+        1. Plot of arc-distance (delta) in px vs. x in pixels. ``%(Partials)s/Instrument-%(num)04d-Delta-Distances%(ext)s``
+        
+        2. Plot of Wavelength vs. effective sampling resolution. ``%(Partials)s/Instrument-%(num)04d-WL%(ext)s``
+        
+        **Variables which are used**:
+        
+        :var dys: y-camera-positions of each illuminated oversampled pixel in px (integer o-px)
+        :var dwl: wavelength of each illuminated oversampled pixel in meters
+        :var drs: arc-distance along spectrum in mm
+        
+        """
         assert self.dispersion
         # This graph shows the change in distance along arc per pixel.
         # The graph should produce all data points close to each other, except a variety of much lower
@@ -580,7 +644,16 @@ class Lenslet(ImageObject):
         
         
     def plot_spectrum(self):
-        """Plots the generated spectrum for this lenslet"""
+        """One plot showing the flux of the spectrum for this lenslet.
+        
+        Plot shows Flux (in counts) vs. Wavelength. ``%(Partials)s/Instrument-%(num)04d-Flux%(ext)s``
+        
+        **Variables which are used**:
+        
+        :var tfl: flux of each pixel in counts
+        :var twl: wavelength of each pixel in meters
+        
+        """
         assert self.traced
         self.log.debug(npArrayInfo(self.twl*1e6,"Wavlength"))
         self.log.debug(npArrayInfo(self.tfl,"Flux"))
@@ -595,7 +668,20 @@ class Lenslet(ImageObject):
         
     
     def plot_trace(self):
-        """Plots aspects of the trace"""
+        """Two plots showing the trace data for this lenslet.
+        
+        1. Delta Lambda per Pixel vs. Wavelenth ``%(Partials)s/Instrument-%(num)04d-DeltaWL%(ext)s``
+        
+        2. Sampling Resolution vs. Wavelength ``%(Partials)s/Instrument-%(num)04d-Resolution%(ext)s``
+        
+        **Variables which are used**:
+        
+        :var tfl: flux of each pixel in counts
+        :var twl: wavelength of each pixel in meters
+        :var tdw: delta wavelength covered by each pixel in meters
+        :var trs: sampling resolution of each pixel
+        
+        """
         assert self.traced
         plt.clf()
         plt.plot(self.twl*1e6,self.tdw*1e6,"g.")
@@ -613,7 +699,13 @@ class Lenslet(ImageObject):
         plt.clf()
     
     def bin(self,array,factor):
-        """Bins an array by the given factor"""
+        """Bins an array by the given factor in both directions.
+        
+        :param array: array to be binned
+        :param factor: binning factor
+        :returns: array binned
+        
+        """
     
         finalShape = tuple((np.array(array.shape) / factor).astype(np.int))
         Aout = np.zeros(finalShape)
@@ -626,7 +718,14 @@ class Lenslet(ImageObject):
         
     
     def rotate(self,point,angle,origin=None):
-        """Rotate a given point by the provided angle around the origin given"""
+        """Rotate a given point by the provided angle around the origin given.
+        
+        :param point: The point in [x,y]
+        :param angle: The angle in radians
+        :param origin: The rotation origin for the point
+        :returns: Rotated point [x,y]
+        
+        """
         if origin == None:
             origin = np.array([0,0])
         pA = np.matrix((point - origin))
@@ -635,7 +734,12 @@ class Lenslet(ImageObject):
         return np.array(pB + origin)[0]
     
     def make_hexagon(self):
-        """Generates a hexagonal polygon for this lenslet, to be used for area calculations"""
+        """Generates a hexagonal polygon for this lenslet, to be used for area calculations.
+        
+        Generates a single point at the appropriate radius from the center. This point is then rotated by the hexagon rotation value. Next, five more points are generated by rotating the original point successive times by pi/3.
+        
+        :var shape: shapely polygon representing this hexagon.
+        """
         radius = self.config["Instrument"]["lenslets"]["radius"]
         angle = np.pi/3.0
         rotation =  self.config["Instrument"]["lenslets"]["rotation"] * (np.pi/180.0) #Absolute angle of rotation for hexagons
@@ -647,27 +751,33 @@ class Lenslet(ImageObject):
         self.shape = sh.geometry.Polygon(tuple(points))
         
     def show_geometry(self,color='#cccc00',label=False):
-        """Show the source geometry"""
+        """Show the source geometry on the current plot. Geometry is shown filled with the color provided, and bordered by a grey box."""
         x, y = self.shape.exterior.xy
         plt.fill(x, y, color=color, aa=True) 
-        plt.plot(x, y, color='#666600', aa=True, lw=0.25)
+        plt.plot(x, y, color='#666666', aa=True, lw=0.25)
     
     def setup_crosstalk(self,n):
-        """docstring for setup_crosstalk"""
+        """Set up the crosstalk matrix for this lenslet and the flat base spectrum for this lenselt. This setup depends on the intended size of the crosstalk matrix.
+        
+        :param n: Size of the crosstalk matrix (number of source pixels)"""
         self.pixelValues = np.zeros((n))
         self.spectrum = FlatSpectrum(0.0)
     
     def find_crosstalk(self,pixel):
-        """Find the crosstalk overlap with another pixel"""
+        """Find the crosstalk overlap with a given pixel. The crosstalk is defined as the fraction of that pixels light which will end up in this lenslet.
+        
+        :param pixel: The pixel for calculation. :class:`SourcePixel`
+        
+        If the two shapes are disjoint, nothing is done. If they are not, we calculate the percentage of the pixel which ends up in this hexagon. This overlap factor is then saved in the crosstalk matrix for both the pixel and the lenslet. Finally, the pixel is scaled by the overlap and added to this lenslet's spectrum."""
         if self.shape.disjoint(pixel.shape):
             return
-        overlap = (self.shape.intersection(pixel.shape).area) / self.shape.area
+        overlap = (self.shape.intersection(pixel.shape).area) / pixel.shape.area
         self.spectrum += pixel * overlap
         self.pixelValues[pixel.idx] = overlap
         pixel.pixelValues[self.idx] = overlap
         
     def find_normalized_overlap(self):
-        """docstring for find_normalized_overlap"""
+        """Saves a normalized overlap matrix. The normalized overlap matrix is required for requesting colors from the color-map for matrix plotting."""
         matrix = self.pixelValues
         self.Norm_overlaps = Normalize(matrix)
 
