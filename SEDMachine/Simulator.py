@@ -53,6 +53,7 @@ class SEDSimulator(Simulator,ImageObject):
         self.lenslets = []
         self.spectra = SpectraObject()
         self.spectra.dataClasses += [AnalyticSpectrum]
+        self.astrologger = logging.getLogger("AstroObject")
         self.config.merge(self.basics)
         self.config.merge({"Instrument":self.instrument,"Caches":self.caches,"Source":self.source,"Observation":self.observation})
         self.config.setFile("Main")
@@ -129,9 +130,9 @@ class SEDSimulator(Simulator,ImageObject):
     
     instrument = {
         'files': {
-            'dispersion': 'Data/dispersion_12-10-2011.txt',
-            'encircledenergy': 'Data/encircled_energy_4nov11.TXT',
-            'lenslets': 'Data/xy_17nov2011_v57.TXT',
+            'dispersion': 'Filename.txt',
+            'encircledenergy': 'Filename.txt',
+            'lenslets': 'Filename.txt',
         },
         'camera' : "PI",
         'convert': {
@@ -142,9 +143,13 @@ class SEDSimulator(Simulator,ImageObject):
         'plot': False, 
         'ccd_size': {'px': 2048}, 
         'padding': 5, 
-        'psf_stdev': {'px': 1.0}, 
+        'PSF' : {
+            'stdev': {'px': 1.0}, 
+            'size': { 'px': 2.4},
+            'ellipse': True,
+            'dispfitorder': 5,
+        },
         'bias': 20, 
-        'psf_size': { 'px': 2.4}, 
         'image_size': { 'mm': 40.0}, 
         'image_pad' : { 'mm' : 0.1},
         'tel_radii': { 'px': 1.2},
@@ -248,7 +253,6 @@ class SEDSimulator(Simulator,ImageObject):
         self.registerStage(self.plot_sky_original,"plot-sky-o",help="Plot generic sky spectrum",description="Plotting Original Sky Spectrum",include=False,dependencies=["setup-sky"])
         self.registerStage(self.plot_sky,"plot-sky",help="Plot sky spectrum",description="Plotting Sky Spectrum",include=False,dependencies=["setup-sky","apply-sky","apply-qe","simple-source","plot-sky-o"])
         self.registerStage(self.plot_qe,"plot-qe",help="Plot QE spectrum",description="Plotting QE Spectrum",include=False,dependencies=["setup-sky"])
-        self.registerStage(self.plot_lenslet_data,"plot-lenslet-xy",help="Plot lenslet positions",description="Plotting lenslet positions",include=False,dependencies=["setup-lenslets"])
         
         # Dispersion functions
         self.registerStage(self.lenslet_dispersion,"dispersion",help="Calculate lenslet dispersion",description="Calculating dispersion for each lenslet",dependencies=["setup-lenslets","setup-caches"])
@@ -256,6 +260,9 @@ class SEDSimulator(Simulator,ImageObject):
         self.registerStage(self.lenslet_place,"place",help="Place subimages",description="Placing lenslet spectra",dependencies=["trace"])
         
         # Dispersion plotting functions
+        self.registerStage(self.plot_ellipses,"plot-lenslet-es",help="Plot lenslet ellipse sizes",description="Plotting lenslet ellipse sizes",include=False,dependencies=["setup-lenslets","dispersion"])
+        
+        self.registerStage(self.plot_lenslet_data,"plot-lenslet-xy",help="Plot lenslet positions",description="Plotting lenslet positions",include=False,dependencies=["setup-lenslets","dispersion"])
         self.registerStage(self.plot_dispersion_data,"plot-dispersion",help=False,description="Plotting dispersion for each lenslet",dependencies=["dispersion"],include=False)
         self.registerStage(self.plot_trace_data,"plot-trace",help=False,description="Plotting trace data for each lenslet",dependencies=["trace"],include=False)
         self.registerStage(self.plot_spectrum_data,"plot-spectrum",help=False,description="Plotting spectral data for each lenslet",dependencies=["trace"],include=False)
@@ -282,17 +289,18 @@ class SEDSimulator(Simulator,ImageObject):
         self.Caches["TEL"] = NumpyCache(self.get_tel_kern,filename=self.config["Caches"]["Telescope"])
         self.Caches["PSF"] = NumpyCache(self.get_psf_kern,filename=self.config["Caches"]["PSF"])
         self.Caches["CONV"] = NumpyCache(lambda : sp.signal.convolve(self.Caches["PSF"],self.Caches["TEL"],mode='same'),filename=self.config["Caches"]["CONV"])
-        self.Caches["CONFIG"] = ConfigCache(self.config,filename=self.config["Caches"]["config"])
+        # self.Caches["CONFIG"] = ConfigCache(self.config,filename=self.config["Caches"]["config"])
+        # self.Caches.flag('enabled',False,"CONFIG")
         
         if "clear_cache" in self.options and self.options["clear_cache"]:
             self.Caches.flag('enabled',False)
         if "cache" in self.options and not self.options["cache"]:
             self.Caches.flag('saving',False)
         
-        if not self.Caches.check("CONFIG"):
-            self.Caches.reset()
-            cfg = self.Caches["CONFIG"]
-            self.log.info("Caches appear to be out of date, regenerating")
+        # if not self.Caches.check("CONFIG"):
+        #     self.Caches.reset()
+        #     cfg = self.Caches["CONFIG"]
+        #     self.log.info("Caches appear to be out of date, regenerating")
     
     def setup_constants(self):
         """Establish Physical Constants"""
@@ -310,7 +318,8 @@ class SEDSimulator(Simulator,ImageObject):
        ..Note:: This function does not store variables neatly. As such, it has no built-in caching system.
        """
        # Load Lenslet Specification File
-       ix, p1, p2, lams, xs, ys = np.genfromtxt(self.config["Instrument"]["files"]["lenslets"],skip_header=1,comments="#").T
+       self.log.debug("Opening filename %s" % self.config["Instrument"]["files"]["lenslets"])
+       ix, p1, p2, lams, xcs, ycs, xls, yls, xas, yas, xbs, ybs, rs = np.genfromtxt(self.config["Instrument"]["files"]["lenslets"],skip_header=1,comments="#").T
        # This data describes the following:
        # ix - Index (number)
        # p1 - Pupil position in the x-direction
@@ -322,10 +331,6 @@ class SEDSimulator(Simulator,ImageObject):
        # Correctly Type Lenslet Specification Data
        ix = ix.astype(np.int) #Indicies should always be integers
         
-       # Center xs and ys on detector with a corner at 0,0
-       xs += (self.config["Instrument"]["image_size"]["mm"]/2)
-       ys += (self.config["Instrument"]["image_size"]["mm"]/2)
-        
        lams *= 1e-6 # Convert wavelength to SI units (m)
         
        # This simply generates a list of all of the lenslets
@@ -333,7 +338,7 @@ class SEDSimulator(Simulator,ImageObject):
         
        # Determine the center of the whole system by finding the x position that is closest to 0,0 in pupil position
        cntix = np.argmin(p1**2 + p2**2)
-       self.center = (xs[cntix] * self.config["Instrument"]["convert"]["mmtopx"], ys[cntix] * self.config["Instrument"]["convert"]["mmtopx"])
+       self.center = ((xcs[cntix] + (self.config["Instrument"]["image_size"]["mm"]/2))* self.config["Instrument"]["convert"]["mmtopx"], (ycs[cntix] + (self.config["Instrument"]["image_size"]["mm"]/2)) * self.config["Instrument"]["convert"]["mmtopx"])
        
         
        # Progress bar for lenslet creation and validation
@@ -349,7 +354,7 @@ class SEDSimulator(Simulator,ImageObject):
        with open(FileName,'w') as stream:
            for idx in self.lensletIndex:
                select = idx == ix
-               lenslet = Lenslet(xs[select],ys[select],p1[select],p2[select],lams[select],idx,self.config,self.Caches)
+               lenslet = Lenslet(p1[select],p2[select],lams[select],idx,xcs[select], ycs[select],xls[select], yls[select],  xas[select], yas[select], xbs[select], ybs[select], rs[select],self.config,self.Caches)
                if lenslet.valid():
                    self.lenslets[idx] = lenslet
                    stream.write(lenslet.introspect())
@@ -705,7 +710,7 @@ class SEDSimulator(Simulator,ImageObject):
     def setup_noise(self):
         """Makes noise masks"""
         
-        read_noise = np.sqrt(self.cameras[self.config["Instrument"]["camera"]]["RN"]**2 * self.config["Instrument"]["psf_size"]["px"] * self.config["Observation"]["number"] / self.config["Instrument"]["gain"])
+        read_noise = np.sqrt(self.cameras[self.config["Instrument"]["camera"]]["RN"]**2 * self.config["Instrument"]["PSF"]["size"]["px"] * self.config["Observation"]["number"] / self.config["Instrument"]["gain"])
         dark_noise = self.cameras[self.config["Instrument"]["camera"]]["DC"] * self.config["Observation"]["exposure"]
         
         self.generate_poisson_noise("Read",read_noise)
@@ -1204,6 +1209,18 @@ class SEDSimulator(Simulator,ImageObject):
         plt.savefig(FileName)
         plt.clf()
    
+    def plot_ellipses(self):
+        """docstring for plot_ellipses"""
+        plt.clf()
+        self.map_over_lenslets(lambda l: l.plot_ellipses(),color="cyan")
+        plt.title("Major Axis Size")
+        plt.xlabel("Wavelength ($\mu m$)")
+        plt.ylabel("$\Delta$-position ($px$)")
+        plt.axis(expandLim(plt.axis()))
+        plt.savefig("%(Partials)s/Lenslets-WL-dy%(ext)s" % dict(ext=self.config["Plots"]["format"],**self.config["Dirs"]))
+        
+        
+   
     def plot_kernel_partials(self):
         """Plots the kernel data partials"""
         self.log.debug("Generating Kernel Plots and Images")
@@ -1381,28 +1398,25 @@ class SEDSimulator(Simulator,ImageObject):
         return val / np.sum(val)
     
     
-    def ellipse_kern(self,major,minor,size=0,sizey=False,normalize=False):
+    def ellipse_kern(self,major,minor,alpha=0,size=0,sizey=False,normalize=False):
         """docstring for elipse_kern"""
         size /= 2
-        if sizey:
-            sizey /= 2
-        if size < minor:
-            size = int(minor) + 1
-        else:
-            size = int(size)
-        if not sizey:
-            sizey = int(size)
-        if sizey < major:
-            sizey = np.int(major) + 1
-        else:
-            sizey = np.int(sizey)
+        sizey /= 2
+        
+        if size < sizey:
+            size = sizey
+        if size < major:
+            size = int(major) + 1
+        sizey = size
         
         major = float(major)
         minor = float(minor)
+        alpha = float(alpha)
         
         x, y = np.mgrid[-size:size+1, -sizey:sizey+1]
         
-        d = np.sqrt((x/minor)**2.0 + (y/major)**2.0)
+        d = np.sqrt(((x * np.cos(alpha) + y * np.sin(alpha))/minor)**2.0 + ((x * np.sin(alpha) + y * np.cos(alpha))/major)**2.0)
+        
         v = (d <= 1).astype(np.float)
         if normalize:
             return v / np.sum(v)
@@ -1467,13 +1481,13 @@ class SEDSimulator(Simulator,ImageObject):
                 *TELIMG.shape )
         TELIMG -= center
         TELIMG = TELIMG / np.sum(TELIMG)
-        self.log.debug("Generated a Telescpe Kernel with shape %s" % (str(TELIMG.shape)))
+        self.log.debug(npArrayInfo(TELIMG,"TELIMG"))
         return TELIMG
     
     def get_psf_kern(self):
         """Returns the PSF Kernel. The function first tries to read the encircled energy file. In this case, if a `psf_size` is set in the instrument configuration, this value will be used to truncate the size of the encircled energy function. If the encircled energy function cannot be loaded, the system will fall back on to a gaussian psf as configured by the instrument."""
-        if self.config["Instrument"]["psf_size"]["px"] != 0:
-            size = self.config["Instrument"]["psf_size"]["px"] * self.config["Instrument"]["density"]
+        if self.config["Instrument"]["PSF"]["size"]["px"] != 0:
+            size = self.config["Instrument"]["PSF"]["size"]["px"] * self.config["Instrument"]["density"]
             truncate = True
         else:
             size = 0
@@ -1482,7 +1496,7 @@ class SEDSimulator(Simulator,ImageObject):
             PSFIMG = self.psf_kern( self.config["Instrument"]["files"]["encircledenergy"],size,truncate)
         except IOError as e:
             self.log.warning("Could not access encircled energy file: %s" % e)
-            PSFIMG = self.gauss_kern( (self.config["Instrument"]["psf_stdev"]["px"] * self.config["Instrument"]["density"]) )
+            PSFIMG = self.gauss_kern( (self.config["Instrument"]["PSF"]["stdev"]["px"] * self.config["Instrument"]["density"]) )
         else:
             self.log.debug("Loaded Encircled Energy from %s" % self.config["Instrument"]["files"]["encircledenergy"])
         return PSFIMG
@@ -1503,7 +1517,9 @@ class SEDSimulator(Simulator,ImageObject):
         
         
         """
-        self.config.load()        
+        self.config.load()
+        self.astrologger.configure(configFile = self.config["Configurations"]["This"])
+        self.astrologger.start()
         if "calc" not in self.config["Instrument"]["convert"]:
             if "mmtopx" not in self.config["Instrument"]["convert"] and "pxtomm" in self.config["Instrument"]["convert"]:
                 self.config["Instrument"]["convert"]["mmtopx"] = 1.0 / self.config["Instrument"]["convert"]["pxtomm"]

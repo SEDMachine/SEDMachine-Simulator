@@ -135,22 +135,33 @@ class Lenslet(ImageObject):
     :param caches: Cache object
     
     """
-    def __init__(self,xs,ys,p1s,p2s,ls,ix,config,caches):
+    def __init__(self,p1s,p2s,ls,ix,xcs, ycs, xls, yls, xas, yas, xbs, ybs, rs,config,caches):
         super(Lenslet, self).__init__()
         self.dataClasses = [SubImage]
         self.log = logging.getLogger("SEDMachine")
         self.config = config
         self.num = ix
-        self.xcs = xs
-        self.ycs = ys
-        self.points = np.array([xs,ys]).T
+        
+        # Center x and y positions
+        self.xcs =  xcs + (self.config["Instrument"]["image_size"]["mm"]/2)
+        self.ycs =  ycs + (self.config["Instrument"]["image_size"]["mm"]/2)
+        self.xas =  xas + (self.config["Instrument"]["image_size"]["mm"]/2)
+        self.yas =  yas + (self.config["Instrument"]["image_size"]["mm"]/2)
+        self.xbs =  xbs + (self.config["Instrument"]["image_size"]["mm"]/2)
+        self.ybs =  ybs + (self.config["Instrument"]["image_size"]["mm"]/2)
+        self.xls =  xls + (self.config["Instrument"]["image_size"]["mm"]/2)
+        self.yls =  yls + (self.config["Instrument"]["image_size"]["mm"]/2)
+        
+        
+        
+        self.points = np.array([self.xcs,self.ycs]).T
+        
         # Convert the xs and ys to pixel positions
-        self.xpixs = np.round(xs * self.config["Instrument"]["convert"]["mmtopx"],0).astype(np.int)
-        self.ypixs = np.round(ys * self.config["Instrument"]["convert"]["mmtopx"],0).astype(np.int)
+        self.xpixs = np.round(self.xcs * self.config["Instrument"]["convert"]["mmtopx"],0).astype(np.int)
+        self.ypixs = np.round(self.ycs * self.config["Instrument"]["convert"]["mmtopx"],0).astype(np.int)
         self.pixs = np.array([self.xpixs,self.ypixs]).T
         self.ps = np.array([p1s,p2s]).T
         self.ls = np.array(ls)
-        self.ellipses = False
                 
         self.dispersion = False
         self.checked = False
@@ -315,12 +326,14 @@ class Lenslet(ImageObject):
         if self.dispersion:
             return self.dispersion
         
-        if self.ellipses:
+        if self.config["Instrument"]["PSF"]["ellipse"]:
             # Find ellipse major and minor axis from given data.
-            a = np.sqrt((self.xcs - self.xas)**2.0 + (self.ycs-self.yas)**2.0)
-            b = np.sqrt((self.xcs - self.xbs)**2.0 + (self.ycs-self.ybs)**2.0)
-            self.fa = np.poly1d(np.polyfit(self.ls, a, self.config["Instrument"]["dispfitorder"]))
-            self.fb = np.poly1d(np.polyfit(self.ls, b, self.config["Instrument"]["dispfitorder"]))
+            self.a = np.sqrt((self.xcs - self.xas)**2.0 + (self.ycs-self.yas)**2.0) * self.config["Instrument"]["convert"]["mmtopx"] * self.config["Instrument"]["density"]
+            self.b = np.sqrt((self.xcs - self.xbs)**2.0 + (self.ycs-self.ybs)**2.0) * self.config["Instrument"]["convert"]["mmtopx"] * self.config["Instrument"]["density"]
+            self.alpha = np.arcsin((self.xcs - self.xas)/(self.ycs-self.yas))
+            self.fa = np.poly1d(np.polyfit(self.ls, self.a, self.config["Instrument"]["PSF"]["dispfitorder"]))
+            self.fb = np.poly1d(np.polyfit(self.ls, self.b, self.config["Instrument"]["PSF"]["dispfitorder"]))
+            self.falpha = np.poly1d(np.polyfit(self.ls, self.alpha, self.config["Instrument"]["PSF"]["dispfitorder"]))
             
 
             
@@ -551,7 +564,7 @@ class Lenslet(ImageObject):
         img = np.zeros(self.subshape)
         
         for x,y,wl,flux in zip(self.txs,self.tys,self.twl,self.tfl):
-            if self.ellipses:
+            if self.config["Instrument"]["PSF"]["ellipse"]:
                 a = self.fa(wl)
                 b = self.fb(wl)
                 conv = get_conv(wl,a,b)
@@ -607,7 +620,43 @@ class Lenslet(ImageObject):
         plt.ylabel("Y-position ($mm$)")
         plt.savefig("%(Partials)s/Lenslet-%(num)04d-WL%(ext)s" % dict(num=self.num, ext=self.config["Plots"]["format"],**self.config["Dirs"]))
         plt.clf()
+        plt.plot(self.ls*1e6,self.ycs,".",linestyle='-',label="Center")
+        plt.plot(self.ls*1e6,self.yas,".",linestyle='-',label="Major Axis")
+        plt.title("$\lambda$ along y-axis (%d)" % self.num)
+        plt.xlabel("Wavelength ($\mu m$)")
+        plt.ylabel("Y-position ($mm$)")
+        plt.legend()
+        plt.savefig("%(Partials)s/Lenslet-%(num)04d-WL-ya%(ext)s" % dict(num=self.num, ext=self.config["Plots"]["format"],**self.config["Dirs"]))
+        plt.clf()
+        plt.subplot(211)
+        plt.plot(self.ls*1e6,np.abs(self.xcs-self.xbs)*self.config["Instrument"]["convert"]["mmtopx"],".",linestyle='-',label="XB")
+        plt.plot(self.ls*1e6,np.abs(self.ycs-self.yas)*self.config["Instrument"]["convert"]["mmtopx"],".",linestyle='-',label="YA")
+        plt.title("$\lambda$ along y-axis (%d)" % self.num)
+        plt.xlabel("Wavelength ($\mu m$)")
+        plt.ylabel("$\Delta$Y-position ($px$)")
+        plt.legend()
+        plt.axis(expandLim(plt.axis()))
+
+        plt.subplot(212)
+        plt.plot(self.ls*1e6,np.abs(self.xcs-self.xas)*self.config["Instrument"]["convert"]["mmtopx"],".",linestyle='-',label="XA")
+        plt.plot(self.ls*1e6,np.abs(self.ycs-self.ybs)*self.config["Instrument"]["convert"]["mmtopx"],".",linestyle='-',label="YB")
+        plt.axis(expandLim(plt.axis()))
+        plt.xlabel("Wavelength ($\mu m$)")
+        plt.ylabel("$\Delta$Y-position ($px$)")
+        plt.legend()
+        plt.savefig("%(Partials)s/Lenslet-%(num)04d-WL-dy%(ext)s" % dict(num=self.num, ext=self.config["Plots"]["format"],**self.config["Dirs"]))
+        plt.clf()
+        plt.plot(self.ls*1e6,self.fa(self.ls),".",linestyle='-')
+        plt.title("$\lambda$ along y-axis (%d)" % self.num)
+        plt.xlabel("Wavelength ($\mu m$)")
+        plt.ylabel("Major-Axis ($px$)")
+        plt.savefig("%(Partials)s/Lenslet-%(num)04d-WL-a%(ext)s" % dict(num=self.num, ext=self.config["Plots"]["format"],**self.config["Dirs"]))
+        plt.clf()
         
+    def plot_ellipses(self):
+        """docstring for plot_ellipses"""
+        plt.plot(self.ls*1e6,np.abs(self.ycs-self.yas)*self.config["Instrument"]["convert"]["mmtopx"],".",linestyle='-',label="YA")
+                
         
     def plot_dispersion(self):
         """Two plots which show results from dispersion calculations.
