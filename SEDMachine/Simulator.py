@@ -51,6 +51,7 @@ class SEDSimulator(Simulator,ImageObject):
         self.mapping = False
         self.dataClasses = [SubImage]
         self.lenslets = []
+        self.ellipses = {}
         self.spectra = SpectraObject()
         self.spectra.dataClasses += [AnalyticSpectrum]
         self.astrologger = logging.getLogger("AstroObject")
@@ -1360,8 +1361,17 @@ class SEDSimulator(Simulator,ImageObject):
     def get_conv(self,wavelength,a=None,b=None):
         """Return a PSF for a given wavelength in the system"""
         if a and b:
-            ETEL = self.get_tel_kern(a,b)
-            self.CONV = sp.signal.convolve(self.Caches["PSF"],ETEL,mode='same')
+            ai = int(a)
+            bi = int(b)
+            
+            if ai not in self.ellipses:
+                self.ellipses[ai] = {}
+            if bi not in self.ellipses[ai]:
+                ETEL = self.get_tel_kern(a,b)
+                self.CONV = sp.signal.convolve(self.Caches["PSF"],ETEL,mode='same')
+                self.ellipses[ai][bi] = self.CONV
+            else:
+                self.CONV = self.ellipses[ai][bi]
         if not hasattr(self,"found"):
             self.found = True
             self.CONV = self.Caches["CONV"] 
@@ -1473,6 +1483,9 @@ class SEDSimulator(Simulator,ImageObject):
     def get_tel_kern(self,major=None,minor=None):
         """Returns the telescope kernel. This kernel is built by creating a circle mask for the size of the telescope mirror, and then subtracting a telescope obscuration from the center of the mirror image. The values for all of these items are set in the configuration file."""
         if major or minor:
+            
+            
+            
             TELIMG = self.ellipse_kern( major, minor )
             center = self.ellipse_kern( major * self.config["Instrument"]["tel_obsc"]["ratio"], minor * self.config["Instrument"]["tel_obsc"]["ratio"], *TELIMG.shape )
         else:
@@ -1520,6 +1533,8 @@ class SEDSimulator(Simulator,ImageObject):
         self.config.load()
         self.astrologger.configure(configFile = self.config["Configurations"]["This"])
         self.astrologger.start()
+        self.astrologger.useConsole(False)
+        
         if "calc" not in self.config["Instrument"]["convert"]:
             if "mmtopx" not in self.config["Instrument"]["convert"] and "pxtomm" in self.config["Instrument"]["convert"]:
                 self.config["Instrument"]["convert"]["mmtopx"] = 1.0 / self.config["Instrument"]["convert"]["pxtomm"]
