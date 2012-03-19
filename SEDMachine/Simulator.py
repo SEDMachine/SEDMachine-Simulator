@@ -290,18 +290,11 @@ class SEDSimulator(Simulator,ImageObject):
         self.Caches["TEL"] = NumpyCache(self.get_tel_kern,filename=self.config["Caches"]["Telescope"])
         self.Caches["PSF"] = NumpyCache(self.get_psf_kern,filename=self.config["Caches"]["PSF"])
         self.Caches["CONV"] = NumpyCache(lambda : sp.signal.convolve(self.Caches["PSF"],self.Caches["TEL"],mode='same'),filename=self.config["Caches"]["CONV"])
-        # self.Caches["CONFIG"] = ConfigCache(self.config,filename=self.config["Caches"]["config"])
-        # self.Caches.flag('enabled',False,"CONFIG")
         
         if "clear_cache" in self.options and self.options["clear_cache"]:
             self.Caches.flag('enabled',False)
         if "cache" in self.options and not self.options["cache"]:
             self.Caches.flag('saving',False)
-        
-        # if not self.Caches.check("CONFIG"):
-        #     self.Caches.reset()
-        #     cfg = self.Caches["CONFIG"]
-        #     self.log.info("Caches appear to be out of date, regenerating")
     
     def setup_constants(self):
         """Establish Physical Constants"""
@@ -622,9 +615,13 @@ class SEDSimulator(Simulator,ImageObject):
     def setup_line_list(self):
         """Set up a line-list based spectrum for wavelength calibration."""
         List = np.genfromtxt(self.config["Source"]["WLCal"]["List"])
-        CalSpec = FlatSpectrum(0.0)
-        for line in List:
-            CalSpec += GaussianSpectrum(line,self.config["Source"]["WLCal"]["sigma"],self.config["Source"]["WLCal"]["value"],"Line %g" % line)
+        if List.ndim == 0:
+            line = List
+            CalSpec = GaussianSpectrum(line,self.config["Source"]["WLCal"]["sigma"],self.config["Source"]["WLCal"]["value"],"Line %g" % line)
+        else:
+            CalSpec = FlatSpectrum(0.0)
+            for line in List:
+                CalSpec += GaussianSpectrum(line,self.config["Source"]["WLCal"]["sigma"],self.config["Source"]["WLCal"]["value"],"Line %g" % line)
         self.CalSpec = UnitarySpectrum(CalSpec,method='resolve_and_integrate',label="Calibration Lamp")
         
     def line_source(self):
