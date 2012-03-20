@@ -614,7 +614,7 @@ class SEDSimulator(Simulator,ImageObject):
         
     def setup_line_list(self):
         """Set up a line-list based spectrum for wavelength calibration."""
-        linelist = np.asarray(np.genfromtxt(self.config["Source"]["WLCal"]["List"])).flatten()
+        linelist = np.asarray(np.genfromtxt(self.config["Source"]["WLCal"]["List"]),comments="#").flatten()
         CalSpec = FlatSpectrum(0.0)
         for line in linelist:
             CalSpec += GaussianSpectrum(line,self.config["Source"]["WLCal"]["sigma"],self.config["Source"]["WLCal"]["value"],"Line %g" % line)
@@ -622,10 +622,12 @@ class SEDSimulator(Simulator,ImageObject):
         
     def line_source(self):
         """Use the line spectrum only"""
+        self.config["Output"]["Label"] += "-cal-"
         self.replace_source(self.CalSpec)
         
     def sky_source(self):
         """Use the sky spectrum only"""
+        self.config["Output"]["Label"] += "-sky-"
         self.replace_source(self.SkySpectrum,self.SkyOriginal)
 
     def replace_source(self,spectrum,original=None):
@@ -644,6 +646,7 @@ class SEDSimulator(Simulator,ImageObject):
             
     def flat_source(self):
         """Replace the default file-source with a flat spectrum"""
+        self.config["Output"]["Label"] += "-flat-"
         self.replace_source(FlatSpectrum(self.config["Source"]["Flat"]["value"]))
 
     def lenslet_dispersion(self):
