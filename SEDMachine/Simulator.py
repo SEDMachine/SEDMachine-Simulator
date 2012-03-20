@@ -213,7 +213,7 @@ class SEDSimulator(Simulator,ImageObject):
         self.registerStage(self.setup_blank,"setup-blank",help=False,description="Creating blank image",dependencies=["setup-config"])        
         self.registerStage(self.setup_simple_source,"setup-source-simple",help=False,description="Creating simple source spectrum object",dependencies=["setup-config","setup-constants"],include=False,replaces=["setup-source"])
         self.registerStage(None,"simple-source",help="Use a simple, centered source object",description="Replacing default source with a simple one",include=False,dependencies=["setup-source-simple"])
-        self.registerStage(self.setup_source,"setup-source",help=False,description="Creating source spectrum objects",dependencies=["setup-config","setup-constants"])
+        self.registerStage(self.setup_simple_source,"setup-source",help=False,description="Creating source spectrum objects",dependencies=["setup-config","setup-constants"])
         self.registerStage(self.setup_source_pixels,"setup-source-pixels",help=False,description="Making source pixels",dependencies=["setup-source"])
         self.registerStage(self.setup_noise,"setup-noise",help=False,description="Setting up Dark/Bias frames",dependencies=["setup-config","setup-cameras"])
         self.registerStage(self.setup_sky,"setup-sky",help=False,description="Setting up Sky spectrum object",dependencies=["setup-config","setup-constants"])
@@ -685,6 +685,9 @@ class SEDSimulator(Simulator,ImageObject):
     
     def setup_scatter(self):
         """Sets up scattered light level"""
+        self.log.warning("Stage 'setup-source' not ready yet, doing nothing!")
+        return
+        
         self.full = FlatSpectrum(0.0)
         self.map_over_lenslets(self._scatter_addition,"green")
         self.full_resolved = InterpolatedSpectrum(data=self.full(wavelengths=self.config["Instrument"]["wavelengths"]["values"],resolution=self.config["Instrument"]["wavelengths"]["resolutions"]),label="Full Addition")
