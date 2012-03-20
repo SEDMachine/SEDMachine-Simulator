@@ -695,6 +695,8 @@ class SEDSimulator(Simulator,ImageObject):
     def setup_scatter(self):
         """Sets up scattered light level"""
         
+        
+        
         area = np.zeros((self.config["Instrument"]["ccd_size"]["px"]+1,self.config["Instrument"]["ccd_size"]["px"]+1))
         
         size = self.config["Instrument"]["ccd_size"]["px"]/2
@@ -703,8 +705,9 @@ class SEDSimulator(Simulator,ImageObject):
             self.log.debug(npArrayInfo(n,"Gauss Kernel"))
             area += n
         
+        state = self.statename
         self.save(area,"Scatter")        
-        
+        self.select(state)
         
     def ccd_crop(self):
         """Crops the image to the appropriate ccd size"""
@@ -715,12 +718,16 @@ class SEDSimulator(Simulator,ImageObject):
     def setup_noise(self):
         """Makes noise masks"""
         
-        read_noise = np.sqrt(self.cameras[self.config["Instrument"]["camera"]]["RN"]**2)
+        state = self.statename
+        
+        read_noise = self.cameras[self.config["Instrument"]["camera"]]["RN"]
         dark_noise = self.cameras[self.config["Instrument"]["camera"]]["DC"] * self.config["Observation"]["exposure"]
         
         self.generate_poisson_noise("Read",read_noise,self.config["Observation"]["number"])
         
         self.generate_poisson_noise("Dark",dark_noise)
+        
+        self.select(state)
     
         
     def apply_noise(self):
@@ -738,6 +745,7 @@ class SEDSimulator(Simulator,ImageObject):
     def apply_scatter(self):
         """Apply the scattered light frame"""
         
+        
         scatter = self.data("Scatter")
         
         data = self.data()
@@ -747,7 +755,9 @@ class SEDSimulator(Simulator,ImageObject):
         else:
             result = sp.signal.convolve(data,scatter,mode='same')
         
-        self.save(data,"Scattered",clobber=True)
+        end = data + result
+        
+        self.save(end,"Scattered",clobber=True)
         
     
     def transpose(self):
