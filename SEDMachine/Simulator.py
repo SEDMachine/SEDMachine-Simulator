@@ -755,8 +755,10 @@ class SEDSimulator(Simulator,ImageObject):
         else:
             result = sp.signal.convolve(data,scatter,mode='same')
         
+        self.log.debug(npArrayInfo(result,"Scattered Light"))
         end = data + result
         
+        self.save(result,"ScatterOnly")
         self.save(end,"Scattered",clobber=True)
         
     
