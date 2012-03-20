@@ -282,12 +282,12 @@ class SEDSimulator(Simulator,ImageObject):
         # Final Image work
         self.registerStage(self.ccd_crop,"crop",help="Crop Final Image",description="Cropping image to CCD size",dependencies=["setup-blank","setup-lenslets"])
         self.registerStage(self.apply_noise,"add-noise",help="Add Dark/Bias noise to image",description="Adding Dark/Bias noise",dependencies=["crop","setup-noise"])
-        self.registerStage(self.apply_scatter,"add-scatter",help="Add scattered light noise to image",description="Adding Dark/Bias noise",dependencies=["crop","setup-noise"])
+        self.registerStage(self.apply_scatter,"add-scatter",help="Add scattered light noise to image",description="Adding Dark/Bias noise",dependencies=["crop","setup-scatter"])
         self.registerStage(self.transpose,"transpose",help="Transpose the image",description="Transposing Image",dependencies=["crop"])
         self.registerStage(self.save_file,"save",help="Save image to file",description="Saving image to disk",dependencies=["setup-blank","transpose"])
         
         # Alternative work macros
-        self.registerStage(None,"cached-only",help="Use cached subimages to construct final image",description="Building image from caches",dependencies=["merge-cached","crop","add-noise","transpose","save"],include=False)
+        self.registerStage(None,"cached-only",help="Use cached subimages to construct final image",description="Building image from caches",dependencies=["merge-cached","crop","add-noise","add-scatter","transpose","save"],include=False)
         self.registerStage(None,"plot",help="Create all plots",description="Plotting everything",dependencies=["plot-lenslet-xy","plot-lenslets","plot-sky","plot-qe","plot-source","plot-geometry","plot-hexagons","plot-pixels","plot-spectrum-tests","plot-kernel"],include=False)
         
     def setup_caches(self):
