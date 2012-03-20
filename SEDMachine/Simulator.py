@@ -687,8 +687,8 @@ class SEDSimulator(Simulator,ImageObject):
         """Sets up scattered light level"""
         self.full = FlatSpectrum(0.0)
         self.map_over_lenslets(self._scatter_addition,"green")
-        self.full_resolved = InterpolatedSpectrum(data=self.full(wavelengths=self.config["Instrument"]["wavelengths"]["values"],resolution=self.config["Instrument"]["wavelengths"]["resolutions"]),label="Full Addition")
-        scatter_mag = self.full_resolved(wavelengths=np.array(self.config["Instrument"]["scatter"]["wavelength"]))
+        self.full_resolved = Resolver(self.full,wavelengths=self.config["Instrument"]["wavelengths"]["values"],resolution=self.config["Instrument"]["wavelengths"]["resolutions"],label="R[Full Addition]")
+        scatter_mag = self.full_resolved(wavelengths=np.array(self.config["Instrument"]["scatter"]["wavelength"]).flatten())
         self.save(self.gauss_kern(self.config["Instrument"]["scatter"]["radius"],size=self.config["Instrument"]["ccd_size"]["px"]) * scatter_mag,"Scatter")
         print self.list()
         
