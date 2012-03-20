@@ -167,6 +167,8 @@ class Lenslet(ImageObject):
         self.checked = False
         self.passed = False
         self.traced = False
+        self.spectrum = FlatSpectrum(0.0)
+        
     
     def reset(self):
         """Reset Flag Variables for this lenslet. Deletes any calculated varaibles."""
@@ -813,7 +815,6 @@ class Lenslet(ImageObject):
         
         :param n: Size of the crosstalk matrix (number of source pixels)"""
         self.pixelValues = np.zeros((n))
-        self.spectrum = FlatSpectrum(0.0)
     
     def find_crosstalk(self,pixel):
         """Find the crosstalk overlap with a given pixel. The crosstalk is defined as the fraction of that pixels light which will end up in this lenslet.
