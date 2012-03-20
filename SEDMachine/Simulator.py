@@ -219,7 +219,7 @@ class SEDSimulator(Simulator,ImageObject):
         self.registerStage(self.setup_lenslets,"setup-lenslets",help=False,description="Setting up lenslets",dependencies=["setup-config"])
         self.registerStage(self.setup_hexagons,"setup-hexagons",help=False,description="Setting up lenslet hexagons",dependencies=["setup-lenslets"])
         self.registerStage(self.setup_blank,"setup-blank",help=False,description="Creating blank image",dependencies=["setup-config"])        
-        self.registerStage(self.setup_dummy_blank,"setup-blank-d",help=False,description="Creating blank image",dependencies=["setup-config"],replaces=["setup-blank"])        
+        self.registerStage(self.setup_dummy_blank,"setup-blank-d",help=False,description="Creating blank image",dependencies=["setup-config"],replaces=["setup-blank"],include=False)        
 
         self.registerStage(self.setup_simple_source,"setup-source-simple",help=False,description="Creating simple source spectrum object",dependencies=["setup-config","setup-constants"],include=False,replaces=["setup-source"])
         self.registerStage(None,"simple-source",help="Use a simple, centered source object",description="Replacing default source with a simple one",include=False,dependencies=["setup-source-simple"])
