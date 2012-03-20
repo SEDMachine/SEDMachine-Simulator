@@ -24,25 +24,28 @@ then
 	exit
 fi
 
+SELECTREGEX="[0-9a-zA-Z\.\+]+"
+DIR="SEDMachine"
 VSPECFILE="VERSION"
+AVSPECFILE="$DIR/VERSION"
 
 VERSION=`cat $VSPECFILE`
 
 echo "Version is currently $VERSION, changing to $1"
 
 echo "$1" > $VSPECFILE
-echo "$1" > "SED/$VSPECFILE"
+echo "$1" > $AVSPECFILE
 
 VERSION=`cat $VSPECFILE`
 
 echo "New Version $VERSION"
 
 echo "Manipulating Python (.py) files"
-files=`find SED/*.py`
+files=`find $DIR/*.py`
 
 for file in $files
 do
-	sed -i '' -Ee "s/# +Version [0-9a-zA-Z\.]+/#  Version $VERSION/" $file
+	sed -i '' -Ee "s/# +Version $SELECTREGEX/#  Version $VERSION/" $file
 	echo "  Changed Version to $VERSION in $file"
 done
 
@@ -51,18 +54,18 @@ files=`find *.md`
 echo "Manipulating Markdown (.md) files"
 for file in $files
 do
-	sed -i '' -Ee "s/ +Version [0-9a-zA-Z\.]+/  Version $VERSION/" $file
+	sed -i '' -Ee "s/ +Version $SELECTREGEX/  Version $VERSION/" $file
 	echo "  Changed Version to $VERSION in $file"
 done
 
 echo "Manipulating Special Files:"
-sed -i '' -Ee "s/__version__ += +\'[0-9a-zA-Z\.]+\'/__version__ = \'$VERSION\'/" 'SED/__init__.py'
-echo "  Changed __init__.py version variable to $VERSION"
-sed -i '' -Ee "s/    version = \"[0-9a-zA-Z\.]+\",/    version = \"$VERSION\",/" 'setup.py'
+sed -i '' -Ee "s/__version__ += +\'$SELECTREGEX\'/__version__ = \'$VERSION\'/" "$DIR/__init__.py"
+echo "  Changed AstroObject/__init__.py version variable to $VERSION"
+sed -i '' -Ee "s/    version = \"$SELECTREGEX\",/    version = \"$VERSION\",/" 'setup.py'
 echo "  Changed setup.py version variable to $VERSION"
-sed -i '' -Ee "s/version += +\'[0-9a-zA-Z\.]+\'/version = \'$VERSION\'/" 'Docs/conf.py'
+sed -i '' -Ee "s/version += +\'$SELECTREGEX\'/version = \'$VERSION\'/" 'Docs/source/conf.py'
 echo "  Changed Sphinyx conf.py version variable to $VERSION"
-sed -i '' -Ee "s/release += +\'[0-9a-zA-Z\.]+\'/release = \'$VERSION\'/" 'Docs/conf.py'
+sed -i '' -Ee "s/release += +\'$SELECTREGEX\'/release = \'$VERSION\'/" 'Docs/source/conf.py'
 echo "  Changed Sphinyx conf.py release variable to $VERSION"
 
 echo "Done."

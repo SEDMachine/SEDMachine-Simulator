@@ -8,9 +8,9 @@
 # 
 CMD=$0
 DEST=$1
-REMOTE="~/SEDM"
+REMOTE="~/SEDM-Run"
 SERVER="sedmachine"
-LOCAL="$HOME/Dropbox/SEDM/SEDM-Dev"
+LOCAL="$HOME/Dropbox/SEDM/SEDM-Products"
 RSYNC='rsync'
 RSYNCV=`rsync --version | head -n1`
 EXE=${CMD##*/}
