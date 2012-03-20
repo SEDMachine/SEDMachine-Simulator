@@ -219,6 +219,8 @@ class SEDSimulator(Simulator,ImageObject):
         self.registerStage(self.setup_lenslets,"setup-lenslets",help=False,description="Setting up lenslets",dependencies=["setup-config"])
         self.registerStage(self.setup_hexagons,"setup-hexagons",help=False,description="Setting up lenslet hexagons",dependencies=["setup-lenslets"])
         self.registerStage(self.setup_blank,"setup-blank",help=False,description="Creating blank image",dependencies=["setup-config"])        
+        self.registerStage(self.setup_dummy_blank,"setup-blank-d",help=False,description="Creating blank image",dependencies=["setup-config"],replaces=["setup-blank"])        
+
         self.registerStage(self.setup_simple_source,"setup-source-simple",help=False,description="Creating simple source spectrum object",dependencies=["setup-config","setup-constants"],include=False,replaces=["setup-source"])
         self.registerStage(None,"simple-source",help="Use a simple, centered source object",description="Replacing default source with a simple one",include=False,dependencies=["setup-source-simple"])
         self.registerStage(self.setup_simple_source,"setup-source",help=False,description="Creating source spectrum objects",dependencies=["setup-config","setup-constants"])
@@ -388,7 +390,14 @@ class SEDSimulator(Simulator,ImageObject):
     def setup_blank(self):
         """Establish a blank Image"""
         self["Blank"] = np.zeros((self.config["Instrument"]["image_size"]["px"],self.config["Instrument"]["image_size"]["px"])).astype(np.int32)
-
+        
+    def setup_dummy_blank(self):
+        """Setup Dummy Blank"""
+        blank = np.zeros((self.config["Instrument"]["image_size"]["px"],self.config["Instrument"]["image_size"]["px"])).astype(np.int32)
+        center = np.int(self.config["Instrument"]["image_size"]["px"])
+        blank[center,center] = 1.0
+        self["Blank"] = blank
+        
     def setup_source(self):
         """Sets up a uniform source file based spectrum"""
         
