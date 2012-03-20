@@ -86,5 +86,5 @@ then
 fi
 $RSYNC -av "$SERVER:$MASTER" "$DESTINATION"
 echo ""
-echo "Backed Up from $SERVER:$MASTER to $DESTINATION"
-echo "Thanks for backing up your $NAME!"
+echo "Retrieved from $SERVER:$MASTER to $DESTINATION"
+echo "Thanks for grabbing $NAME!"
