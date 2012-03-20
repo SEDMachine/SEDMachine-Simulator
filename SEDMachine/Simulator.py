@@ -153,7 +153,7 @@ class SEDSimulator(Simulator,ImageObject):
         'bias': 20, 
         'image_size': { 'mm': 40.0}, 
         'image_pad' : { 'mm' : 0.1},
-        'TEL' : {
+        'Tel' : {
             'obsc' : {'px': 0.2 , 'ratio': 0.1},
             'area' : 18242. * 0.9,
             'radius': { 'px': 1.2},
@@ -701,7 +701,7 @@ class SEDSimulator(Simulator,ImageObject):
         
         size = self.config["Instrument"]["ccd_size"]["px"]/2
         for v in self.config["Instrument"]["scatter"].values():
-            n = v["mag"] * self.gauss_kern(v["stdev"],size,enlarge=False)
+            n = v["mag"] * self.gauss_kern(v["stdev"],size,enlarge=False,normalize=False)
             self.log.debug(npArrayInfo(n,"Gauss Kernel"))
             area += n
         
@@ -1481,7 +1481,7 @@ class SEDSimulator(Simulator,ImageObject):
         else:
             return v
     
-    def gauss_kern(self,stdev,size=0,stdevy=None,sizey=None,enlarge=True):
+    def gauss_kern(self,stdev,size=0,stdevy=None,sizey=None,enlarge=True,normalize=True):
         """ Returns a normalized 2D gaussian kernel array for convolutions.
         
         `stdev` is the standard deviation in the x-direction. If the `stdevy` keyword is not set, then it will be used as the standard deviation in the y-direction as well.
@@ -1506,7 +1506,10 @@ class SEDSimulator(Simulator,ImageObject):
         x, y = np.mgrid[-size:size+1, -sizey:sizey+1]
         g = np.exp(-(x**2.0/np.float(stdev**2.0)+y**2.0/np.float(stdevy**2.0)))
         
-        return g / g.sum()
+        if normalize:
+            return g / g.sum()
+        else:
+            return g
     
     def get_tel_kern(self,major=None,minor=None):
         """Returns the telescope kernel. This kernel is built by creating a circle mask for the size of the telescope mirror, and then subtracting a telescope obscuration from the center of the mirror image. The values for all of these items are set in the configuration file."""
