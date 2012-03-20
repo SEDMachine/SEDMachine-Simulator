@@ -695,7 +695,7 @@ class SEDSimulator(Simulator,ImageObject):
         
         area = self.data("Blank")
         
-        for v in self.config["Instrument"]["scatter"].values()
+        for v in self.config["Instrument"]["scatter"].values():
             area += v["mag"] * self.gauss_kern(v["stdev"],area.shape[0])
         
         self.save(area,"Scatter")        
