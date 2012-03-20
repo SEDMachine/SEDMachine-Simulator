@@ -614,7 +614,7 @@ class SEDSimulator(Simulator,ImageObject):
         
     def setup_line_list(self):
         """Set up a line-list based spectrum for wavelength calibration."""
-        linelist = np.asarray(np.genfromtxt(self.config["Source"]["WLCal"]["List"]),comments="#").flatten()
+        linelist = np.asarray(np.genfromtxt(self.config["Source"]["WLCal"]["List"],comments="#")).flatten()
         CalSpec = FlatSpectrum(0.0)
         for line in linelist:
             CalSpec += GaussianSpectrum(line,self.config["Source"]["WLCal"]["sigma"],self.config["Source"]["WLCal"]["value"],"Line %g" % line)
