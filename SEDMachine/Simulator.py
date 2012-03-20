@@ -394,7 +394,7 @@ class SEDSimulator(Simulator,ImageObject):
     def setup_dummy_blank(self):
         """Setup Dummy Blank"""
         blank = np.zeros((self.config["Instrument"]["image_size"]["px"],self.config["Instrument"]["image_size"]["px"])).astype(np.int32)
-        center = np.int(self.config["Instrument"]["image_size"]["px"])
+        center = np.int(self.config["Instrument"]["image_size"]["px"]/2.0)
         blank[center,center] = 1.0
         self["Blank"] = blank
         
