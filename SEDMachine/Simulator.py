@@ -226,14 +226,14 @@ class SEDSimulator(Simulator,ImageObject):
             )
         
         # Apply spectral properties
-        self.registerStage(self.apply_sky,"apply-sky",help=False,description="Including sky spectrum",dependencies=["setup-sky","setup-lenslets","geometric-resample"])
-        self.registerStage(self.apply_qe,"apply-qe",help=False,description="Applying Quantum Efficiency Functions",dependencies=["setup-sky","setup-source","setup-lenslets","geometric-resample"])
-        self.registerStage(self.apply_atmosphere,"apply-atmosphere",help=False,description="Applying Atmospheric Extinction",dependencies=["setup-sky","setup-source","setup-lenslets","geometric-resample"])
+        self.registerStage(self.apply_sky,"apply-sky",help=False,description="Including sky spectrum",dependencies=["setup-sky","setup-lenslets"])
+        self.registerStage(self.apply_qe,"apply-qe",help=False,description="Applying Quantum Efficiency Functions",dependencies=["setup-sky","setup-source","setup-lenslets"])
+        self.registerStage(self.apply_atmosphere,"apply-atmosphere",help=False,description="Applying Atmospheric Extinction",dependencies=["setup-sky","setup-source","setup-lenslets"])
 
         # Adjust spectra
-        self.registerStage(self.sky_source,"sky-source",help="Use only sky spectrum",description="Using only Sky spectrum",dependencies=["setup-sky","apply-sky","apply-qe","apply-atmosphere","setup-lenslets"],include=False,replaces=["setup-source"])
-        self.registerStage(self.flat_source,"flat-source",help="Make a constant value source",description="Using flat source",include=False,dependencies=["setup-lenslets"],replaces=["setup-source"])
-        self.registerStage(self.line_source,"line-source",help="Use a calibration lamp source",description="Using calibration lamp source",include=False,dependencies=["setup-lenslets","setup-lines"],replaces=["setup-source"])
+        self.registerStage(self.sky_source,"sky-source",help="Use only sky spectrum",description="Using only Sky spectrum",dependencies=["setup-sky","apply-sky","apply-qe","apply-atmosphere","setup-lenslets","setup"],include=False,replaces=["setup-source","geometric-resample","setup-source-pixels"])
+        self.registerStage(self.flat_source,"flat-source",help="Make a constant value source",description="Using flat source",include=False,dependencies=["setup-lenslets","setup"],replaces=["setup-source","geometric-resample","setup-source-pixels","apply-sky","apply-atmosphere"])
+        self.registerStage(self.line_source,"line-source",help="Use a calibration lamp source",description="Using calibration lamp source",include=False,dependencies=["setup-lenslets","setup-lines","setup"],replaces=["setup-source","geometric-resample","setup-source-pixels","apply-sky","apply-atmosphere"])
         
         # Plotting geometry functions
         self.registerStage(self.plot_kernel_partials,"plot-kernel",help="Plot PSF Kernels",description="Plotting PSF Kernels",include=False,dependencies=["setup-caches","setup-config"])
