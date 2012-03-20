@@ -614,14 +614,10 @@ class SEDSimulator(Simulator,ImageObject):
         
     def setup_line_list(self):
         """Set up a line-list based spectrum for wavelength calibration."""
-        List = np.genfromtxt(self.config["Source"]["WLCal"]["List"])
-        if List.ndim == 0:
-            line = List
-            CalSpec = GaussianSpectrum(line,self.config["Source"]["WLCal"]["sigma"],self.config["Source"]["WLCal"]["value"],"Line %g" % line)
-        else:
-            CalSpec = FlatSpectrum(0.0)
-            for line in List:
-                CalSpec += GaussianSpectrum(line,self.config["Source"]["WLCal"]["sigma"],self.config["Source"]["WLCal"]["value"],"Line %g" % line)
+        linelist = np.asarray(np.genfromtxt(self.config["Source"]["WLCal"]["List"])).flatten()
+        CalSpec = FlatSpectrum(0.0)
+        for line in linelist:
+            CalSpec += GaussianSpectrum(line,self.config["Source"]["WLCal"]["sigma"],self.config["Source"]["WLCal"]["value"],"Line %g" % line)
         self.CalSpec = UnitarySpectrum(CalSpec,method='resolve_and_integrate',label="Calibration Lamp")
         
     def line_source(self):
