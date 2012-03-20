@@ -748,7 +748,12 @@ class SEDSimulator(Simulator,ImageObject):
         
         scatter = self.data("Scatter")
         
+        self.log.debug(npArrayInfo(scatter,"Scatter"))
+        
+        
         data = self.data()
+        self.log.debug(npArrayInfo(data,"Data \'%s\'" % self.statename))
+        
         
         if self.config["Instrument"]["scatter_fft"]:
             result = sp.signal.fftconvolve(data,scatter,mode='same')
