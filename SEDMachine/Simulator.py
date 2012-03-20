@@ -225,7 +225,7 @@ class SEDSimulator(Simulator,ImageObject):
         self.registerStage(self.setup_sky,"setup-sky",help=False,description="Setting up Sky spectrum object",dependencies=["setup-config","setup-constants"])
         self.registerStage(self.setup_line_list,"setup-lines",help=False,description="Setting up calibration source",dependencies=["setup-config","setup-constants"],include=False)
         self.registerStage(self.geometric_resample,"geometric-resample",help=False,description="Performing geometric resample",dependencies=["setup-source-pixels","setup-hexagons"])
-        self.registerStage(self.setup_scatter,"setup-scatter",help=False,description="Setting up scattered light calculations",dependencies=["setup-config"])
+        self.registerStage(self.setup_scatter,"setup-scatter",help=False,description="Setting up scattered light calculations",dependencies=["setup-config","setup-blank"])
         # Setup Macro
         self.registerStage(None,"setup",help="System Setup",description="Set up simulator",
             dependencies=["setup-caches","setup-lenslets","setup-hexagons","setup-blank","setup-source","setup-noise","setup-constants","setup-sky","setup-cameras","setup-lines"],
@@ -693,10 +693,12 @@ class SEDSimulator(Simulator,ImageObject):
     def setup_scatter(self):
         """Sets up scattered light level"""
         
-        area = self.data("Blank")
+        area = np.zeros((self.config["Instrument"]["ccd_size"]["px"],self.config["Instrument"]["ccd_size"]["px"]))
         
         for v in self.config["Instrument"]["scatter"].values():
-            area += v["mag"] * self.gauss_kern(v["stdev"],area.shape[0])
+            n = v["mag"] * self.gauss_kern(v["stdev"],self.config["Instrument"]["ccd_size"]["px"]/2,enlarge=False)
+            self.log.debug(npArrayInfo(n,"Gauss Kernel"))
+            area += n
         
         self.save(area,"Scatter")        
         
@@ -1456,7 +1458,7 @@ class SEDSimulator(Simulator,ImageObject):
         else:
             return v
     
-    def gauss_kern(self,stdev,size=0,stdevy=None,sizey=0):
+    def gauss_kern(self,stdev,size=0,stdevy=None,sizey=None,enlarge=True):
         """ Returns a normalized 2D gaussian kernel array for convolutions.
         
         `stdev` is the standard deviation in the x-direction. If the `stdevy` keyword is not set, then it will be used as the standard deviation in the y-direction as well.
@@ -1465,14 +1467,16 @@ class SEDSimulator(Simulator,ImageObject):
         
         Results from this function are always normalized.
         """
-        if size < (stdev*3.0):
-            size = np.int(stdev*3.0)
+        if size < (stdev*1.5) and enlarge:
+            size = np.int(stdev*1.5)
         else:
             size = np.int(size)
         if not stdevy:
             stdevy = stdev
-        if sizey < (stdevy*3.0):
-            sizey = np.int(stdevy*3.0)
+        if not sizey:
+            sizey = size
+        if sizey < (stdevy*1.5) and enlarge:
+            sizey = np.int(stdevy*1.5)
         else:
             sizey = np.int(sizey)
         
