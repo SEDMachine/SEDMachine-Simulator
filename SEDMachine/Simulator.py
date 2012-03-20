@@ -693,10 +693,11 @@ class SEDSimulator(Simulator,ImageObject):
     def setup_scatter(self):
         """Sets up scattered light level"""
         
-        area = np.zeros((self.config["Instrument"]["ccd_size"]["px"],self.config["Instrument"]["ccd_size"]["px"]))
+        area = np.zeros((self.config["Instrument"]["ccd_size"]["px"]+1,self.config["Instrument"]["ccd_size"]["px"]+1))
         
+        size = self.config["Instrument"]["ccd_size"]["px"]/2
         for v in self.config["Instrument"]["scatter"].values():
-            n = v["mag"] * self.gauss_kern(v["stdev"],self.config["Instrument"]["ccd_size"]["px"]/2,enlarge=False)
+            n = v["mag"] * self.gauss_kern(v["stdev"],size,enlarge=False)
             self.log.debug(npArrayInfo(n,"Gauss Kernel"))
             area += n
         
