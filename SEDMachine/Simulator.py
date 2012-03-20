@@ -153,9 +153,11 @@ class SEDSimulator(Simulator,ImageObject):
         'bias': 20, 
         'image_size': { 'mm': 40.0}, 
         'image_pad' : { 'mm' : 0.1},
-        'tel_radii': { 'px': 1.2},
-        'tel_area' : 18242. * 0.9,
-        'gain': 5,
+        'TEL' : {
+            'obsc' : {'px': 0.2 , 'ratio': 0.1},
+            'area' : 18242. * 0.9,
+            'radius': { 'px': 1.2},
+        },
         'eADU' : 3.802e-2,
         'lenslets' : {
               'radius' : 0.245e-2,
@@ -282,7 +284,7 @@ class SEDSimulator(Simulator,ImageObject):
         # Final Image work
         self.registerStage(self.ccd_crop,"crop",help="Crop Final Image",description="Cropping image to CCD size",dependencies=["setup-blank","setup-lenslets"])
         self.registerStage(self.apply_noise,"add-noise",help="Add Dark/Bias noise to image",description="Adding Dark/Bias noise",dependencies=["crop","setup-noise"])
-        self.registerStage(self.apply_scatter,"add-scatter",help="Add scattered light noise to image",description="Adding Dark/Bias noise",dependencies=["crop","setup-scatter"])
+        self.registerStage(self.apply_scatter,"add-scatter",help="Add scattered light noise to image",description="Adding scatter noise",dependencies=["crop","setup-scatter"])
         self.registerStage(self.transpose,"transpose",help="Transpose the image",description="Transposing Image",dependencies=["crop"])
         self.registerStage(self.save_file,"save",help="Save image to file",description="Saving image to disk",dependencies=["setup-blank","transpose"])
         
@@ -597,17 +599,17 @@ class SEDSimulator(Simulator,ImageObject):
         
     def _apply_qe_spectrum(self,lenslet):
         """Apply qe to each lenslet"""
-        lenslet.spectrum *= self.qe[self.config["Instrument"]["Thpt"]["Type"]] * self.config["Instrument"]["tel_area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"]
+        lenslet.spectrum *= self.qe[self.config["Instrument"]["Thpt"]["Type"]] * self.config["Instrument"]["Tel"]["area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"]
         
     def apply_qe(self):
         """Apply the instrument quantum efficiency"""
         self.map_over_lenslets(self._apply_qe_spectrum,color=False)
-        self.SkySpectrum *= self.qe[self.config["Instrument"]["Thpt"]["Type"]] * self.config["Instrument"]["tel_area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"]
-        self.Spectrum *= self.qe[self.config["Instrument"]["Thpt"]["Type"]] * self.config["Instrument"]["tel_area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"]
-        self.Original *= self.config["Instrument"]["tel_area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"]
-        self.SkyOriginal *= self.config["Instrument"]["tel_area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"]
-        self.SkyMoon *= self.config["Instrument"]["tel_area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"]
-        self.MoonSpectrum *= self.config["Instrument"]["tel_area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"]
+        self.SkySpectrum *= self.qe[self.config["Instrument"]["Thpt"]["Type"]] * self.config["Instrument"]["Tel"]["area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"]
+        self.Spectrum *= self.qe[self.config["Instrument"]["Thpt"]["Type"]] * self.config["Instrument"]["Tel"]["area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"]
+        self.Original *= self.config["Instrument"]["Tel"]["area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"]
+        self.SkyOriginal *= self.config["Instrument"]["Tel"]["area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"]
+        self.SkyMoon *= self.config["Instrument"]["Tel"]["area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"]
+        self.MoonSpectrum *= self.config["Instrument"]["Tel"]["area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"]
         self.MoonSpectrumQE = self.MoonSpectrum * self.qe[self.config["Instrument"]["Thpt"]["Type"]] * self.config["Instrument"]["eADU"]
         
         
@@ -740,7 +742,10 @@ class SEDSimulator(Simulator,ImageObject):
         
         data = self.data()
         
-        result = sp.signal.convolve(data,scatter,mode='same')
+        if self.config["Instrument"]["scatter_fft"]:
+            result = sp.signal.fftconvolve(data,scatter,mode='same')
+        else:
+            result = sp.signal.convolve(data,scatter,mode='same')
         
         self.save(data,"Scattered",clobber=True)
         
@@ -1227,8 +1232,8 @@ class SEDSimulator(Simulator,ImageObject):
     def plot_kernel_partials(self):
         """Plots the kernel data partials"""
         self.log.debug("Generating Kernel Plots and Images")
-        major = self.config["Instrument"]["tel_radii"]["px"] * self.config["Instrument"]["density"] * 1.2
-        minor = self.config["Instrument"]["tel_radii"]["px"] * self.config["Instrument"]["density"]
+        major = self.config["Instrument"]["Tel"]["radius"]["px"] * self.config["Instrument"]["density"] * 1.2
+        minor = self.config["Instrument"]["Tel"]["radius"]["px"] * self.config["Instrument"]["density"]
         ETEL = self.get_tel_kern(major,minor)
         ECONV = sp.signal.convolve(self.Caches["PSF"],ETEL,mode='same')
         plt.clf()
@@ -1493,10 +1498,10 @@ class SEDSimulator(Simulator,ImageObject):
             
             
             TELIMG = self.ellipse_kern( major, minor )
-            center = self.ellipse_kern( major * self.config["Instrument"]["tel_obsc"]["ratio"], minor * self.config["Instrument"]["tel_obsc"]["ratio"], *TELIMG.shape )
+            center = self.ellipse_kern( major * self.config["Instrument"]["Tel"]["obsc"]["ratio"], minor * self.config["Instrument"]["Tel"]["obsc"]["ratio"], *TELIMG.shape )
         else:
-            TELIMG = self.circle_kern( self.config["Instrument"]["tel_radii"]["px"] * self.config["Instrument"]["density"] )
-            center = self.circle_kern( self.config["Instrument"]["tel_obsc"]["px"] * self.config["Instrument"]["density"] ,
+            TELIMG = self.circle_kern( self.config["Instrument"]["Tel"]["radius"]["px"] * self.config["Instrument"]["density"] )
+            center = self.circle_kern( self.config["Instrument"]["Tel"]["obsc"]["px"] * self.config["Instrument"]["density"] ,
                 *TELIMG.shape )
         TELIMG -= center
         TELIMG = TELIMG / np.sum(TELIMG)
