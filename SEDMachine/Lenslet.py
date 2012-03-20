@@ -605,7 +605,7 @@ class Lenslet(ImageObject):
         """Bin the selected subimage using the :meth:`bin` function, and binning based on the configured density. This function also sets the final data type as ``np.int16``.
         
         """
-        self["Binned Spectrum"] = self.bin(self.data(),self.config["Instrument"]["density"]).astype(np.int16)
+        self["Binned Spectrum"] = self.bin(self.data(),self.config["Instrument"]["density"])
     
     def plot_raw_data(self):
         """Save a plot figure for raw-data from the lenslet.

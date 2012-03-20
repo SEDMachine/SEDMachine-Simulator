@@ -167,8 +167,14 @@ class SEDSimulator(Simulator,ImageObject):
             'resolution' : 100,
         },
         'scatter' : {
-            'wavelength' : 4500e-10,
-            'radius' : 800,  
+            "A" : {
+                "stdev" : 2*83,
+                "mag" : 0.0008,
+            },
+            "B" : {
+                "stdev" : 2*11100,
+                "mag" : 6.6e-6,
+            },
         },
         'Thpt' : {
             'File' : "SEDSpec2/Data/thpt.npy",
@@ -219,7 +225,7 @@ class SEDSimulator(Simulator,ImageObject):
         self.registerStage(self.setup_sky,"setup-sky",help=False,description="Setting up Sky spectrum object",dependencies=["setup-config","setup-constants"])
         self.registerStage(self.setup_line_list,"setup-lines",help=False,description="Setting up calibration source",dependencies=["setup-config","setup-constants"],include=False)
         self.registerStage(self.geometric_resample,"geometric-resample",help=False,description="Performing geometric resample",dependencies=["setup-source-pixels","setup-hexagons"])
-        self.registerStage(self.setup_scatter,"setup-scatter",help=False,description="Setting up scattered light calculations",dependencies=["setup-config","geometric-resample"],include=False)
+        self.registerStage(self.setup_scatter,"setup-scatter",help=False,description="Setting up scattered light calculations",dependencies=["setup-config"])
         # Setup Macro
         self.registerStage(None,"setup",help="System Setup",description="Set up simulator",
             dependencies=["setup-caches","setup-lenslets","setup-hexagons","setup-blank","setup-source","setup-noise","setup-constants","setup-sky","setup-cameras","setup-lines"],
@@ -276,6 +282,7 @@ class SEDSimulator(Simulator,ImageObject):
         # Final Image work
         self.registerStage(self.ccd_crop,"crop",help="Crop Final Image",description="Cropping image to CCD size",dependencies=["setup-blank","setup-lenslets"])
         self.registerStage(self.apply_noise,"add-noise",help="Add Dark/Bias noise to image",description="Adding Dark/Bias noise",dependencies=["crop","setup-noise"])
+        self.registerStage(self.apply_scatter,"add-scatter",help="Add scattered light noise to image",description="Adding Dark/Bias noise",dependencies=["crop","setup-noise"])
         self.registerStage(self.transpose,"transpose",help="Transpose the image",description="Transposing Image",dependencies=["crop"])
         self.registerStage(self.save_file,"save",help="Save image to file",description="Saving image to disk",dependencies=["setup-blank","transpose"])
         
@@ -685,20 +692,13 @@ class SEDSimulator(Simulator,ImageObject):
     
     def setup_scatter(self):
         """Sets up scattered light level"""
-        self.log.warning("Stage 'setup-source' not ready yet, doing nothing!")
-        return
         
-        self.full = FlatSpectrum(0.0)
-        self.map_over_lenslets(self._scatter_addition,"green")
-        self.full_resolved = InterpolatedSpectrum(data=self.full(wavelengths=self.config["Instrument"]["wavelengths"]["values"],resolution=self.config["Instrument"]["wavelengths"]["resolutions"]),label="Full Addition")
-        scatter_mag = self.full_resolved(wavelengths=np.array(self.config["Instrument"]["scatter"]["wavelength"]))
-        self.save(self.gauss_kern(self.config["Instrument"]["scatter"]["radius"],size=self.config["Instrument"]["ccd_size"]["px"]) * scatter_mag,"Scatter")
-        print self.list()
+        area = self.data("Blank")
         
-    def _scatter_addition(self,lenslet):
-        """Add all spectra together for scattered light purposes"""
-        self.full += lenslet.spectrum
+        for v in self.config["Instrument"]["scatter"].values()
+            area += v["mag"] * self.gauss_kern(v["stdev"],area.shape[0])
         
+        self.save(area,"Scatter")        
         
         
     def ccd_crop(self):
@@ -710,10 +710,10 @@ class SEDSimulator(Simulator,ImageObject):
     def setup_noise(self):
         """Makes noise masks"""
         
-        read_noise = np.sqrt(self.cameras[self.config["Instrument"]["camera"]]["RN"]**2 * self.config["Instrument"]["PSF"]["size"]["px"] * self.config["Observation"]["number"] / self.config["Instrument"]["gain"])
+        read_noise = np.sqrt(self.cameras[self.config["Instrument"]["camera"]]["RN"]**2)
         dark_noise = self.cameras[self.config["Instrument"]["camera"]]["DC"] * self.config["Observation"]["exposure"]
         
-        self.generate_poisson_noise("Read",read_noise)
+        self.generate_poisson_noise("Read",read_noise,self.config["Observation"]["number"])
         
         self.generate_poisson_noise("Dark",dark_noise)
     
@@ -737,7 +737,7 @@ class SEDSimulator(Simulator,ImageObject):
         
         data = self.data()
         
-        data += scatter
+        result = sp.signal.convolve(data,scatter,mode='same')
         
         self.save(data,"Scattered",clobber=True)
         
@@ -746,7 +746,7 @@ class SEDSimulator(Simulator,ImageObject):
         """transpose the final image"""
         data = self.data()
 
-        self.save(data.T,"Transposed",clobber=True)
+        self.save(data.T.astype(np.int16),"Transposed",clobber=True)
         
     
     def save_file(self):
@@ -1347,14 +1347,16 @@ class SEDSimulator(Simulator,ImageObject):
     
     
     
-    def generate_poisson_noise(self,label=None,lam=2.0):
+    def generate_poisson_noise(self,label=None,lam=2.0,num=1):
         """Generates a poisson noise mask, saving to this object"""
         distribution = np.random.poisson
         shape = (self.config["Instrument"]["ccd_size"]["px"],self.config["Instrument"]["ccd_size"]["px"])
         if label == None:
             label = "Poisson Noise Mask (%2g)" % (lam)
         arguments = (lam,shape)
-        noise = distribution(*arguments)
+        noise = np.zeros(shape)
+        for i in range(num):
+            noise += distribution(*arguments)
         self.save(noise,label)
     
     def get_conv(self,wavelength,a=None,b=None):
@@ -1463,14 +1465,14 @@ class SEDSimulator(Simulator,ImageObject):
         
         Results from this function are always normalized.
         """
-        if size < (stdev**2.0):
-            size = np.int(stdev**2.0)
+        if size < (stdev*3.0):
+            size = np.int(stdev*3.0)
         else:
             size = np.int(size)
         if not stdevy:
             stdevy = stdev
-        if sizey < (stdevy**2.0):
-            sizey = np.int(stdevy**2.0)
+        if sizey < (stdevy*3.0):
+            sizey = np.int(stdevy*3.0)
         else:
             sizey = np.int(sizey)
         
