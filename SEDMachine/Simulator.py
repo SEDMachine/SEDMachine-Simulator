@@ -1513,7 +1513,7 @@ class SEDSimulator(Simulator,ImageObject):
             sizey = np.int(sizey)
         
         x, y = np.mgrid[-size:size+1, -sizey:sizey+1]
-        g = np.exp(-(x**2.0/np.float(stdev**2.0)+y**2.0/np.float(stdevy**2.0)))
+        g = np.exp(-(x**2.0/np.float(2* (stdev**2.0))+y**2.0/np.float(2 * (stdevy**2.0))))
         
         if normalize:
             return g / g.sum()
