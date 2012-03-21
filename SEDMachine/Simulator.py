@@ -52,8 +52,7 @@ class SEDSimulator(Simulator,ImageObject):
         self.dataClasses = [SubImage]
         self.lenslets = []
         self.ellipses = {}
-        self.spectra = SpectraObject()
-        self.spectra.dataClasses += [AnalyticSpectrum]
+        self.spectra = {}
         self.astrologger = logging.getLogger("AstroObject")
         self.config.merge(self.basics)
         self.config.merge({"Instrument":self.instrument,"Caches":self.caches,"Source":self.source,"Observation":self.observation})
@@ -639,10 +638,12 @@ class SEDSimulator(Simulator,ImageObject):
     def setup_line_list(self):
         """Set up a line-list based spectrum for wavelength calibration."""
         linelist = np.asarray(np.genfromtxt(self.config["Source"]["Lines"]["List"],comments="#"))
+        if linelist.ndim < 1:
+            linelist = linelist.flatten()
         CalSpec = FlatSpectrum(0.0)
         sigma = self.config["Source"]["Lines"]["sigma"]
         for line in linelist:
-            if self.config["Source"]["Lines"]["var_values"]:
+            if self.config["Source"]["Lines"]["peaks"]:
                 value = line[1]
                 center = line[0]
             else:
