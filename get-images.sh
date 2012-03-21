@@ -84,7 +84,7 @@ then
     echo "Cancelling backup from $SERVER:$MASTER to $DESTINATION"
 	exit
 fi
-$RSYNC -av "$SERVER:$MASTER" "$DESTINATION"
+$RSYNC -av --progress "$SERVER:$MASTER" "$DESTINATION"
 echo ""
 echo "Retrieved from $SERVER:$MASTER to $DESTINATION"
 echo "Thanks for grabbing $NAME!"

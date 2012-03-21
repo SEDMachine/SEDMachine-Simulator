@@ -102,7 +102,6 @@ class SEDSimulator(Simulator,ImageObject):
         'Telescope' : "SED.tel.npy",
         'PSF' : "SED.psf.npy",
         'CONV' : "SED.conv.npy",
-        'config' : "SED.config.yaml",
         'const' : "SED.const.yaml"
     }
     
@@ -110,8 +109,8 @@ class SEDSimulator(Simulator,ImageObject):
         'exposure' : 1200,
         'number' : 3,
         'airmass' : 1,
-        'Sky' : {
-            'Use' : "TurnroseSKY",
+        'Background' : {
+            'Sky' : "TurnroseSKY",
             'Atmosphere' : "Atmosph",
             'Files' : {
                 'Massey' : "SEDSpec2/MasseySky.fits",
@@ -140,26 +139,29 @@ class SEDSimulator(Simulator,ImageObject):
             'pxtomm': 0.0135 }, 
         'density': 5,
         'dispfitorder' : 2, 
-        'tel_obsc': {'px': 0.2 , 'ratio': 0.1}, 
         'plot': False, 
-        'ccd_size': {'px': 2048}, 
+        'ccd': {
+            'size' : {'px': 2048},
+        },
         'padding': 5, 
         'PSF' : {
             'stdev': {'px': 1.0}, 
             'size': { 'px': 2.4},
-            'ellipse': True,
-            'dispfitorder': 5,
         },
         'bias': 20, 
-        'image_size': { 'mm': 40.0}, 
-        'image_pad' : { 'mm' : 0.1},
+        'image': { 
+            'size':{ 'mm': 40.0},
+            'pad' :{ 'mm' : 0.1},
+        },
         'Tel' : {
             'obsc' : {'px': 0.2 , 'ratio': 0.1},
             'area' : 18242. * 0.9,
             'radius': { 'px': 1.2},
+            'ellipse': True,
+            'dispfitorder': 5,
         },
         'eADU' : 3.802e-2,
-        'lenslets' : {
+        'Lenslets' : {
               'radius' : 0.245e-2,
               'rotation' : 27.0,
         },
@@ -168,14 +170,19 @@ class SEDSimulator(Simulator,ImageObject):
             'min' : 3700e-10,
             'resolution' : 100,
         },
-        'scatter' : {
-            "A" : {
-                "stdev" : 2*83,
-                "mag" : 0.0008,
-            },
-            "B" : {
-                "stdev" : 2*11100,
-                "mag" : 6.6e-6,
+        'Scatter' : {
+            "FFT" : True,
+            "Kernels" : {
+                "A" : {
+                    "type" : "Gaussian",
+                    "stdev" : 2*83,
+                    "mag" : 0.0008,
+                },
+                "B" : {
+                    "type" : "Gaussian",
+                    "stdev" : 2*11100,
+                    "mag" : 6.6e-6,
+                },
             },
         },
         'Thpt' : {
@@ -192,14 +199,13 @@ class SEDSimulator(Simulator,ImageObject):
         'Flat' : {
             'value' : 1e-6,
         },
-        'WLCal' : {
+        'Lines' : {
             'List' : "Data/Lines.dat",
             'sigma' : 1e-9,
             'value' : 1e8,
         },
         'PXSize' : { 'mm' : 0.005 },
         'Rotation' : np.pi/4.0,
-        'Sample_Lenslet' : 2000,
     }
     
     def setup_stages(self):
@@ -219,7 +225,7 @@ class SEDSimulator(Simulator,ImageObject):
         self.registerStage(self.setup_lenslets,"setup-lenslets",help=False,description="Setting up lenslets",dependencies=["setup-config"])
         self.registerStage(self.setup_hexagons,"setup-hexagons",help=False,description="Setting up lenslet hexagons",dependencies=["setup-lenslets"])
         self.registerStage(self.setup_blank,"setup-blank",help=False,description="Creating blank image",dependencies=["setup-config"])        
-        self.registerStage(self.setup_dummy_blank,"setup-blank-d",help=False,description="Creating blank image",dependencies=["setup-config"],replaces=["setup-blank"],include=False)        
+        self.registerStage(self.setup_dummy_blank,"setup-blank-d",help=False,description="Creating dummy blank image",dependencies=["setup-config"],replaces=["setup-blank"],include=False)        
 
         self.registerStage(self.setup_simple_source,"setup-source-simple",help=False,description="Creating simple source spectrum object",dependencies=["setup-config","setup-constants"],include=False,replaces=["setup-source"])
         self.registerStage(None,"simple-source",help="Use a simple, centered source object",description="Replacing default source with a simple one",include=False,dependencies=["setup-source-simple"])
@@ -343,7 +349,7 @@ class SEDSimulator(Simulator,ImageObject):
         
        # Determine the center of the whole system by finding the x position that is closest to 0,0 in pupil position
        cntix = np.argmin(p1**2 + p2**2)
-       self.center = ((xcs[cntix] + (self.config["Instrument"]["image_size"]["mm"]/2))* self.config["Instrument"]["convert"]["mmtopx"], (ycs[cntix] + (self.config["Instrument"]["image_size"]["mm"]/2)) * self.config["Instrument"]["convert"]["mmtopx"])
+       self.center = ((xcs[cntix] + (self.config["Instrument"]["image"]["size"]["mm"]/2))* self.config["Instrument"]["convert"]["mmtopx"], (ycs[cntix] + (self.config["Instrument"]["image"]["size"]["mm"]/2)) * self.config["Instrument"]["convert"]["mmtopx"])
        
         
        # Progress bar for lenslet creation and validation
@@ -389,12 +395,12 @@ class SEDSimulator(Simulator,ImageObject):
     
     def setup_blank(self):
         """Establish a blank Image"""
-        self["Blank"] = np.zeros((self.config["Instrument"]["image_size"]["px"],self.config["Instrument"]["image_size"]["px"])).astype(np.int32)
+        self["Blank"] = np.zeros((self.config["Instrument"]["image"]["size"]["px"],self.config["Instrument"]["image"]["size"]["px"])).astype(np.int32)
         
     def setup_dummy_blank(self):
         """Setup Dummy Blank"""
-        blank = np.zeros((self.config["Instrument"]["image_size"]["px"],self.config["Instrument"]["image_size"]["px"])).astype(np.int32)
-        center = np.int(self.config["Instrument"]["image_size"]["px"]/2.0)
+        blank = np.zeros((self.config["Instrument"]["image"]["size"]["px"],self.config["Instrument"]["image"]["size"]["px"])).astype(np.int32)
+        center = np.int(self.config["Instrument"]["image"]["size"]["px"]/2.0)
         blank[center,center] = 1.0
         self["Blank"] = blank
         
@@ -515,7 +521,7 @@ class SEDSimulator(Simulator,ImageObject):
         # Sky Data (From sim_pdr.py by Nick, regenerated using SEDSpec2 module's make_files.py script)
         # Each sky spectrum is saved in a FITS file for easy recall as a spectrum object.
         self.SKYData = SpectraObject()
-        for label,filename in self.config["Observation"]["Sky"]["Files"].iteritems():
+        for label,filename in self.config["Observation"]["Background"]["Files"].iteritems():
             self.SKYData.read(filename,statename=label)
         
         # Moon phase adjustments. These moon phase attenuation values are for different filter bands.
@@ -551,7 +557,7 @@ class SEDSimulator(Simulator,ImageObject):
         self.qe["grating"] = InterpolatedSpectrum(np.array([WL, thpts["thpt-grating"]]),"Grating")
         
         # Set up extinction and airmass term.
-        WL,EX = self.SKYData.data(self.config["Observation"]["Sky"]["Atmosphere"])
+        WL,EX = self.SKYData.data(self.config["Observation"]["Background"]["Atmosphere"])
         FL = 10**(-EX*self.config["Observation"]["airmass"]/2.5)
         WL *= 1e-10
         self.Extinction = InterpolatedSpectrum(np.array([WL,FL]),"Atmosphere")
@@ -559,7 +565,7 @@ class SEDSimulator(Simulator,ImageObject):
         
         # This calculation fixes the units of the TurnroseSKY values
         # I'm not sure what these units are doing, but we will leave them here for now.
-        WL,FL = self.SKYData.data(self.config["Observation"]["Sky"]["Use"])
+        WL,FL = self.SKYData.data(self.config["Observation"]["Background"]["Sky"])
         FL *= 1e-18 * 3 # NICK! I NEED THIS EXPLAINED!
         FL /= self.const["hc"] / WL
         FL *= 1e10 #Spectrum was per Angstrom, should now be per Meter
@@ -632,10 +638,17 @@ class SEDSimulator(Simulator,ImageObject):
         
     def setup_line_list(self):
         """Set up a line-list based spectrum for wavelength calibration."""
-        linelist = np.asarray(np.genfromtxt(self.config["Source"]["WLCal"]["List"],comments="#")).flatten()
+        linelist = np.asarray(np.genfromtxt(self.config["Source"]["Lines"]["List"],comments="#"))
         CalSpec = FlatSpectrum(0.0)
+        sigma = self.config["Source"]["Lines"]["sigma"]
         for line in linelist:
-            CalSpec += GaussianSpectrum(line,self.config["Source"]["WLCal"]["sigma"],self.config["Source"]["WLCal"]["value"],"Line %g" % line)
+            if self.config["Source"]["Lines"]["var_values"]:
+                value = line[1]
+                center = line[0]
+            else:
+                value = self.config["Source"]["Lines"]["value"]
+                center = line
+            CalSpec += GaussianSpectrum(center,sigma,value,"Line %g" % line)
         self.CalSpec = UnitarySpectrum(CalSpec,method='resolve_and_integrate',label="Calibration Lamp")
         
     def line_source(self):
@@ -704,14 +717,13 @@ class SEDSimulator(Simulator,ImageObject):
     def setup_scatter(self):
         """Sets up scattered light level"""
         
+        area = np.zeros((self.config["Instrument"]["ccd"]["size"]["px"]+1,self.config["Instrument"]["ccd"]["size"]["px"]+1))
         
-        
-        area = np.zeros((self.config["Instrument"]["ccd_size"]["px"]+1,self.config["Instrument"]["ccd_size"]["px"]+1))
-        
-        size = self.config["Instrument"]["ccd_size"]["px"]/2
-        for v in self.config["Instrument"]["scatter"].values():
-            n = v["mag"] * self.gauss_kern(v["stdev"],size,enlarge=False,normalize=False)
-            self.log.debug(npArrayInfo(n,"Gauss Kernel"))
+        size = self.config["Instrument"]["ccd"]["size"]["px"]/2
+        for v in self.config["Instrument"]["Scatter"]["Kernels"].values():
+            if v["type"] == "Gaussian":
+                n = v["mag"] * self.gauss_kern(v["stdev"],size,enlarge=False,normalize=False)
+                self.log.debug(npArrayInfo(n,"Gauss Kernel"))
             area += n
         
         state = self.statename
@@ -721,7 +733,7 @@ class SEDSimulator(Simulator,ImageObject):
     def ccd_crop(self):
         """Crops the image to the appropriate ccd size"""
         x,y = self.center
-        size = self.config["Instrument"]["ccd_size"]["px"] / 2.0
+        size = self.config["Instrument"]["ccd"]["size"]["px"] / 2.0
         self.crop(x,y,size)
         
     def setup_noise(self):
@@ -764,7 +776,7 @@ class SEDSimulator(Simulator,ImageObject):
         self.log.debug(npArrayInfo(data,"Data \'%s\'" % self.statename))
         
         
-        if self.config["Instrument"]["scatter_fft"]:
+        if self.config["Instrument"]["Scatter"]["FFT"]:
             result = sp.signal.fftconvolve(data,scatter,mode='same')
         else:
             result = sp.signal.convolve(data,scatter,mode='same')
@@ -1384,7 +1396,7 @@ class SEDSimulator(Simulator,ImageObject):
     def generate_poisson_noise(self,label=None,lam=2.0,num=1):
         """Generates a poisson noise mask, saving to this object"""
         distribution = np.random.poisson
-        shape = (self.config["Instrument"]["ccd_size"]["px"],self.config["Instrument"]["ccd_size"]["px"])
+        shape = (self.config["Instrument"]["ccd"]["size"]["px"],self.config["Instrument"]["ccd"]["size"]["px"])
         if label == None:
             label = "Poisson Noise Mask (%2g)" % (lam)
         arguments = (lam,shape)
@@ -1585,7 +1597,7 @@ class SEDSimulator(Simulator,ImageObject):
         
         self.config["Instrument"] = self._setUnits(self.config["Instrument"],None)
         
-        self.config["Instrument"]["image_size"]["px"] = np.round( self.config["Instrument"]["image_size"]["px"] , 0 )
+        self.config["Instrument"]["image"]["size"]["px"] = np.round( self.config["Instrument"]["image"]["size"]["px"] , 0 )
                 
         wl,r = self.get_resolution_spectrum(self.config["Instrument"]["wavelengths"]["min"],self.config["Instrument"]["wavelengths"]["max"],self.config["Instrument"]["wavelengths"]["resolution"])
         

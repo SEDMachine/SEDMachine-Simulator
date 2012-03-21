@@ -143,14 +143,14 @@ class Lenslet(ImageObject):
         self.num = ix
         
         # Center x and y positions
-        self.xcs =  xcs + (self.config["Instrument"]["image_size"]["mm"]/2)
-        self.ycs =  ycs + (self.config["Instrument"]["image_size"]["mm"]/2)
-        self.xas =  xas + (self.config["Instrument"]["image_size"]["mm"]/2)
-        self.yas =  yas + (self.config["Instrument"]["image_size"]["mm"]/2)
-        self.xbs =  xbs + (self.config["Instrument"]["image_size"]["mm"]/2)
-        self.ybs =  ybs + (self.config["Instrument"]["image_size"]["mm"]/2)
-        self.xls =  xls + (self.config["Instrument"]["image_size"]["mm"]/2)
-        self.yls =  yls + (self.config["Instrument"]["image_size"]["mm"]/2)
+        self.xcs =  xcs + (self.config["Instrument"]["image"]["size"]["mm"]/2)
+        self.ycs =  ycs + (self.config["Instrument"]["image"]["size"]["mm"]/2)
+        self.xas =  xas + (self.config["Instrument"]["image"]["size"]["mm"]/2)
+        self.yas =  yas + (self.config["Instrument"]["image"]["size"]["mm"]/2)
+        self.xbs =  xbs + (self.config["Instrument"]["image"]["size"]["mm"]/2)
+        self.ybs =  ybs + (self.config["Instrument"]["image"]["size"]["mm"]/2)
+        self.xls =  xls + (self.config["Instrument"]["image"]["size"]["mm"]/2)
+        self.yls =  yls + (self.config["Instrument"]["image"]["size"]["mm"]/2)
         
         
         
@@ -276,8 +276,8 @@ class Lenslet(ImageObject):
             return self.passed
         
         # Find the xs and ys that are not within 0.1 mm of the edge of the detector...
-        padding = self.config["Instrument"]["image_pad"]["mm"]
-        if not ((self.xcs > 0.1) & (self.xcs < self.config["Instrument"]["image_size"]["mm"]-padding) & (self.ycs > padding) & (self.ycs < self.config["Instrument"]["image_size"]["mm"]-padding)).any():
+        padding = self.config["Instrument"]["image"]["pad"]["mm"]
+        if not ((self.xcs > 0.1) & (self.xcs < self.config["Instrument"]["image"]["size"]["mm"]-padding) & (self.ycs > padding) & (self.ycs < self.config["Instrument"]["image"]["size"]["mm"]-padding)).any():
             self.log.debug("Lenslet %d failed: The points are too close to the image edge" % self.num)
             return self.passed
         
@@ -328,14 +328,14 @@ class Lenslet(ImageObject):
         if self.dispersion:
             return self.dispersion
         
-        if self.config["Instrument"]["PSF"]["ellipse"]:
+        if self.config["Instrument"]["Tel"]["ellipse"]:
             # Find ellipse major and minor axis from given data.
             self.a = np.sqrt((self.xcs - self.xas)**2.0 + (self.ycs-self.yas)**2.0) * self.config["Instrument"]["convert"]["mmtopx"] * self.config["Instrument"]["density"]
             self.b = np.sqrt((self.xcs - self.xbs)**2.0 + (self.ycs-self.ybs)**2.0) * self.config["Instrument"]["convert"]["mmtopx"] * self.config["Instrument"]["density"]
             self.alpha = np.arcsin((self.xcs - self.xas)/(self.ycs-self.yas))
-            self.fa = np.poly1d(np.polyfit(self.ls, self.a, self.config["Instrument"]["PSF"]["dispfitorder"]))
-            self.fb = np.poly1d(np.polyfit(self.ls, self.b, self.config["Instrument"]["PSF"]["dispfitorder"]))
-            self.falpha = np.poly1d(np.polyfit(self.ls, self.alpha, self.config["Instrument"]["PSF"]["dispfitorder"]))
+            self.fa = np.poly1d(np.polyfit(self.ls, self.a, self.config["Instrument"]["Tel"]["dispfitorder"]))
+            self.fb = np.poly1d(np.polyfit(self.ls, self.b, self.config["Instrument"]["Tel"]["dispfitorder"]))
+            self.falpha = np.poly1d(np.polyfit(self.ls, self.alpha, self.config["Instrument"]["Tel"]["dispfitorder"]))
             
 
             
@@ -566,7 +566,7 @@ class Lenslet(ImageObject):
         img = np.zeros(self.subshape)
         
         for x,y,wl,flux in zip(self.txs,self.tys,self.twl,self.tfl):
-            if self.config["Instrument"]["PSF"]["ellipse"]:
+            if self.config["Instrument"]["Tel"]["ellipse"]:
                 a = self.fa(wl)
                 b = self.fb(wl)
                 conv = get_conv(wl,a,b)
@@ -794,9 +794,9 @@ class Lenslet(ImageObject):
         
         :var shape: shapely polygon representing this hexagon.
         """
-        radius = self.config["Instrument"]["lenslets"]["radius"]
+        radius = self.config["Instrument"]["Lenslets"]["radius"]
         angle = np.pi/3.0
-        rotation =  self.config["Instrument"]["lenslets"]["rotation"] * (np.pi/180.0) #Absolute angle of rotation for hexagons
+        rotation =  self.config["Instrument"]["Lenslets"]["rotation"] * (np.pi/180.0) #Absolute angle of rotation for hexagons
         A = self.rotate(self.ps + np.array([radius,0]),rotation,self.ps)
         points = [A]
         for i in range(5):
