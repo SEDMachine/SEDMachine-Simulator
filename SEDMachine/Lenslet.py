@@ -573,7 +573,8 @@ class Lenslet(ImageObject):
             if self.config["Instrument"]["Tel"]["ellipse"]:
                 a = self.fa(wl)
                 b = self.fb(wl)
-                conv = get_conv(wl,a,b)
+                rot = self.falpha(wl)
+                conv = get_conv(wl,a,b,rot)
             else:
                 conv = get_conv(wl)
             tiny_image = conv * flux

@@ -1402,20 +1402,22 @@ class SEDSimulator(Simulator,ImageObject):
             noise += distribution(*arguments)
         self.save(noise,label)
     
-    def get_conv(self,wavelength,a=None,b=None):
+    def get_conv(self,wavelength,a=None,b=None,rot=None):
         """Return a PSF for a given wavelength in the system"""
         if a and b:
             ai = int(a)
             bi = int(b)
-            
+            ri = int(rot * 180.0 / np.pi)
             if ai not in self.ellipses:
                 self.ellipses[ai] = {}
             if bi not in self.ellipses[ai]:
+                self.ellipses[ai][bi] = {}
+            if ri not in self.ellipses[ai][bi]:
                 ETEL = self.get_tel_kern(a,b)
                 self.CONV = sp.signal.fftconvolve(self.Caches["PSF"],ETEL,mode='same')
-                self.ellipses[ai][bi] = self.CONV
+                self.ellipses[ai][bi][ri] = self.CONV
             else:
-                self.CONV = self.ellipses[ai][bi]
+                self.CONV = self.ellipses[ai][bi][ri]
         if not hasattr(self,"found"):
             self.found = True
             self.CONV = self.Caches["CONV"] 
