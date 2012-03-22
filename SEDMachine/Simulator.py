@@ -407,7 +407,7 @@ class SEDSimulator(Simulator,ImageObject):
            for idx in self.lensletIndex:
                select = idx == ix
                lenslet = Lenslet(p1[select],p2[select],lams[select],idx,xcs[select], ycs[select],xls[select], yls[select],  xas[select], yas[select], xbs[select], ybs[select], rs[select],self.config,self.Caches)
-               if lenslet.valid(self.config["Instrument"]["Lenslets"]["strict"]):
+               if lenslet.valid(strict=self.config["Instrument"]["Lenslets"]["strict"]):
                    self.lenslets[idx] = lenslet
                    stream.write(lenslet.introspect())
                progress = int((finished/float(total)) * 100)
