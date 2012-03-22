@@ -653,7 +653,7 @@ class SEDSimulator(Simulator,ImageObject):
 
     def replace_source(self,spectrum):
         """Replace the default file-source with a flat spectrum"""
-        self.spectra.save(spectrum)
+        self.spectra.save(spectrum,clobber=True)
         self.map_over_lenslets(self._replace_source,color=False)
     
     def _replace_source(self,lenslet):
