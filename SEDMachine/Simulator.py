@@ -603,7 +603,7 @@ class SEDSimulator(Simulator,ImageObject):
         self.map_over_lenslets(self._apply_qe_spectrum,color=False)
         self.sky.save(self.sky.frame() * self.config["Instrument"]["Tel"]["area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"],"Sky Mul")
         self.sky.save(self.sky.frame() * self.qe.frame())
-        self.spectra.save(self.spectra.frame() * self.config["Instrument"]["Tel"]["area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"])
+        self.spectra.save(self.spectra.frame() * self.config["Instrument"]["Tel"]["area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"],"Spec Mul")
         self.spectra.save(self.spectra.frame() * self.qe.frame())
         self.sky.save(self.sky.frame("Moon") * self.config["Instrument"]["Tel"]["area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"],"Moon Mul",select=False)
         self.sky.save(self.sky.frame("Moon Mul") * self.qe.frame(),"Moon QE",select=False)
@@ -1087,20 +1087,20 @@ class SEDSimulator(Simulator,ImageObject):
         plt.semilogy(WL*1e6,FL,'b.',linestyle='-',label="Combined")
         
         WL,FL = (self.spectra.frame() / self.sky.frame("Atmosphere"))(wavelengths=WL,resolution=RS)
-        plt.semilogy(WL*1e6,FL,'m.',linestyle='-',label="Source (qe)")
+        plt.semilogy(WL*1e6,FL,'r.',linestyle='-',label="Source (qe)")
         
         WL,FL = self.sky.frame()(wavelengths=WL,resolution=RS)
-        plt.semilogy(WL*1e6,FL,'g.',linestyle='-',label="Sky (qe)")
+        plt.semilogy(WL*1e6,FL,'g-',linestyle='-',label="Sky (qe)")
         
         WL,FL = self.sky.frame("Sky Mul")(wavelengths=WL,resolution=RS)
-        plt.semilogy(WL*1e6,FL,'m.',linestyle='-',label="Sky + Moon",zorder=0.5)
+        plt.semilogy(WL*1e6,FL,'g-',linestyle='-',label="Sky + Moon",zorder=0.5)
         
         
-        WL,FL = self.sky.frame("SkySpectrum (O)")(wavelengths=WL,resolution=RS)
-        plt.semilogy(WL*1e6,FL,'c.',linestyle='-',label="Sky")
+        WL,FL = (self.sky.frame("Sky Mul") - self.sky.frame("Moon Mul"))(wavelengths=WL,resolution=RS)
+        plt.semilogy(WL*1e6,FL,'y-',linestyle='-',label="Sky")
         
-        WL,FL = self.spectra.frame(self.config["Source"]["Filename"]+" (O)")(wavelengths=WL,resolution=RS)
-        plt.semilogy(WL*1e6,FL,'r.',linestyle='-',label="Source")
+        WL,FL = (self.spectra.frame("Spec Mul") - self.sky.frame("Moon Mul"))(wavelengths=WL,resolution=RS)
+        plt.semilogy(WL*1e6,FL,'m.',linestyle='-',label="Source")
         
         axis = plt.axis()
         
@@ -1108,7 +1108,7 @@ class SEDSimulator(Simulator,ImageObject):
         WL,FL = self.sky.frame("Moon")(wavelengths=WL,resolution=RS)
         self.log.debug(npArrayInfo(WL,"Wavelength from Moon Plot"))
         self.log.debug(npArrayInfo(FL,"Flux from Moon Plot"))
-        plt.semilogy(WL*1e6,FL,'y.',linestyle='-',label="Moon",zorder=0.5)
+        plt.semilogy(WL*1e6,FL,'m-',linestyle='-',label="Moon",zorder=0.5)
         
         plt.axis(axis)
         
