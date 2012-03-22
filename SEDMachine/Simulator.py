@@ -171,6 +171,7 @@ class SEDSimulator(Simulator,ImageObject):
         },
         'Scatter' : {
             "FFT" : True,
+            "Amplifier" : 1.0,
             "Kernels" : {
                 "A" : {
                     "type" : "Gaussian",
@@ -781,6 +782,8 @@ class SEDSimulator(Simulator,ImageObject):
             result = sp.signal.fftconvolve(data,scatter,mode='same')
         else:
             result = sp.signal.convolve(data,scatter,mode='same')
+        
+        result *= self.config["Instrument"]["Scatter"]["Amplifier"]
         
         self.log.debug(npArrayInfo(result,"Scattered Light"))
         end = data + result[:-1,:-1]
