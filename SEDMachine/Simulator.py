@@ -117,11 +117,26 @@ class SEDSimulator(Simulator,ImageObject):
             'Sky' : "TurnroseSKY",
             'Atmosphere' : "Atmosph",
             'Files' : {
-                'Massey' : "SEDSpec2/MasseySky.fits",
-                'Quimby' : "SEDSpec2/Quimby.fits",
-                'HansuchikUVES' : "SEDSpec2/HansuchikUVES.fits",
-                'TurnroseSKY' : "SEDSpec2/TurnroseSKY.fits",
-                'PALext' : "SEDSpec2/atmosphere.fits",
+                'Massey' : {
+                    "Filename" : "SEDSpec2/MasseySky.fits",
+                    "Amplifier" : 1,
+                },
+                'QuimbySky' : {
+                    "Filename" : "SEDSpec2/Quimby.fits",
+                    "Amplifier" : 1,
+                },
+                'HansuchikUVES' : {
+                    "Filename" : "SEDSpec2/HansuchikUVES.fits",
+                    "Amplifier" : 1,
+                },
+                'TurnroseSKY' : {
+                    "Filename" : "SEDSpec2/TurnroseSKY.fits",
+                    "Amplifier" : 1.0e-18 * 3,
+                },
+                'PALext' : {
+                    "Filename" : "SEDSpec2/atmosphere.fits",
+                    "Amplifier" : 1,
+                },
             },
         },
         'Moon' : {
@@ -264,9 +279,9 @@ class SEDSimulator(Simulator,ImageObject):
             )
         
         # Apply spectral properties
-        self.registerStage(self.apply_sky,"apply-sky",help=False,description="Including sky spectrum",dependencies=["setup-sky","setup-lenslets"])
-        self.registerStage(self.apply_qe,"apply-qe",help=False,description="Applying Quantum Efficiency Functions",dependencies=["setup-sky","setup-source","setup-lenslets"])
-        self.registerStage(self.apply_atmosphere,"apply-atmosphere",help=False,description="Applying Atmospheric Extinction",dependencies=["setup-sky","setup-source","setup-lenslets"])
+        self.registerStage(self.apply_sky,"apply-sky",help=False,description="Including sky spectrum",dependencies=["setup-sky"])
+        self.registerStage(self.apply_qe,"apply-qe",help=False,description="Applying Quantum Efficiency Functions",dependencies=["setup-sky"])
+        self.registerStage(self.apply_atmosphere,"apply-atmosphere",help=False,description="Applying Atmospheric Extinction",dependencies=["setup-sky"])
 
         # Adjust spectra
         self.registerStage(self.sky_source,"sky-source",help="Use only sky spectrum",description="Using only Sky spectrum",dependencies=["setup-sky","apply-sky","apply-qe","apply-atmosphere","setup-lenslets","setup"],include=False,replaces=["setup-source","geometric-resample","setup-source-pixels"])
@@ -290,7 +305,7 @@ class SEDSimulator(Simulator,ImageObject):
         self.registerStage(self.plot_original_source,"plot-source-o",help="Plot generic source spectrum",description="Plotting Original Source Spectrum",include=False,dependencies=["setup-source"])
         self.registerStage(self.plot_source,"plot-source",help="Plot generic source spectrum",description="Plotting Source Spectrum",include=False,dependencies=["setup-sky","setup-source","apply-sky","apply-qe","apply-atmosphere","plot-source-o"])
         self.registerStage(self.plot_sky_original,"plot-sky-o",help="Plot generic sky spectrum",description="Plotting Original Sky Spectrum",include=False,dependencies=["setup-sky"])
-        self.registerStage(self.plot_sky,"plot-sky",help="Plot sky spectrum",description="Plotting Sky Spectrum",include=False,dependencies=["setup-sky","apply-sky","apply-qe","simple-source","plot-sky-o"])
+        self.registerStage(self.plot_sky,"plot-sky",help="Plot sky spectrum",description="Plotting Sky Spectrum",include=False,dependencies=["setup-sky","apply-sky","apply-qe","plot-sky-o"])
         self.registerStage(self.plot_qe,"plot-qe",help="Plot QE spectrum",description="Plotting QE Spectrum",include=False,dependencies=["setup-sky"])
         
         # Dispersion functions
@@ -485,8 +500,8 @@ class SEDSimulator(Simulator,ImageObject):
         # Sky Data (From sim_pdr.py by Nick, regenerated using SEDSpec2 module's make_files.py script)
         # Each sky spectrum is saved in a FITS file for easy recall as a spectrum object.
         self.SKYData = SpectraObject()
-        for label,filename in self.config["Observation"]["Background"]["Files"].iteritems():
-            self.SKYData.read(filename,statename=label)
+        for label,d in self.config["Observation"]["Background"]["Files"].iteritems():
+            self.SKYData.read(d["Filename"],statename=label)
         
         # Moon phase adjustments. These moon phase attenuation values are for different filter bands.
         # The intermediate wavelengths are accounted for using a polyfit
@@ -499,7 +514,7 @@ class SEDSimulator(Simulator,ImageObject):
         moon_i = np.array([2.8e-17,3.0e-17,3.0e-17,3.3e-17,3.8e-17,7.0e-17,9.0e-17])
 
         sky_ls = np.array([4868., 6290., 7706., 10000]) * 1e-10
-
+        
         self.moon_specs = []
         for i in xrange(len(moon_phase)):
             gm = moon_g[i]-moon_g[0]
@@ -530,7 +545,7 @@ class SEDSimulator(Simulator,ImageObject):
         # This calculation fixes the units of the TurnroseSKY values
         # I'm not sure what these units are doing, but we will leave them here for now.
         WL,FL = self.SKYData.data(self.config["Observation"]["Background"]["Sky"])
-        FL *= 1e-18 * 3 # NICK! I NEED THIS EXPLAINED!
+        FL *=  self.config["Observation"]["Background"]["Files"][self.config["Observation"]["Background"]["Sky"]]["Amplifier"]
         FL /= self.const["hc"] / WL
         FL *= 1e10 #Spectrum was per Angstrom, should now be per Meter
         
@@ -582,7 +597,7 @@ class SEDSimulator(Simulator,ImageObject):
     def apply_qe(self):
         """Apply the instrument quantum efficiency"""
         self.map_over_lenslets(self._apply_qe_spectrum,color=False)
-        self.sky.save(self.sky.frame() * self.config["Instrument"]["Tel"]["area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"])
+        self.sky.save(self.sky.frame() * self.config["Instrument"]["Tel"]["area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"],"Sky Mul")
         self.sky.save(self.sky.frame() * self.qe.frame())
         self.spectra.save(self.spectra.frame() * self.config["Instrument"]["Tel"]["area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"])
         self.spectra.save(self.spectra.frame() * self.qe.frame())
@@ -617,7 +632,7 @@ class SEDSimulator(Simulator,ImageObject):
     def line_source(self):
         """Use the line spectrum only"""
         self.config["Output"]["Label"] += "-cal-"
-        self.replace_source(self.frame("Calibration Lamp"))
+        self.replace_source(self.spectra.frame("Calibration Lamp"))
         
     def sky_source(self):
         """Use the sky spectrum only"""
@@ -822,14 +837,14 @@ class SEDSimulator(Simulator,ImageObject):
         """Outputs the lenslet data"""
         plt.figure()
         plt.clf()
-        self.log.info("Plotting lenslet arc positions in CCD (x,y) space")
-        FileName = "%(Partials)s/Lenslet-xy%(fmt)s" % dict(fmt=self.config["Plots"]["format"],**self.config["Dirs"])
+        self.log.info("Plotting lenslet arc positions in Camera (x,y) space")
+        FileName = "%(Partials)s/Lenslet-cxy%(fmt)s" % dict(fmt=self.config["Plots"]["format"],**self.config["Dirs"])
         self.map_over_lenslets(lambda l: plt.plot(l.xcs,l.ycs,linestyle='-'),color="cyan")
-        plt.title("Lenslet x-y positions")
+        plt.title("Lenslet c-xy positions")
         plt.savefig(FileName)
         
         plt.clf()
-        self.log.info("Plotting lenslet physical positions in mm space")
+        self.log.info("Plotting lenslet Pupil positions in Pupil (x,y) space")
         FileName = "%(Partials)s/Lenslet-pxy%(fmt)s" % dict(fmt=self.config["Plots"]["format"],**self.config["Dirs"])
         self.map_over_lenslets(lambda l: plt.plot(l.ps.T[0],l.ps.T[1],marker='.'),color="cyan")
             
@@ -865,17 +880,17 @@ class SEDSimulator(Simulator,ImageObject):
         
         for wl,rs,Label in zip([WL,DWL,SWL],[RS,DRS,SRS],["L","M","H"]):
             identity = "%s Iq" % Label                
-            wl,FL = self.Original(wavelengths=wl,resolution=rs,method="integrate_quad")
+            wl,FL = self.spectra.frame(self.config["Source"]["Filename"]+" (O)")(wavelengths=wl,resolution=rs,method="integrate_quad")
             Results[identity] = np.sum(FL)
             plt.semilogy(wl*1e6,FL,'g.',linestyle="-",label="%s $\Sigma$%.2e" % (identity,Results[identity]))
             
             identity = "%s Ih" % Label                
-            wl,FL = self.Original(wavelengths=wl,resolution=rs,method="integrate_hist")
+            wl,FL = self.spectra.frame(self.config["Source"]["Filename"]+" (O)")(wavelengths=wl,resolution=rs,method="integrate_hist")
             Results[identity] = np.sum(FL)
             plt.semilogy(wl*1e6,FL,'b.',linestyle="-",label="%s $\Sigma$%.2e" % (identity,Results[identity]))
             
             identity = "%s RR" % Label                
-            wl,FL = self.Original(wavelengths=wl,resolution=rs,method="resolve_and_integrate")
+            wl,FL = self.spectra.frame(self.config["Source"]["Filename"]+" (O)")(wavelengths=wl,resolution=rs,method="resolve_and_integrate")
             Results[identity] = np.sum(FL)
             plt.semilogy(wl*1e6,FL,'r.',linestyle="-",label="%s $\Sigma$%.2e" % (identity,Results[identity]))
         
@@ -917,16 +932,16 @@ class SEDSimulator(Simulator,ImageObject):
         plt.title("Resample Tests")
         self.log.debug(npArrayInfo(WL,"Wavelength for Sky Plot"))
         
-        WL,FL = self.Original(wavelengths=WL,method="interpolate")
+        WL,FL = self.spectra.frame(self.config["Source"]["Filename"]+" (O)")(wavelengths=WL,method="interpolate")
         plt.semilogy(WL*1e6,FL,'-',label="Interpolate")
         
-        SWL,FL = self.Original(wavelengths=SWL,resolution=SRS,method="resample")
+        SWL,FL = self.spectra.frame(self.config["Source"]["Filename"]+" (O)")(wavelengths=SWL,resolution=SRS,method="resample")
         plt.semilogy(SWL*1e6,FL,'-',label="SR Resample")
         
-        DWL,FL = self.Original(wavelengths=DWL,resolution=DRS,method="resample")
+        DWL,FL = self.spectra.frame(self.config["Source"]["Filename"]+" (O)")(wavelengths=DWL,resolution=DRS,method="resample")
         plt.semilogy(DWL*1e6,FL,'-',label="HR Resample")
         
-        WL,FL = self.Original(wavelengths=WL,resolution=RS,method="resample")
+        WL,FL = self.spectra.frame(self.config["Source"]["Filename"]+" (O)")(wavelengths=WL,resolution=RS,method="resample")
         plt.semilogy(WL*1e6,FL,'-',label="LR Resample")
         
         
@@ -955,21 +970,21 @@ class SEDSimulator(Simulator,ImageObject):
         plt.clf()
         plt.title("Sky Spectrum")
 
-        WL,FL = self.SkySpectrum(wavelengths=WL,resolution=RS)
+        WL,FL = self.sky.frame()(wavelengths=WL,resolution=RS)
         plt.semilogy(WL*1e6,FL,'b.',linestyle='-',label="Sky + Moon (qe)")
         
-        WL,FL = self.SkyMoon(wavelengths=WL,resolution=RS)
+        WL,FL = self.sky.frame("Sky Mul")(wavelengths=WL,resolution=RS)
         plt.semilogy(WL*1e6,FL,'m.',linestyle='-',label="Sky + Moon")
         
-        WL,FL = self.SkyOriginal(wavelengths=WL,resolution=RS)
+        WL,FL = (self.sky.frame("Sky Mul") - self.sky.frame("Moon Mul"))(wavelengths=WL,resolution=RS)
         plt.semilogy(WL*1e6,FL,'g.',linestyle='-',label="Sky")
         
         axis = plt.axis()
         
-        WL,FL = self.MoonSpectrum(wavelengths=WL,resolution=RS)
+        WL,FL = self.sky.frame("Moon Mul")(wavelengths=WL,resolution=RS)
         plt.semilogy(WL*1e6,FL,'y.',linestyle='-',label="Moon",zorder=0.5)
         
-        WL,FL = self.MoonSpectrumQE(wavelengths=WL,resolution=RS)
+        WL,FL = self.sky.frame("Moon QE")(wavelengths=WL,resolution=RS)
         plt.semilogy(WL*1e6,FL,'c.',linestyle='-',label="Moon (qe)",zorder=0.5)
         
         plt.axis(axis)
@@ -994,7 +1009,7 @@ class SEDSimulator(Simulator,ImageObject):
         plt.clf()
         plt.title("Sky Spectrum")
 
-        WL,FL = self.SkyOriginal(wavelengths=WL,resolution=RS)
+        WL,FL = self.sky.frame("SkySpectrum (O)")(wavelengths=WL,resolution=RS)
         plt.semilogy(WL*1e6,FL,'g.',linestyle='-',label="Sky")
         
         plt.legend(loc=2)
@@ -1012,7 +1027,7 @@ class SEDSimulator(Simulator,ImageObject):
         RS = self.config["Instrument"]["wavelengths"]["resolutions"]
         plt.figure()
         plt.title("Calibration Spectrum")
-        WL,FL = self.CalSpec(wavelengths=WL,resolution=RS)
+        WL,FL = self.spectra.frame("Calibration Source")(wavelengths=WL,resolution=RS)
         plt.semilogy(WL*1e6,FL,'r.',linestyle='-',label="Source")
         plt.xlabel("Wavelength ($\mu$m)")
         plt.ylabel("Flux (Photons)")
@@ -1034,7 +1049,7 @@ class SEDSimulator(Simulator,ImageObject):
 
         plt.clf()
         plt.title("Source Spectrum")
-        WL,FL = self.Original(wavelengths=WL,resolution=RS)
+        WL,FL = self.spectra.frame(self.config["Source"]["Filename"]+" (O)")(wavelengths=WL,resolution=RS)
         plt.semilogy(WL*1e6,FL,'r.',linestyle='-',label="Source")
         
         plt.xlabel("Wavelength ($\mu$m)")
@@ -1052,7 +1067,7 @@ class SEDSimulator(Simulator,ImageObject):
         plt.figure()
         plt.title("Resolution")
         plt.plot(WL*1e6,RS,'g.',label="Requested R")
-        GWL,GFL = self.SpectrumData
+        GWL,GFL = self.spectra.data("Original")
         plt.plot(GWL[:-1]*1e6,GWL[:-1]/np.diff(GWL),label="Given R")
         plt.legend()
         FileName = "%(Partials)s/Source-Spectrum-Res%(fmt)s" % dict(fmt=self.config["Plots"]["format"],**self.config["Dirs"])
@@ -1062,31 +1077,31 @@ class SEDSimulator(Simulator,ImageObject):
         plt.title("Source Spectrum")
         self.log.debug(npArrayInfo(WL,"Wavelength for Sky Plot"))
         
-        WL,FL = self.Spectrum(wavelengths=WL,resolution=RS)
+        WL,FL = self.spectra.frame()(wavelengths=WL,resolution=RS)
         self.log.debug(npArrayInfo(WL,"Wavelength from Source Plot"))
         self.log.debug(npArrayInfo(FL,"Flux from Source Plot"))
         plt.semilogy(WL*1e6,FL,'b.',linestyle='-',label="Combined")
         
-        WL,FL = (self.Spectrum / self.Extinction)(wavelengths=WL,resolution=RS)
+        WL,FL = (self.spectra.frame() / self.sky.frame("Atmosphere"))(wavelengths=WL,resolution=RS)
         plt.semilogy(WL*1e6,FL,'m.',linestyle='-',label="Source (qe)")
         
-        WL,FL = self.SkySpectrum(wavelengths=WL,resolution=RS)
+        WL,FL = self.sky.frame()(wavelengths=WL,resolution=RS)
         plt.semilogy(WL*1e6,FL,'g.',linestyle='-',label="Sky (qe)")
         
-        WL,FL = self.SkyMoon(wavelengths=WL,resolution=RS)
+        WL,FL = self.sky.frame("Sky Mul")(wavelengths=WL,resolution=RS)
         plt.semilogy(WL*1e6,FL,'m.',linestyle='-',label="Sky + Moon",zorder=0.5)
         
         
-        WL,FL = self.SkyOriginal(wavelengths=WL,resolution=RS)
+        WL,FL = self.sky.frame("SkySpectrum (O)")(wavelengths=WL,resolution=RS)
         plt.semilogy(WL*1e6,FL,'c.',linestyle='-',label="Sky")
         
-        WL,FL = self.Original(wavelengths=WL,resolution=RS)
+        WL,FL = self.spectra.frame(self.config["Source"]["Filename"]+" (O)")(wavelengths=WL,resolution=RS)
         plt.semilogy(WL*1e6,FL,'r.',linestyle='-',label="Source")
         
         axis = plt.axis()
         
         
-        WL,FL = self.MoonSpectrum(wavelengths=WL,resolution=RS)
+        WL,FL = self.sky.frame("Moon")(wavelengths=WL,resolution=RS)
         self.log.debug(npArrayInfo(WL,"Wavelength from Moon Plot"))
         self.log.debug(npArrayInfo(FL,"Flux from Moon Plot"))
         plt.semilogy(WL*1e6,FL,'y.',linestyle='-',label="Moon",zorder=0.5)
@@ -1108,9 +1123,9 @@ class SEDSimulator(Simulator,ImageObject):
         plt.figure()
         plt.clf()
         plt.title("QE Spectrum")
-        WL,FL = self.qe[self.config["Instrument"]["Thpt"]["Type"]](wavelengths=WL)
+        WL,FL = self.qe.frame("QE")(wavelengths=WL)
         plt.semilogy(WL*1e6,FL,'b.',linestyle='-',label="Quantum Efficiency")
-        WL,FL = self.Extinction(wavelengths=WL)
+        WL,FL = self.sky.frame("Atmosphere")(wavelengths=WL)
         plt.semilogy(WL*1e6,FL,'m.',linestyle='-',label="Extinction")
         
         ax = plt.gca()
