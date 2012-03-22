@@ -1399,7 +1399,7 @@ class SEDSimulator(Simulator,ImageObject):
                 self.ellipses[ai] = {}
             if bi not in self.ellipses[ai]:
                 ETEL = self.get_tel_kern(a,b)
-                self.CONV = sp.signal.convolve(self.Caches["PSF"],ETEL,mode='same')
+                self.CONV = sp.signal.fftconvolve(self.Caches["PSF"],ETEL,mode='same')
                 self.ellipses[ai][bi] = self.CONV
             else:
                 self.CONV = self.ellipses[ai][bi]
