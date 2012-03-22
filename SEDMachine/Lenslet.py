@@ -220,7 +220,7 @@ class Lenslet(ImageObject):
             STR += "|%(x) 9.6g|%(y) 9.6g|%(pxA) 10.6g|%(pxB) 10.6g|%(pA) 10.6g|%(pB) 10.6g|%(wl) 10.6g|\n" % data
         return STR
     
-    def valid(self):
+    def valid(self,strict=True):
         """Returns true if this is a valid lenslet, false if it fails any of the tests.
         
         :returns: bool
@@ -250,17 +250,20 @@ class Lenslet(ImageObject):
         # Data utility
         if len(self.points) < 3:
             self.log.debug("Lenslet %d failed: There were fewer than three data points" % self.num)
-            return self.passed
+            if strict:
+                return self.passed
         if np.any(self.pixs.flatten == 0):
             self.log.debug("Lenslet %d failed: Some (x,y) were exactly zero" % self.num)
-            return self.passed
+            if strict:
+                return self.passed
         
         # X distance calculation (all spectra should be roughly constant in x, as they are fairly well aligned)
         # NOTE: There really isn't a whole lot to this requriement
         dist = 30
         if np.any(np.abs(np.diff(self.xpixs)) > dist):
             self.log.debug("Lenslet %d failed: x distance was more than %d" % (self.num,dist))
-            return self.passed
+            if strict:
+                return self.passed
         
         # The spectrum should span some finite distance
         startix = np.argmin(self.ls)
@@ -279,7 +282,8 @@ class Lenslet(ImageObject):
         padding = self.config["Instrument"]["image"]["pad"]["mm"]
         if not ((self.xcs > 0.1) & (self.xcs < self.config["Instrument"]["image"]["size"]["mm"]-padding) & (self.ycs > padding) & (self.ycs < self.config["Instrument"]["image"]["size"]["mm"]-padding)).any():
             self.log.debug("Lenslet %d failed: The points are too close to the image edge" % self.num)
-            return self.passed
+            if strict:
+                return self.passed
         
         self.passed = True
         
