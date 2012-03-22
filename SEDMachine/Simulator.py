@@ -323,7 +323,7 @@ class SEDSimulator(Simulator,ImageObject):
         self.registerStage(self.plot_rotation,"plot-lenslet-rs",help="Plot lenslet ellipse sizes",description="Plotting lenslet ellipse sizes",include=False,dependencies=["setup-lenslets","dispersion"])
         
         
-        self.registerStage(self.plot_lenslet_data,"plot-lenslet-xy",help="Plot lenslet positions",description="Plotting lenslet positions",include=False,dependencies=["setup-lenslets","dispersion"])
+        self.registerStage(self.plot_lenslet_data,"plot-lenslet-xy",help="Plot lenslet positions",description="Plotting lenslet positions",include=False,dependencies=["setup-lenslets"])
         self.registerStage(self.plot_dispersion_data,"plot-dispersion",help=False,description="Plotting dispersion for each lenslet",dependencies=["dispersion"],include=False)
         self.registerStage(self.plot_trace_data,"plot-trace",help=False,description="Plotting trace data for each lenslet",dependencies=["trace"],include=False)
         self.registerStage(self.plot_spectrum_data,"plot-spectrum",help=False,description="Plotting spectral data for each lenslet",dependencies=["trace"],include=False)
@@ -866,7 +866,7 @@ class SEDSimulator(Simulator,ImageObject):
         
         plt.clf()
         
-        self.map_over_lenslets(lambda l: l.plot_raw_data(),color="cyan")
+        # self.map_over_lenslets(lambda l: l.plot_raw_data(),color="cyan")
     
     def compare_methods(self):
         """A plot for comparing resolving methods"""
