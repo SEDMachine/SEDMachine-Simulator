@@ -29,7 +29,6 @@ import logging.handlers
 import arpytools.progressbar
 
 try:
-    from AstroObject.AnalyticSpectra import BlackBodySpectrum,FlatSpectrum,ResampledSpectrum
     from AstroObject.AstroSpectra import SpectraObject
     import AstroObject.Utilities as AOU
     import AstroObject.AstroSimulator
@@ -81,33 +80,39 @@ from Data.massey import skyab
 # Convert some sky spec from AB to fLambda
 # This sky spectrum is imported from the massey module, and uses the mag conversion functions above.
 skyflam = np.array([skyab[:,0], abmag_to_flambda(skyab[:,1], skyab[:,0])])
-MasseySky = SpectraObject(filename="MasseySky.fits")
+MasseySky = SpectraObject(filename="../Data/MasseySky.fits")
 MasseySky.save(skyab.T,"SkyAB")
 MasseySky.save(skyflam,"SkyFL")
 MasseySky.write(clobber=True)
 
 # Hansuchik.py -> HansuchikUVES.FITS
 from Data.Hansuchik import uves_sky
-HansuchikUVES = SpectraObject(filename="HansuchikUVES.fits")
+HansuchikUVES = SpectraObject(filename="../Data/UVESSky.fits")
 HansuchikUVES.save(uves_sky.T,"UVESSky")
 HansuchikUVES.write(clobber=True)
 
 # Turnrose.py -> Turnrose.FITS
 from Data.Turnrose import skyspec
-TurnroseSKY = SpectraObject(filename="TurnroseSKY.fits")
+TurnroseSKY = SpectraObject(filename="../Data/TurnroseSKY.fits")
 TurnroseSKY.save(skyspec.T,"TurnroseSKY")
 TurnroseSKY.write(clobber=True)
 
-# Quimby.py -> Quimby.FITS
+# Quimby.py -> QuimbySky.FITS
 from Data.Quimby import quimby_sky
-QuimbySKY = SpectraObject(filename="Quimby.fits")
+QuimbySKY = SpectraObject(filename="../Data/QuimbySky.fits")
 QuimbySKY.save(quimby_sky.T,"QuimbySky")
 QuimbySKY.write(clobber=True)
 
 # atmosphere.py -> atmosphere.FITS
 from Data.atmosphere import palextinct
-atmosphereEXT = SpectraObject(filename="atmosphere.fits")
+atmosphereEXT = SpectraObject(filename="../Data/atmosphere.fits")
 atmosphereEXT.save(palextinct.T,"Atmosph")
 atmosphereEXT.write(clobber=True)
+
+# palsky_100318.dat -> Palsky.FITS
+palskydata = np.genfromtxt("../Data/palsky_100318.dat").T
+palSKY = SpectraObject(filename="../Data/PalSky.fits")
+palSKY.save(palskydata,"PalSky")
+palSKY.write(clobber=True)
 
 

@@ -114,27 +114,31 @@ class SEDSimulator(Simulator,ImageObject):
         'number' : 3,
         'airmass' : 1,
         'Background' : {
-            'Sky' : "TurnroseSKY",
+            'Sky' : "PalSky",
             'Atmosphere' : "Atmosph",
             'Files' : {
+                'PalSky' : {
+                    "Filename" : "Data/PalSky.fits",
+                    "Amplifier" : 1,
+                },
                 'Massey' : {
-                    "Filename" : "SEDSpec2/MasseySky.fits",
+                    "Filename" : "Data/MasseySky.fits",
                     "Amplifier" : 1,
                 },
                 'QuimbySky' : {
-                    "Filename" : "SEDSpec2/Quimby.fits",
+                    "Filename" : "Data/QuimbySky.fits",
                     "Amplifier" : 1,
                 },
-                'HansuchikUVES' : {
-                    "Filename" : "SEDSpec2/HansuchikUVES.fits",
+                'UVESSky' : {
+                    "Filename" : "Data/UVESSky.fits",
                     "Amplifier" : 1,
                 },
                 'TurnroseSKY' : {
-                    "Filename" : "SEDSpec2/TurnroseSKY.fits",
+                    "Filename" : "Data/TurnroseSKY.fits",
                     "Amplifier" : 1.0e-18 * 3,
                 },
-                'PALext' : {
-                    "Filename" : "SEDSpec2/atmosphere.fits",
+                'Atmosph' : {
+                    "Filename" : "Data/atmosphere.fits",
                     "Amplifier" : 1,
                 },
             },
