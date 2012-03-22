@@ -50,9 +50,14 @@ class SEDSimulator(Simulator,ImageObject):
         self.debug = False
         self.mapping = False
         self.dataClasses = [SubImage]
-        self.lenslets = []
+        self.lenslets = {}
         self.ellipses = {}
-        self.spectra = {}
+        self.qe = SpectraObject(dataClasses=[AnalyticSpectrum])
+        self.qe.save(FlatSpectrum(0.0))
+        self.spectra =  SpectraObject(dataClasses=[AnalyticSpectrum])
+        self.spectra.save(FlatSpectrum(0.0))
+        self.sky =  SpectraObject(dataClasses=[AnalyticSpectrum])
+        self.sky.save(FlatSpectrum(0.0))
         self.astrologger = logging.getLogger("AstroObject")
         self.config.merge(self.basics)
         self.config.merge({"Instrument":self.instrument,"Caches":self.caches,"Source":self.source,"Observation":self.observation})
@@ -128,12 +133,30 @@ class SEDSimulator(Simulator,ImageObject):
     
     
     instrument = {
+        "Cameras" : {
+            "Selected" : "PI",
+          	"PI": {
+              	"RN" : 5.,
+              	"DC":  0.006,
+              	"readtime": 37,
+            },
+          	"Andor": {
+              	"RN": 4,
+              	"DC": 0.0004,
+              	"readtime":  82
+            },
+          	"E2V": {
+              	"RN": 3.3,
+              	"DC": 0.006,
+              	"readtime": 37
+            },
+              
+        },
         'files': {
             'dispersion': 'Filename.txt',
             'encircledenergy': 'Filename.txt',
             'lenslets': 'Filename.txt',
         },
-        'camera' : "PI",
         'convert': {
             'pxtomm': 0.0135 }, 
         'density': 5,
@@ -359,7 +382,6 @@ class SEDSimulator(Simulator,ImageObject):
        PBar.render(0,"L:%4s %4d/%-4d" % ("",finished,total))
         
        # Variables for lenslet use
-       self.lenslets = {}
        FileName = "%(Partials)s/%(name)s%(ext)s" % dict(name="Lenslets-raw",ext=".dat",**self.config["Dirs"])
        with open(FileName,'w') as stream:
            for idx in self.lensletIndex:
@@ -438,79 +460,22 @@ class SEDSimulator(Simulator,ImageObject):
         FL /= self.const["hc"] / WL
         FL *= 1e10 #Spectrum was per Angstrom, should now be per Meter
         WL *= 1e-10
-        self.Spectrum = InterpolatedSpectrum(np.array([WL,FL]),self.config["Source"]["Filename"],method="resolve_and_integrate")
-        self.Original = InterpolatedSpectrum(np.array([WL,FL]),self.config["Source"]["Filename"]+" (O)",method="resolve_and_integrate")
-        self.SpectrumData = np.array([WL,FL])
+        self.spectra.save(InterpolatedSpectrum(np.array([WL,FL]),self.config["Source"]["Filename"],method="resolve_and_integrate"))
+        self.spectra.save(InterpolatedSpectrum(np.array([WL,FL]),self.config["Source"]["Filename"]+" (O)",method="resolve_and_integrate"),select=False)
+        self.spectra.save(SpectraFrame(np.array([WL,FL]),"Original"),select=False)
         self.SourcePixels = [SourcePixel(-0.13,0,data=np.array([WL,FL]),label="Source Pixel",config=self.config,num=1),SourcePixel(0,0,data=np.array([WL,FL]),label="Source Pixel",config=self.config,num=2),SourcePixel(0.05,0.05,data=np.array([WL,FL]),label="Source Pixel",config=self.config,num=3)]
         for ix,px in enumerate(self.SourcePixels):
             px.idx = ix
     
     def setup_cameras(self):
         """Set up camera configuration values"""
-        # Camera Data (from sim_pdr.py by Nick)
-        self.cameras = {
-        	"PI": {"DQEs": np.array([
-        		(2000, 0),	
-        		(3000, 0.01),
-        		(3500, .20),
-        		(4000, .60),
-        		(4500, .82),
-        		(5000, .90),
-        		(5500, .93),
-        		(6000, .93),
-        		(7000, .93),
-        		(7500, .88),
-        		(8000, .73),
-        		(8500, .55),
-        		(9000, .33),
-        		(10000, .08),
-        		(10500, 0.02),
-        		(11000, 0)
-        	]),
-        	"RN" : 5.,
-        	"DC":  0.006,
-        	"readtime": 37},
-        	"Andor": { # Midband
-        		"DQEs": np.array([
-        		(2500, .05),
-        		(3500, .18),
-        		(4500, .75),
-        		(5000, .9),
-        		(5500, .92),
-        		(6500, .91),
-        		(7500, .79),
-        		(8500, .48),
-        		(9500, .13),
-        		(10500, .02),
-        		(11000, 0)
-        	]), 
-        	"RN": 4,
-        	"DC": 0.0004,
-        	"readtime":  82},
-        	"E2V": {"DQEs" : np.array([
-        		(3000, .1),
-        		(3500, .3),
-        		(4500, .8),
-        		(5500, .8),
-        		(6500, .78),
-        		(7500, .7),
-        		(8500, .4),
-        		(9500, .13),
-        		(10500, .02),
-        		(11000, 0)]),
-        	"RN": 3.3,
-        	"DC": 0.006,
-        	"readtime": 37},
-        }
+        self.config["Instrument"]["Cameras"]["PI-fast"] = self.config["Instrument"]["Cameras"]["PI"]
+        self.config["Instrument"]["Cameras"]["PI-fast"]["RN"] = 12
+        self.config["Instrument"]["Cameras"]["PI-fast"]["readtime"] = 2.265
 
-
-        self.cameras["PI-fast"] = self.cameras["PI"]
-        self.cameras["PI-fast"]["RN"] = 12
-        self.cameras["PI-fast"]["readtime"] = 2.265
-
-        self.cameras["Andor-fast"] = self.cameras["Andor"]
-        self.cameras["Andor-fast"]["RN"] = 11.7
-        self.cameras["Andor-fast"]["readtime"] = 1.398
+        self.config["Instrument"]["Cameras"]["Andor-fast"] = self.config["Instrument"]["Cameras"]["Andor"]
+        self.config["Instrument"]["Cameras"]["Andor-fast"]["RN"] = 11.7
+        self.config["Instrument"]["Cameras"]["Andor-fast"]["readtime"] = 1.398
         
     
     def setup_sky(self):
@@ -549,17 +514,17 @@ class SEDSimulator(Simulator,ImageObject):
         # Throughputs are generated from Nick's simulation scripts in throughput.py
         # They are simply re-read here.
         thpts = np.load(self.config["Instrument"]["Thpt"]["File"])[0]
-        self.qe = {}
         WL = thpts["lambda"]* 1e-10
         self.qe["prism_pi"] = InterpolatedSpectrum(np.array([WL, thpts["thpt-prism-PI"]]),"PI Prism")
         self.qe["prism_andor"] = InterpolatedSpectrum(np.array([WL, thpts["thpt-prism-Andor"]]),"Andor Prism")
         self.qe["grating"] = InterpolatedSpectrum(np.array([WL, thpts["thpt-grating"]]),"Grating")
+        self.qe.select(self.config["Instrument"]["Thpt"]["Type"])
         
         # Set up extinction and airmass term.
         WL,EX = self.SKYData.data(self.config["Observation"]["Background"]["Atmosphere"])
         FL = 10**(-EX*self.config["Observation"]["airmass"]/2.5)
         WL *= 1e-10
-        self.Extinction = InterpolatedSpectrum(np.array([WL,FL]),"Atmosphere")
+        self.sky.save(InterpolatedSpectrum(np.array([WL,FL]),"Atmosphere"),select=False)
         
         
         # This calculation fixes the units of the TurnroseSKY values
@@ -577,21 +542,20 @@ class SEDSimulator(Simulator,ImageObject):
         WL *= 1e-10
         
         
-        self.MoonSpectrum = InterpolatedSpectrum(np.array([WL,M_FL]),"Moon Phase",method='resolve_and_integrate')
-        self.SkyOriginal = InterpolatedSpectrum(np.array([WL,FL]),"SkySpectrum (O)",method="resolve_and_integrate")
+        self.sky.save(InterpolatedSpectrum(np.array([WL,M_FL]),"Moon",method='resolve_and_integrate'),select=False)
+        self.sky.save(InterpolatedSpectrum(np.array([WL,FL]),"SkySpectrum (O)",method="resolve_and_integrate"),select=False)
         FL += M_FL
-        self.SkyMoon = InterpolatedSpectrum(np.array([WL,FL]),"SkySpectrum + Moon",method="resolve_and_integrate")
-        self.SkySpectrum = InterpolatedSpectrum(np.array([WL,FL]),"SkySpectrum",method="resolve_and_integrate")
+        self.sky.save(InterpolatedSpectrum(np.array([WL,FL]),"SkySpectrum",method="resolve_and_integrate"))
         
     def apply_atmosphere(self):
         """Apply the atmospheric extinction term."""
         self.map_over_lenslets(self._apply_atmosphere,color=False)
-        self.Spectrum *= self.Extinction
+        self.spectra.save( self.spectra.frame() * self.sky.frame("Atmosphere") )
         
         
     def _apply_atmosphere(self,lenslet):
         """docstring for _apply_atmosphere"""
-        lenslet.spectrum *= self.Extinction
+        lenslet.spectrum *= self.sky.frame("Atmosphere")
         
     def setup_hexagons(self):
         """Make the lenslet hexagons"""
@@ -604,28 +568,26 @@ class SEDSimulator(Simulator,ImageObject):
     def apply_sky(self):
         """Apply Sky Spectrum to each lenslet"""
         self.map_over_lenslets(self._apply_sky_spectrum,color=False)
-        self.Spectrum += self.SkySpectrum
+        self.spectra.save(self.spectra.frame() + self.sky.frame())
         
         
     def _apply_sky_spectrum(self,lenslet):
         """docstring for _apply_sky_spectrum"""
-        lenslet.spectrum += self.SkySpectrum
+        lenslet.spectrum += self.sky.frame()
         
     def _apply_qe_spectrum(self,lenslet):
         """Apply qe to each lenslet"""
-        lenslet.spectrum *= self.qe[self.config["Instrument"]["Thpt"]["Type"]] * self.config["Instrument"]["Tel"]["area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"]
+        lenslet.spectrum *= self.qe.frame() * self.config["Instrument"]["Tel"]["area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"]
         
     def apply_qe(self):
         """Apply the instrument quantum efficiency"""
         self.map_over_lenslets(self._apply_qe_spectrum,color=False)
-        self.SkySpectrum *= self.qe[self.config["Instrument"]["Thpt"]["Type"]] * self.config["Instrument"]["Tel"]["area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"]
-        self.Spectrum *= self.qe[self.config["Instrument"]["Thpt"]["Type"]] * self.config["Instrument"]["Tel"]["area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"]
-        self.Original *= self.config["Instrument"]["Tel"]["area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"]
-        self.SkyOriginal *= self.config["Instrument"]["Tel"]["area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"]
-        self.SkyMoon *= self.config["Instrument"]["Tel"]["area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"]
-        self.MoonSpectrum *= self.config["Instrument"]["Tel"]["area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"]
-        self.MoonSpectrumQE = self.MoonSpectrum * self.qe[self.config["Instrument"]["Thpt"]["Type"]] * self.config["Instrument"]["eADU"]
-        
+        self.sky.save(self.sky.frame() * self.config["Instrument"]["Tel"]["area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"])
+        self.sky.save(self.sky.frame() * self.qe.frame())
+        self.spectra.save(self.spectra.frame() * self.config["Instrument"]["Tel"]["area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"])
+        self.spectra.save(self.spectra.frame() * self.qe.frame())
+        self.sky.save(self.sky.frame("Moon") * self.config["Instrument"]["Tel"]["area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"],"Moon Mul",select=False)
+        self.sky.save(self.sky.frame("Moon Mul") * self.qe.frame(),"Moon QE",select=False)
         
     def geometric_resample(self):
         """docstring for fname"""
@@ -650,31 +612,26 @@ class SEDSimulator(Simulator,ImageObject):
                 value = self.config["Source"]["Lines"]["value"]
                 center = line
             CalSpec += GaussianSpectrum(center,sigma,value,"Line %g" % line)
-        self.CalSpec = UnitarySpectrum(CalSpec,method='resolve_and_integrate',label="Calibration Lamp")
+        self.spectra.save(UnitarySpectrum(CalSpec,method='resolve_and_integrate',label="Calibration Lamp"),select=False)
         
     def line_source(self):
         """Use the line spectrum only"""
         self.config["Output"]["Label"] += "-cal-"
-        self.replace_source(self.CalSpec)
+        self.replace_source(self.frame("Calibration Lamp"))
         
     def sky_source(self):
         """Use the sky spectrum only"""
         self.config["Output"]["Label"] += "-sky-"
-        self.replace_source(self.SkySpectrum,self.SkyOriginal)
+        self.replace_source(self.sky.frame())
 
-    def replace_source(self,spectrum,original=None):
+    def replace_source(self,spectrum):
         """Replace the default file-source with a flat spectrum"""
-        self.Spectrum = spectrum
-        if original:
-            self.Original = original
-        else:
-            self.Original = spectrum
-        
+        self.spectra.save(spectrum)
         self.map_over_lenslets(self._replace_source,color=False)
     
     def _replace_source(self,lenslet):
         """docstring for _flat_source"""
-        lenslet.spectrum = self.Spectrum
+        lenslet.spectrum = self.spectra.frame()
             
     def flat_source(self):
         """Replace the default file-source with a flat spectrum"""
@@ -742,8 +699,8 @@ class SEDSimulator(Simulator,ImageObject):
         
         state = self.statename
         
-        read_noise = self.cameras[self.config["Instrument"]["camera"]]["RN"]
-        dark_noise = self.cameras[self.config["Instrument"]["camera"]]["DC"] * self.config["Observation"]["exposure"]
+        read_noise = self.config["Instrument"]["Cameras"][self.config["Instrument"]["Cameras"]["Selected"]]["RN"]
+        dark_noise = self.config["Instrument"]["Cameras"][self.config["Instrument"]["Cameras"]["Selected"]]["DC"] * self.config["Observation"]["exposure"]
         
         self.generate_poisson_noise("Read",read_noise,self.config["Observation"]["number"])
         
