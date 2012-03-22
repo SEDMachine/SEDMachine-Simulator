@@ -1,1 +1,5 @@
 windowTitle = "SEDMachine Simulator - DEV - $TM_DISPLAYNAME"
+
+[ *.yaml ]
+softTabs = true
+tabSize = 2
