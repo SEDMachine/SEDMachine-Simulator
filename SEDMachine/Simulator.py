@@ -519,16 +519,21 @@ class SEDSimulator(Simulator,ImageObject):
 
         sky_ls = np.array([4868., 6290., 7706., 10000]) * 1e-10
         
-        self.moon_specs = []
-        for i in xrange(len(moon_phase)):
-            gm = moon_g[i]-moon_g[0]
-            rm = moon_r[i]-moon_r[0]
-            im = moon_i[i]-moon_i[0]
-            zm = im
-            fluxes = np.array([gm, rm, im, zm])
-            # fluxes /= self.const["hc"] / sky_ls
-            moon_spec = InterpolatedSpectrum(np.array([sky_ls,fluxes]),"Moon Phase %s" % i,method='polyfit')
-            self.moon_specs.append(moon_spec)
+        gm = moon_g - moon_g[0]
+        rm = moon_r - moon_r[0]
+        im = moon_i - moon_i[0]
+        zm = im
+        
+        fluxes = np.array([gm, rm, im, zm])
+        
+        moon_specs = [ scipy.interpolate.interp1d(moon_phase,fl) for fl in fluxes]            
+        mfl = []
+        mls = []
+        for i in xrange(len(moon_specs)):
+            mfl.append(moon_specs[i](self.config["Observation"]["Moon"]["Phase"]))
+            mls.append(sky_ls[i])
+            
+
         
         # Throughputs are generated from Nick's simulation scripts in throughput.py
         # They are simply re-read here.
@@ -554,7 +559,7 @@ class SEDSimulator(Simulator,ImageObject):
         FL *= 1e10 #Spectrum was per Angstrom, should now be per Meter
         
         
-        M_FL = self.moon_specs[self.config["Observation"]["Moon"]["Phase"]](wavelengths=WL*1e-10)[1]
+        M_FL = InterpolatedSpectrum(np.array([mls,mfl]),"Moon Phase %s" % i,method='polyfit')(wavelengths=WL*1e-10)[1]
         M_FL /= self.const["hc"] / WL
         M_FL *= 1e10
         
@@ -991,7 +996,7 @@ class SEDSimulator(Simulator,ImageObject):
         WL,FL = self.sky.frame("Moon QE")(wavelengths=WL,resolution=RS)
         plt.semilogy(WL*1e6,FL,'c.',linestyle='-',label="Moon (qe)",zorder=0.5)
         
-        plt.axis(axis)
+        # plt.axis(axis)
         plt.legend(loc=2)
 
         plt.xlabel("Wavelength ($\mu$m)")
@@ -1105,13 +1110,12 @@ class SEDSimulator(Simulator,ImageObject):
         axis = plt.axis()
         
         
-        WL,FL = self.sky.frame("Moon")(wavelengths=WL,resolution=RS)
+        WL,FL = self.sky.frame("Moon Mul")(wavelengths=WL,resolution=RS)
         self.log.debug(npArrayInfo(WL,"Wavelength from Moon Plot"))
         self.log.debug(npArrayInfo(FL,"Flux from Moon Plot"))
         plt.semilogy(WL*1e6,FL,'m-',linestyle='-',label="Moon",zorder=0.5)
         
         plt.axis(axis)
-        
         
         plt.xlabel("Wavelength ($\mu$m)")
         plt.ylabel("Flux (Photons)")
