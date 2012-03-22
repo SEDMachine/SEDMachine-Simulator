@@ -665,6 +665,11 @@ class Lenslet(ImageObject):
     def plot_ellipses(self):
         """docstring for plot_ellipses"""
         plt.plot(self.ls*1e6,np.abs(self.ycs-self.yas)*self.config["Instrument"]["convert"]["mmtopx"],".",linestyle='-',label="YA")
+
+
+    def plot_rotation(self):
+        """docstring for plot_ellipses"""
+        plt.plot(self.ls*1e6,self.falpha(self.ls) * 180.0 / np.pi,".",linestyle='-',label="YA")
                 
         
     def plot_dispersion(self):

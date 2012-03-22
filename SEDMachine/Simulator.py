@@ -320,6 +320,8 @@ class SEDSimulator(Simulator,ImageObject):
         
         # Dispersion plotting functions
         self.registerStage(self.plot_ellipses,"plot-lenslet-es",help="Plot lenslet ellipse sizes",description="Plotting lenslet ellipse sizes",include=False,dependencies=["setup-lenslets","dispersion"])
+        self.registerStage(self.plot_rotation,"plot-lenslet-rs",help="Plot lenslet ellipse sizes",description="Plotting lenslet ellipse sizes",include=False,dependencies=["setup-lenslets","dispersion"])
+        
         
         self.registerStage(self.plot_lenslet_data,"plot-lenslet-xy",help="Plot lenslet positions",description="Plotting lenslet positions",include=False,dependencies=["setup-lenslets","dispersion"])
         self.registerStage(self.plot_dispersion_data,"plot-dispersion",help=False,description="Plotting dispersion for each lenslet",dependencies=["dispersion"],include=False)
@@ -1217,6 +1219,7 @@ class SEDSimulator(Simulator,ImageObject):
         self.map_over_pixels(lambda p:p.show_geometry(color="#cc00cc"),color="cyan")
         plt.xlabel("x")
         plt.ylabel("y")
+        plt.axes().set_aspect('equal')
         FileName = "%(Partials)s/System-Geometry%(fmt)s" % dict(fmt=self.config["Plots"]["format"],**self.config["Dirs"])
         plt.savefig(FileName)
         plt.clf()
@@ -1249,6 +1252,16 @@ class SEDSimulator(Simulator,ImageObject):
         plt.axis(expandLim(plt.axis()))
         plt.savefig("%(Partials)s/Lenslets-WL-dy%(ext)s" % dict(ext=self.config["Plots"]["format"],**self.config["Dirs"]))
         
+   
+    def plot_rotation(self):
+        """Plot rotation"""
+        plt.clf()
+        self.map_over_lenslets(lambda l: l.plot_rotation(),color="cyan")
+        plt.title("Major Axis Rotation")
+        plt.xlabel("Wavelength ($\mu m$)")
+        plt.ylabel("Rotation (Degrees)")
+        plt.axis(expandLim(plt.axis()))
+        plt.savefig("%(Partials)s/Lenslets-WL-dr%(ext)s" % dict(ext=self.config["Plots"]["format"],**self.config["Dirs"]))
         
    
     def plot_kernel_partials(self):
