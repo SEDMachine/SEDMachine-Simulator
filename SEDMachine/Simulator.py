@@ -138,7 +138,6 @@ class SEDSimulator(Simulator,ImageObject):
             'pxtomm': 0.0135 }, 
         'density': 5,
         'dispfitorder' : 2, 
-        'plot': False, 
         'ccd': {
             'size' : {'px': 2048},
         },
