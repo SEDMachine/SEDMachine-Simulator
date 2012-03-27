@@ -336,7 +336,10 @@ class Lenslet(ImageObject):
             # Find ellipse major and minor axis from given data.
             self.a = np.sqrt((self.xcs - self.xas)**2.0 + (self.ycs-self.yas)**2.0) * self.config["Instrument"]["convert"]["mmtopx"] * self.config["Instrument"]["density"]
             self.b = np.sqrt((self.xcs - self.xbs)**2.0 + (self.ycs-self.ybs)**2.0) * self.config["Instrument"]["convert"]["mmtopx"] * self.config["Instrument"]["density"]
-            self.alpha = np.arcsin((self.xcs - self.xas)/(self.ycs-self.yas))
+            top = self.xcs - self.xas
+            bot = self.ycs - self.yas
+            bot[np.logical_and(top == 0,bot == 0)] = 1.0
+            self.alpha = np.arctan(top/bot)
             self.fa = np.poly1d(np.polyfit(self.ls, self.a, self.config["Instrument"]["Tel"]["dispfitorder"]))
             self.fb = np.poly1d(np.polyfit(self.ls, self.b, self.config["Instrument"]["Tel"]["dispfitorder"]))
             self.falpha = np.poly1d(np.polyfit(self.ls, self.alpha, self.config["Instrument"]["Tel"]["dispfitorder"]))
@@ -407,7 +410,7 @@ class Lenslet(ImageObject):
         distance = distance[sorted_idx]
         points = unique_pts[:,sorted_idx].T
         self.log.debug(npArrayInfo(points,"Points"))
-        
+            
         
         # Pull out the original wavelengths
         wl_orig = superDense_lam[unique_idx][sorted_idx]
