@@ -12,6 +12,8 @@ Logs/*
 Caches/*
 Images/*
 Partials/*
+Data/*
+
 # Generated Files
 *.pyc
 *.npy
@@ -30,7 +32,6 @@ SEDSpec/*.pdf
 Logs.tar.gz
 *.png
 *.fits
-*.TXT
 *OLD.py
 
 # Distribution

@@ -26,6 +26,13 @@ Then return to step 3 above. As much as I try to make the installation of `Astro
 Running :program:`SEDMsim`
 --------------------------
 
+Before you can run the simulator, you must make sure you have the correct data and directory files installed. First, copy the ``Data/`` directory from the source tree into your desired working directory. Then, establish all of the other required directories.
+
+This can be accomplished with the ``SEDMsetup`` command::
+	
+	$ SEDMsetup
+	
+
 To run the program, choose a stage to run (see :option:`{stages}` for a list of basic stages) and then run the SEDMsim command. The simplest command is ``*all`` which performs the default simulation ::
 	
 	$ SEDMsim *all
@@ -36,14 +43,13 @@ Run this command with the ``-T`` option to limit the number of lenslets evaluate
 	$ SEDMsim -T *all
 	
 
-Due to the setup of the default command, this program should only be run fro the directory which contains the SEDM source. This directory should contain the following sub-directories which handle input and output:
+The operating directory of the simulation should contain the following sub-directories which handle input and output:
 
 	- ``Caches/`` which will contain cache files. Cache files include the ``.fits`` files for each individual spectra, useful to examine spectra in over-sampled view.
-	- ``Data/`` which will contain the required data files.
+	- ``Data/`` which will contain the required data files. Some data files are distributed with the system. You should copy this directory from the source tree.
 	- ``Images/`` which is the output directory. The final ``.fits`` image will be saved there.
 	- ``Logs/`` which contains simulation logs.
 	- ``Partials/`` which will contain items produced part-way through the simulator. Many files will be placed there, including plots.
-	- ``SEDSpec2/`` is distributed with the system. It contains some of the data files required for Sky and Atmosphere functions.
 
 Examining :program:`SEDMsim` output
 -----------------------------------

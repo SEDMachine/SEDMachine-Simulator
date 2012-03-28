@@ -2,12 +2,14 @@
 Title: Simulation Scripts for SED Machine
 Author: Alexander Rudy
 
-  Version 0.3.0
+  Version 0.3.1
 
 ---
 
 # Introduction
 This Program contains SEDMachine Simulation and plotting scripts. They are written in Python. These scripts rely on the AstroObject modules that I wrote, which are bundled here. As well, they rely on matplotlib, numpy, scipy and pyfits. There is documentation for this program in the Docs folder.
+
+Documentation is avaliable on GitHub Pages: <http://alexrudy.github.com/SEDMachine-Simulator/>
 
 # Release Notes
 
@@ -33,3 +35,7 @@ This Program contains SEDMachine Simulation and plotting scripts. They are writt
 	- Documentation available from Sphinx Autodoc
 	- Dependencies updated and run properly.
 	- Simulator includes Calibration Source, Sky-only, flat, and simple-source modes.
+* 0.3.1
+	- Rename SEDSpec2 to SEDTools
+	- Remove and re-include data files
+	- Make SEDMsetup command
