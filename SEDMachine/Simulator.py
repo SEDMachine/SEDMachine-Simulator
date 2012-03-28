@@ -614,7 +614,7 @@ class SEDSimulator(Simulator,ImageObject):
               airmass: 1
             Instrument:
               Thpt:
-                File: SEDSpec2/Data/thpt.npy
+                File: Data/thpt.npy
                 Type: prism_pi
             
             
@@ -627,7 +627,7 @@ class SEDSimulator(Simulator,ImageObject):
         """
 
         
-        # Sky Data (From sim_pdr.py by Nick, regenerated using SEDSpec2 module's make_files.py script)
+        # Sky Data (From sim_pdr.py by Nick, regenerated using SEDTools module's make_files.py script)
         # Each sky spectrum is saved in a FITS file for easy recall as a spectrum object.
         self.SKYData = SpectraObject()
         for label,d in self.config["Observation"]["Background"]["Files"].iteritems():

@@ -56,7 +56,7 @@ class SourceCreator(AstroObject.AstroSimulator.Simulator):
         "Moon" : {
             "Phase" : 1
         },
-        "Thpt" : "SEDSpec2/Data/thpt.npy",
+        "Thpt" : "Data/thpt.npy",
         "QE" : "prism_pi",
         "Configs" : {
             "Source" : "SED.source2.config.yaml"
@@ -106,10 +106,10 @@ class SourceCreator(AstroObject.AstroSimulator.Simulator):
         """Load in the sky data from files"""
         self.SKYData = SpectraObject()
         # SKYData.dataClasses = [FLambdaSpectrum]
-        self.SKYData.read("SEDSpec2/MasseySky.fits")
-        self.SKYData.read("SEDSpec2/HansuchikUVES.fits")
-        self.SKYData.read("SEDSpec2/Quimby.fits")
-        self.SKYData.read("SEDSpec2/TurnroseSKY.fits")
+        self.SKYData.read("SEDTools/MasseySky.fits")
+        self.SKYData.read("SEDTools/HansuchikUVES.fits")
+        self.SKYData.read("SEDTools/Quimby.fits")
+        self.SKYData.read("SEDTools/TurnroseSKY.fits")
         
     def setup_moon(self):
         """docstring for setupMoonAttenuation"""
