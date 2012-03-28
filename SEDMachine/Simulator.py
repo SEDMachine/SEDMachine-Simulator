@@ -258,7 +258,7 @@ class SEDSimulator(Simulator,ImageObject):
         self.registerConfigOpts("M",{"Lenslets":{"start":1000,"number":500},"Debug":True,"Output":{"Label":"MFlag",},},help="Limit lenslets (500,start from 1000)")
         self.registerConfigOpts("N",{"Lenslets":{"start":1000,"number":500},"Debug":False,"Output":{"Label":"NFlag",},},help="Limit lenslets (500,start from 1000)")
         self.registerConfigOpts("A",{"Lenslets":{"start":2100,"number":1},"Debug":True,"Output":{"Label":"AFlag",},},help="Debug, Single lenslets (start from 2100)")
-        self.registerConfigOpts("C",{"Lenslets":{"start":0,"number":10},"Debug":True,"Output":{"Label":"CFlag",},},help="Debug, Single lenslets (start from 2100)")
+        self.registerConfigOpts("C",{"Lenslets":{"position":{"x":0.0,"y":0.0},"radius":0.01},"Debug":True,"Output":{"Label":"CFlag",},},help="Debug, Central Lenslets")
         
         # SETUP Stages
         self.registerStage(self.setup_caches,"setup-caches",help=False,description="Setting up caches")
@@ -271,12 +271,12 @@ class SEDSimulator(Simulator,ImageObject):
         self.registerStage(self.setup_dummy_blank,"setup-blank-d",help=False,description="Creating dummy blank image",dependencies=["setup-config"],replaces=["setup-blank"])        
 
         self.registerStage(self.setup_simple_source,"setup-source-simple",help=False,description="Creating simple source spectrum object",dependencies=["setup-config","setup-constants"],replaces=["setup-source"])
-        self.registerStage(None,"simple-source",help="Use a simple, centered source object",description="Replacing default source with a simple one",include=False,dependencies=["setup-source-simple"])
+        self.registerStage(None,"simple-source",help="Use a simple, centered source object",description="Replacing default source with a simple one",dependencies=["setup-source-simple"])
         self.registerStage(None,"setup-source",help=False,description="Creating source spectrum objects",dependencies=["setup-config","setup-constants","simple-source"])
         self.registerStage(self.setup_source_pixels,"setup-source-pixels",help=False,description="Making source pixels",dependencies=["setup-source"])
         self.registerStage(self.setup_noise,"setup-noise",help=False,description="Setting up Dark/Bias frames",dependencies=["setup-config","setup-cameras"])
         self.registerStage(self.setup_sky,"setup-sky",help=False,description="Setting up Sky spectrum object",dependencies=["setup-config","setup-constants"])
-        self.registerStage(self.setup_line_list,"setup-lines",help=False,description="Setting up calibration source",dependencies=["setup-config","setup-constants"],include=False)
+        self.registerStage(self.setup_line_list,"setup-lines",help=False,description="Setting up calibration source",dependencies=["setup-config","setup-constants"])
         self.registerStage(self.setup_scatter,"setup-scatter",help=False,description="Setting up scattered light calculations",dependencies=["setup-config","setup-blank"])
         # Setup Macro
         self.registerStage(None,"setup",help="System Setup",description="Set up simulator",
@@ -292,47 +292,15 @@ class SEDSimulator(Simulator,ImageObject):
         self.registerStage(self.apply_atmosphere,"apply-atmosphere",help=False,description="Applying Atmospheric Extinction",dependencies=["setup-sky"])
 
         # Adjust spectra
-        self.registerStage(self.sky_source,"sky-source",help="Use only sky spectrum",description="Using only Sky spectrum",dependencies=["setup-sky","apply-sky","apply-qe","apply-atmosphere","setup-lenslets","setup"],include=False,replaces=["setup-source","geometric-resample","setup-source-pixels"])
-        self.registerStage(self.flat_source,"flat-source",help="Make a constant value source",description="Using flat source",include=False,dependencies=["setup-lenslets","setup"],replaces=["setup-source","geometric-resample","setup-source-pixels","apply-sky","apply-atmosphere"])
-        self.registerStage(self.line_source,"line-source",help="Use a calibration lamp source",description="Using calibration lamp source",include=False,dependencies=["setup-lenslets","setup-lines","setup"],replaces=["setup-source","geometric-resample","setup-source-pixels","apply-sky","apply-atmosphere"])
+        self.registerStage(self.sky_source,"sky-source",help="Use only sky spectrum",description="Using only Sky spectrum",dependencies=["setup-sky","apply-sky","apply-qe","apply-atmosphere","setup-lenslets","setup"],replaces=["setup-source","geometric-resample","setup-source-pixels"])
+        self.registerStage(self.flat_source,"flat-source",help="Make a constant value source",description="Using flat source",dependencies=["setup-lenslets","setup"],replaces=["setup-source","geometric-resample","setup-source-pixels","apply-sky","apply-atmosphere"])
+        self.registerStage(self.line_source,"line-source",help="Use a calibration lamp source",description="Using calibration lamp source",dependencies=["setup-lenslets","setup-lines","setup"],replaces=["setup-source","geometric-resample","setup-source-pixels","apply-sky","apply-atmosphere"])
         
-        # Plotting geometry functions
-        self.registerStage(self.plot_kernel_partials,"plot-kernel",help=False,description="Plotting PSF Kernels",include=False,dependencies=["setup-caches","setup-config"])
-        self.registerStage(self.plot_hexagons,"plot-hexagons",help=False,description="Plotting Lenslet hexagons",include=False,dependencies=["setup-hexagons"])
-        self.registerStage(self.plot_invalid_hexagons,"plot-bad-hexagons",help=False,description="Plotting invalid hexagons",include=False,dependencies=["setup-hexagons"])
-        self.registerStage(self.plot_pixels,"plot-pixels",help=False,description="Plotting pixel squares",include=False,dependencies=["setup-source-pixels"])
-        self.registerStage(self.plot_invalid_pixels,"plot-bad-pixels",help=False,description="Plotting invalid pixel squares",include=False,dependencies=["setup-source-pixels"])
-        self.registerStage(self.plot_geometry,"plot-p-geometry",help=False,description="Plotting Lenslet-plane geometry",include=False,dependencies=["setup-source-pixels","setup-hexagons"])
-        self.registerStage(self.write_resample,"write-resample",help=False,description="Writing resample Matrix",include=False,dependencies=["geometric-resample"])
-        self.registerStage(self.plot_resample,"plot-resample",help=False,description="Plotting resample matrix",include=False,dependencies=["geometric-resample"])
-        self.registerStage(None,"plot-geometry",help="Do all geometry plots",description="Plotting geometries",include=False,dependencies=["plot-hexagons","plot-invalid-hexagons","plot-pixels","plot-bad-pixels","plot-p-geometry","plot-resample"])
-        
-        # Spectrum Plotting Functions
-        self.registerStage(self.compare_methods,"plot-spectrum-tests",description="Plotting Spectrum Tests",include=False,dependencies=["setup-sky","setup-source","apply-sky","apply-qe","apply-atmosphere"])
-        self.registerStage(self.plot_original_calibration,"plot-cal-o",help=False,description="Plotting Original Source Spectrum",include=False,dependencies=["setup-lines"])
-        self.registerStage(self.plot_original_source,"plot-source-o",help=False,description="Plotting Original Source Spectrum",include=False,dependencies=["setup-source"])
-        self.registerStage(self.plot_source,"plot-source",help=False,description="Plotting Source Spectrum",include=False,dependencies=["setup-sky","setup-source","apply-sky","apply-qe","apply-atmosphere","plot-source-o"])
-        self.registerStage(self.plot_sky_original,"plot-sky-o",help=False,description="Plotting Original Sky Spectrum",include=False,dependencies=["setup-sky"])
-        self.registerStage(self.plot_sky,"plot-sky",help=False,description="Plotting Sky Spectrum",include=False,dependencies=["setup-sky","apply-sky","apply-qe","plot-sky-o"])
-        self.registerStage(self.plot_qe,"plot-qe",help=False,description="Plotting QE Spectrum",include=False,dependencies=["setup-sky"])
-        
-        self.registerStage(None,"plot-spectra",help="Plot Spectral Data (raw)",dependencies=["plot-qe","plot-sky","plot-source","plot-cal-o"])
         
         # Dispersion functions
         self.registerStage(self.lenslet_dispersion,"dispersion",help="Calculate lenslet dispersion",description="Calculating dispersion for each lenslet",dependencies=["setup-lenslets","setup-caches"])
         self.registerStage(self.lenslet_trace,"trace",help="Trace lenslet spectra dispersion",description="Tracing lenslet spectra dispersion",dependencies=["dispersion","setup-caches","apply-sky","apply-qe","apply-atmosphere"])
         self.registerStage(self.lenslet_place,"place",help="Place subimages",description="Placing lenslet spectra",dependencies=["trace"])
-        
-        # Dispersion plotting functions
-        self.registerStage(self.plot_ellipses,"plot-lenslet-es",help="Plot lenslet ellipse sizes",description="Plotting lenslet ellipse sizes",include=False,dependencies=["setup-lenslets","dispersion"])
-        self.registerStage(self.plot_rotation,"plot-lenslet-rs",help="Plot lenslet ellipse sizes",description="Plotting lenslet ellipse sizes",include=False,dependencies=["setup-lenslets","dispersion"])
-        
-        
-        self.registerStage(self.plot_lenslet_data,"plot-lenslet-xy",help="Plot lenslet positions",description="Plotting lenslet positions",include=False,dependencies=["setup-lenslets"])
-        self.registerStage(self.plot_dispersion_data,"plot-dispersion",help=False,description="Plotting dispersion for each lenslet",dependencies=["dispersion"],include=False)
-        self.registerStage(self.plot_trace_data,"plot-trace",help=False,description="Plotting trace data for each lenslet",dependencies=["trace"],include=False)
-        self.registerStage(self.plot_spectrum_data,"plot-spectrum",help=False,description="Plotting spectral data for each lenslet",dependencies=["trace"],include=False)
-        self.registerStage(None,"plot-lenslets",help="Plot trace and spectra for each lenslet",description="Plotting data about each lenslet",include=False,dependencies=["plot-dispersion","plot-trace","plot-spectrum"])
         
         # Merge images back together
         self.registerStage(self.image_merge,"merge-cached",help=False,description="Merging subimages",dependencies=["setup-blank","setup-lenslets"])
@@ -346,8 +314,45 @@ class SEDSimulator(Simulator,ImageObject):
         self.registerStage(self.save_file,"save",help="Save image to file",description="Saving image to disk",dependencies=["setup-blank","transpose"])
         
         # Alternative work macros
-        self.registerStage(None,"cached-only",help="Use cached subimages to construct final image",description="Building image from caches",dependencies=["merge-cached","crop","add-noise","add-scatter","transpose","save"],include=False)
-        self.registerStage(None,"plot",help="Create all plots",description="Plotting everything",dependencies=["plot-lenslet-xy","plot-lenslets","plot-sky","plot-qe","plot-source","plot-p-geometry","plot-hexagons","plot-pixels","plot-spectrum-tests","plot-kernel"],include=False)
+        self.registerStage(None,"cached-only",help="Use cached subimages to construct final image",description="Building image from caches",dependencies=["merge-cached","crop","add-noise","add-scatter","transpose","save"])
+        
+        
+        # Plotting geometry functions
+        self.registerStage(self.plot_kernel_partials,"plot-kernel",help=False,description="Plotting PSF Kernels",dependencies=["setup-caches","setup-config"])
+        self.registerStage(self.plot_hexagons,"plot-hexagons",help=False,description="Plotting Lenslet hexagons",dependencies=["setup-hexagons"])
+        self.registerStage(self.plot_invalid_hexagons,"plot-bad-hexagons",help=False,description="Plotting invalid hexagons",dependencies=["setup-hexagons"])
+        self.registerStage(self.plot_pixels,"plot-pixels",help=False,description="Plotting pixel squares",dependencies=["setup-source-pixels"])
+        self.registerStage(self.plot_invalid_pixels,"plot-bad-pixels",help=False,description="Plotting invalid pixel squares",dependencies=["setup-source-pixels"])
+        self.registerStage(self.plot_geometry,"plot-p-geometry",help=False,description="Plotting Lenslet-plane geometry",dependencies=["setup-source-pixels","setup-hexagons"])
+        self.registerStage(self.write_resample,"write-resample",help=False,description="Writing resample Matrix",dependencies=["geometric-resample"])
+        self.registerStage(self.plot_resample,"plot-resample",help=False,description="Plotting resample matrix",dependencies=["geometric-resample"])
+        self.registerStage(None,"plot-geometry",help="Do all geometry plots",description="Plotting geometries",dependencies=["plot-hexagons","plot-invalid-hexagons","plot-pixels","plot-bad-pixels","plot-p-geometry","plot-resample"])
+        
+        # Spectrum Plotting Functions
+        self.registerStage(self.compare_methods,"plot-spectrum-tests",description="Plotting Spectrum Tests",dependencies=["setup-sky","setup-source","apply-sky","apply-qe","apply-atmosphere"])
+        self.registerStage(self.plot_original_calibration,"plot-cal-o",help=False,description="Plotting Original Source Spectrum",dependencies=["setup-lines"])
+        self.registerStage(self.plot_original_source,"plot-source-o",help=False,description="Plotting Original Source Spectrum",dependencies=["setup-source"])
+        self.registerStage(self.plot_source,"plot-source",help=False,description="Plotting Source Spectrum",dependencies=["setup-sky","setup-source","apply-sky","apply-qe","apply-atmosphere","plot-source-o"])
+        self.registerStage(self.plot_sky_original,"plot-sky-o",help=False,description="Plotting Original Sky Spectrum",dependencies=["setup-sky"])
+        self.registerStage(self.plot_sky,"plot-sky",help=False,description="Plotting Sky Spectrum",dependencies=["setup-sky","apply-sky","apply-qe","plot-sky-o"])
+        self.registerStage(self.plot_qe,"plot-qe",help=False,description="Plotting QE Spectrum",dependencies=["setup-sky"])
+        
+        self.registerStage(None,"plot-spectra",help=False,dependencies=["plot-qe","plot-sky","plot-source","plot-cal-o"])
+        
+        
+        # Dispersion plotting functions
+        self.registerStage(self.plot_ellipses,"plot-lenslet-es",help=False,description="Plotting lenslet ellipse sizes",dependencies=["setup-lenslets","dispersion"])
+        self.registerStage(self.plot_rotation,"plot-lenslet-rs",help=False,description="Plotting lenslet ellipse sizes",dependencies=["setup-lenslets","dispersion"])
+        
+        
+        self.registerStage(self.plot_lenslet_data,"plot-lenslet-xy",help=False,description="Plotting lenslet positions",dependencies=["setup-lenslets"])
+        self.registerStage(self.plot_dispersion_data,"plot-dispersion",help=False,description="Plotting dispersion for each lenslet",dependencies=["dispersion"])
+        self.registerStage(self.plot_trace_data,"plot-trace",help=False,description="Plotting trace data for each lenslet",dependencies=["trace"])
+        self.registerStage(self.plot_spectrum_data,"plot-spectrum",help=False,description="Plotting spectral data for each lenslet",dependencies=["trace"])
+        self.registerStage(None,"plot-lenslets",help=False,description="Plotting data about each lenslet",dependencies=["plot-dispersion","plot-trace","plot-spectrum"])
+        
+        
+        self.registerStage(None,"plot",help="Create all plots",description="Plotting everything",dependencies=["plot-lenslet-xy","plot-lenslets","plot-sky","plot-qe","plot-source","plot-p-geometry","plot-hexagons","plot-pixels","plot-spectrum-tests","plot-kernel"])
         
     def setup_caches(self):
         """Register all of the cache objects and types"""
