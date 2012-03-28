@@ -209,9 +209,9 @@ The program is actually agnostic to the order of arguments. Any argument may com
 	- Rotation: 0.7853981633974483
 	- Sample_Lenslet: 2000
 	- WLCal:
-		- List: Data/Lines.dat
-	    - sigma: 1.0e-09
-	    - value: 100000000.0
+	    - List: Data/Lines.dat
+        - sigma: 1.0e-09
+        - value: 100000000.0
 - logging:
 	- console:
 		- enable: true
