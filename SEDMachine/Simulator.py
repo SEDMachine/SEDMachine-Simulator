@@ -146,7 +146,7 @@ class SEDSimulator(Simulator,ImageObject):
             },
         },
         'Moon' : {
-            'Phase' : 3,
+            'Phase' : 0,
         },
         
         
@@ -230,7 +230,7 @@ class SEDSimulator(Simulator,ImageObject):
             },
         },
         'Thpt' : {
-            'File' : "SEDSpec2/Data/thpt.npy",
+            'File' : "Data/thpt.npy",
             'Type' : "prism_pi",
         },
 
@@ -652,7 +652,7 @@ class SEDSimulator(Simulator,ImageObject):
         
         fluxes = np.array([gm, rm, im, zm])
         
-        moon_specs = [ scipy.interpolate.interxpsd(moon_phase,fl) for fl in fluxes]            
+        moon_specs = [ scipy.interpolate.interp1d(moon_phase,fl) for fl in fluxes]            
         mfl = []
         mls = []
         for i in xrange(len(moon_specs)):

@@ -7,9 +7,14 @@
 #  Copyright 2012 Alexander Rudy. All rights reserved.
 # 
 
-import os
+import os, shutil
+
+from pkg_resources import resource_filename
+
 
 DIRECTORIES = ["Caches","Data","Images","Logs","Partials"]
+
+shutil.copytree(resource_filename(__name__,"Data"),"./Data",ignore=shutil.ignore_patterns("*.pyc","*.py"))
 
 for DIR in DIRECTORIES:
     try:
