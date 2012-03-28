@@ -8,7 +8,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>2. Basic Tutorial &mdash; SEDMsim 0.3.0 documentation</title>
+    <title>2. Basic Tutorial &mdash; SEDMsim 0.3.1 documentation</title>
     
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -16,7 +16,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.3.0',
+        VERSION:     '0.3.1',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -25,7 +25,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="SEDMsim 0.3.0 documentation" href="index.html" />
+    <link rel="top" title="SEDMsim 0.3.1 documentation" href="index.html" />
     <link rel="next" title="3. SEDMsim Program for running simulations" href="SEDMsim.html" />
     <link rel="prev" title="1. Introduction to the SEDMachine Simulator" href="introduction.html" /> 
   </head>
@@ -45,7 +45,7 @@
         <li class="right" >
           <a href="introduction.html" title="1. Introduction to the SEDMachine Simulator"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">SEDMsim 0.3.0 documentation</a> &raquo;</li> 
+        <li><a href="index.html">SEDMsim 0.3.1 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -77,21 +77,24 @@
 </div>
 <div class="section" id="running-sedmsim">
 <h2>2.2. Running <strong class="program">SEDMsim</strong><a class="headerlink" href="#running-sedmsim" title="Permalink to this headline">¶</a></h2>
+<p>Before you can run the simulator, you must make sure you have the correct data and directory files installed. First, copy the <tt class="docutils literal"><span class="pre">Data/</span></tt> directory from the source tree into your desired working directory. Then, establish all of the other required directories.</p>
+<p>This can be accomplished with the <tt class="docutils literal"><span class="pre">SEDMsetup</span></tt> command:</p>
+<div class="highlight-python"><pre>$ SEDMsetup</pre>
+</div>
 <p>To run the program, choose a stage to run (see <em class="xref std std-option">{stages}</em> for a list of basic stages) and then run the SEDMsim command. The simplest command is <tt class="docutils literal"><span class="pre">*all</span></tt> which performs the default simulation</p>
 <div class="highlight-python"><pre>$ SEDMsim *all</pre>
 </div>
 <p>Run this command with the <tt class="docutils literal"><span class="pre">-T</span></tt> option to limit the number of lenslets evaluated</p>
 <div class="highlight-python"><pre>$ SEDMsim -T *all</pre>
 </div>
-<p>Due to the setup of the default command, this program should only be run fro the directory which contains the SEDM source. This directory should contain the following sub-directories which handle input and output:</p>
+<p>The operating directory of the simulation should contain the following sub-directories which handle input and output:</p>
 <blockquote>
 <div><ul class="simple">
 <li><tt class="docutils literal"><span class="pre">Caches/</span></tt> which will contain cache files. Cache files include the <tt class="docutils literal"><span class="pre">.fits</span></tt> files for each individual spectra, useful to examine spectra in over-sampled view.</li>
-<li><tt class="docutils literal"><span class="pre">Data/</span></tt> which will contain the required data files.</li>
+<li><tt class="docutils literal"><span class="pre">Data/</span></tt> which will contain the required data files. Some data files are distributed with the system. You should copy this directory from the source tree.</li>
 <li><tt class="docutils literal"><span class="pre">Images/</span></tt> which is the output directory. The final <tt class="docutils literal"><span class="pre">.fits</span></tt> image will be saved there.</li>
 <li><tt class="docutils literal"><span class="pre">Logs/</span></tt> which contains simulation logs.</li>
 <li><tt class="docutils literal"><span class="pre">Partials/</span></tt> which will contain items produced part-way through the simulator. Many files will be placed there, including plots.</li>
-<li><tt class="docutils literal"><span class="pre">SEDSpec2/</span></tt> is distributed with the system. It contains some of the data files required for Sky and Atmosphere functions.</li>
 </ul>
 </div></blockquote>
 </div>
@@ -287,7 +290,7 @@ Source:
         <li class="right" >
           <a href="introduction.html" title="1. Introduction to the SEDMachine Simulator"
              >previous</a> |</li>
-        <li><a href="index.html">SEDMsim 0.3.0 documentation</a> &raquo;</li> 
+        <li><a href="index.html">SEDMsim 0.3.1 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">

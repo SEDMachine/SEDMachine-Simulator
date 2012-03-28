@@ -24,6 +24,7 @@ This is the bare minimum required to just run a simulation. For a more detailed 
 Assuming you have `Matplotlib`_, `Numpy`_ and `Scipy`_ installed, run::
 	
 	$ sudo python setup.py install
+	$ SEDMsetup
 	$ SEDMsim *all
 	
 to perform a basic simulation. Simulations can take quite a long time to run. As such, you might want to try::

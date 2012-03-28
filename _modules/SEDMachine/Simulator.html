@@ -8,7 +8,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>SEDMachine.Simulator &mdash; SEDMsim 0.3.0 documentation</title>
+    <title>SEDMachine.Simulator &mdash; SEDMsim 0.3.1 documentation</title>
     
     <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
@@ -16,7 +16,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../../',
-        VERSION:     '0.3.0',
+        VERSION:     '0.3.1',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -25,7 +25,7 @@
     <script type="text/javascript" src="../../_static/jquery.js"></script>
     <script type="text/javascript" src="../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../_static/doctools.js"></script>
-    <link rel="top" title="SEDMsim 0.3.0 documentation" href="../../index.html" />
+    <link rel="top" title="SEDMsim 0.3.1 documentation" href="../../index.html" />
     <link rel="up" title="Module code" href="../index.html" /> 
   </head>
   <body>
@@ -38,7 +38,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li><a href="../../index.html">SEDMsim 0.3.0 documentation</a> &raquo;</li>
+        <li><a href="../../index.html">SEDMsim 0.3.1 documentation</a> &raquo;</li>
           <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
       </ul>
     </div>  
@@ -57,7 +57,7 @@
 <span class="c">#  </span>
 <span class="c">#  Created by Alexander Rudy on 2012-02-08.</span>
 <span class="c">#  Copyright 2012 Alexander Rudy. All rights reserved.</span>
-<span class="c">#  Version 0.3.0</span>
+<span class="c">#  Version 0.3.1</span>
 <span class="c"># </span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
@@ -197,7 +197,7 @@
             <span class="p">},</span>
         <span class="p">},</span>
         <span class="s">&#39;Moon&#39;</span> <span class="p">:</span> <span class="p">{</span>
-            <span class="s">&#39;Phase&#39;</span> <span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+            <span class="s">&#39;Phase&#39;</span> <span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
         <span class="p">},</span>
         
         
@@ -281,7 +281,7 @@
             <span class="p">},</span>
         <span class="p">},</span>
         <span class="s">&#39;Thpt&#39;</span> <span class="p">:</span> <span class="p">{</span>
-            <span class="s">&#39;File&#39;</span> <span class="p">:</span> <span class="s">&quot;SEDSpec2/Data/thpt.npy&quot;</span><span class="p">,</span>
+            <span class="s">&#39;File&#39;</span> <span class="p">:</span> <span class="s">&quot;Data/thpt.npy&quot;</span><span class="p">,</span>
             <span class="s">&#39;Type&#39;</span> <span class="p">:</span> <span class="s">&quot;prism_pi&quot;</span><span class="p">,</span>
         <span class="p">},</span>
 
@@ -665,7 +665,7 @@
 <span class="sd">              airmass: 1</span>
 <span class="sd">            Instrument:</span>
 <span class="sd">              Thpt:</span>
-<span class="sd">                File: SEDSpec2/Data/thpt.npy</span>
+<span class="sd">                File: Data/thpt.npy</span>
 <span class="sd">                Type: prism_pi</span>
 <span class="sd">            </span>
 <span class="sd">            </span>
@@ -678,7 +678,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
 
         
-        <span class="c"># Sky Data (From sim_pdr.py by Nick, regenerated using SEDSpec2 module&#39;s make_files.py script)</span>
+        <span class="c"># Sky Data (From sim_pdr.py by Nick, regenerated using SEDTools module&#39;s make_files.py script)</span>
         <span class="c"># Each sky spectrum is saved in a FITS file for easy recall as a spectrum object.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">SKYData</span> <span class="o">=</span> <span class="n">SpectraObject</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">label</span><span class="p">,</span><span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Observation&quot;</span><span class="p">][</span><span class="s">&quot;Background&quot;</span><span class="p">][</span><span class="s">&quot;Files&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
@@ -703,7 +703,7 @@
         
         <span class="n">fluxes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">gm</span><span class="p">,</span> <span class="n">rm</span><span class="p">,</span> <span class="n">im</span><span class="p">,</span> <span class="n">zm</span><span class="p">])</span>
         
-        <span class="n">moon_specs</span> <span class="o">=</span> <span class="p">[</span> <span class="n">scipy</span><span class="o">.</span><span class="n">interpolate</span><span class="o">.</span><span class="n">interxpsd</span><span class="p">(</span><span class="n">moon_phase</span><span class="p">,</span><span class="n">fl</span><span class="p">)</span> <span class="k">for</span> <span class="n">fl</span> <span class="ow">in</span> <span class="n">fluxes</span><span class="p">]</span>            
+        <span class="n">moon_specs</span> <span class="o">=</span> <span class="p">[</span> <span class="n">scipy</span><span class="o">.</span><span class="n">interpolate</span><span class="o">.</span><span class="n">interp1d</span><span class="p">(</span><span class="n">moon_phase</span><span class="p">,</span><span class="n">fl</span><span class="p">)</span> <span class="k">for</span> <span class="n">fl</span> <span class="ow">in</span> <span class="n">fluxes</span><span class="p">]</span>            
         <span class="n">mfl</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">mls</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">moon_specs</span><span class="p">)):</span>
@@ -1859,7 +1859,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li><a href="../../index.html">SEDMsim 0.3.0 documentation</a> &raquo;</li>
+        <li><a href="../../index.html">SEDMsim 0.3.1 documentation</a> &raquo;</li>
           <li><a href="../index.html" >Module code</a> &raquo;</li> 
       </ul>
     </div>

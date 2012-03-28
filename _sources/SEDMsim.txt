@@ -134,7 +134,7 @@ The program is actually agnostic to the order of arguments. Any argument may com
 	- Partials: Partials
 - Instrument:
 	- Thpt:
-	    - File: SEDSpec2/Data/thpt.npy
+	    - File: SEDTools/Data/thpt.npy
 	    - Type: prism_pi
 	- bias: 20
 	- camera: PI
@@ -183,11 +183,11 @@ The program is actually agnostic to the order of arguments. Any argument may com
 	- Sky:
 		- Atmosphere: Atmosph
 		- Files:
-			- HansuchikUVES: SEDSpec2/HansuchikUVES.fits
-			- Massey: SEDSpec2/MasseySky.fits
-			- PALext: SEDSpec2/atmosphere.fits
-			- Quimby: SEDSpec2/Quimby.fits
-			- TurnroseSKY: SEDSpec2/TurnroseSKY.fits
+			- HansuchikUVES: SEDTools/HansuchikUVES.fits
+			- Massey: SEDTools/MasseySky.fits
+			- PALext: SEDTools/atmosphere.fits
+			- Quimby: SEDTools/Quimby.fits
+			- TurnroseSKY: SEDTools/TurnroseSKY.fits
 		- Use: TurnroseSKY
 	- airmass: 1
 	- exposure: 1200
@@ -209,9 +209,9 @@ The program is actually agnostic to the order of arguments. Any argument may com
 	- Rotation: 0.7853981633974483
 	- Sample_Lenslet: 2000
 	- WLCal:
-		- List: Data/Lines.dat
-	    - sigma: 1.0e-09
-	    - value: 100000000.0
+	    - List: Data/Lines.dat
+        - sigma: 1.0e-09
+        - value: 100000000.0
 - logging:
 	- console:
 		- enable: true
