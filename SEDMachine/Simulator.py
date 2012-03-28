@@ -6,7 +6,7 @@
 #  
 #  Created by Alexander Rudy on 2012-02-08.
 #  Copyright 2012 Alexander Rudy. All rights reserved.
-#  Version 0.3.0
+#  Version 0.3.1
 # 
 
 import numpy as np
@@ -310,19 +310,19 @@ class SEDSimulator(Simulator,ImageObject):
         
         # Dispersion functions
         self.registerStage(self.lenslet_dispersion,"dispersion",help="Calculate lenslet dispersion",description="Calculating dispersion for each lenslet",dependencies=["setup-lenslets","setup-caches"])
-        self.registerStage(self.lenslet_trace,"trace",help="Trace lenslet spectra dispersion",description="Tracing lenslet spectra dispersion",dependencies=["dispersion","setup-caches","apply-sky","apply-qe","apply-atmosphere"])
-        self.registerStage(self.lenslet_place,"place",help="Place subimages",description="Placing lenslet spectra",dependencies=["trace"])
+        self.registerStage(self.lenslet_trace,"trace",help="Trace lenslet spectra dispersion",description="Tracing lenslet spectra dispersion",dependencies=["dispersion","setup-caches","setup-lenslets","apply-sky","apply-qe","apply-atmosphere"])
+        self.registerStage(self.lenslet_place,"place",help="Place subimages",description="Placing lenslet spectra",dependencies=["trace"],include=True)
         
         # Merge images back together
-        self.registerStage(self.image_merge,"merge-cached",help=False,description="Merging subimages",dependencies=["setup-blank","setup-lenslets"])
+        self.registerStage(self.image_merge,"merge-cached",help=False,description="Merging subimages",dependencies=["setup-blank","setup-lenslets"],include=True)
         self.registerStage(None,"merge",help="Merge Subimages",description="Merging subimage into master image",dependencies=["place","merge-cached"])
         
         # Final Image work
-        self.registerStage(self.ccd_crop,"crop",help="Crop Final Image",description="Cropping image to CCD size",dependencies=["setup-blank","setup-lenslets"])
-        self.registerStage(self.apply_noise,"add-noise",help="Add Dark/Bias noise to image",description="Adding Dark/Bias noise",dependencies=["crop","setup-noise"])
-        self.registerStage(self.apply_scatter,"add-scatter",help="Add scattered light noise to image",description="Adding scatter noise",dependencies=["crop","setup-scatter"])
-        self.registerStage(self.transpose,"transpose",help="Transpose the image",description="Transposing Image",dependencies=["crop"])
-        self.registerStage(self.save_file,"save",help="Save image to file",description="Saving image to disk",dependencies=["setup-blank","transpose"])
+        self.registerStage(self.ccd_crop,"crop",help="Crop Final Image",description="Cropping image to CCD size",dependencies=["setup-blank","setup-lenslets"],include=True)
+        self.registerStage(self.apply_noise,"add-noise",help="Add Dark/Bias noise to image",description="Adding Dark/Bias noise",dependencies=["crop","setup-noise"],include=True)
+        self.registerStage(self.apply_scatter,"add-scatter",help="Add scattered light noise to image",description="Adding scatter noise",dependencies=["crop","setup-scatter"],include=True)
+        self.registerStage(self.transpose,"transpose",help="Transpose the image",description="Transposing Image",dependencies=["crop"],include=True)
+        self.registerStage(self.save_file,"save",help="Save image to file",description="Saving image to disk",dependencies=["setup-blank","transpose"],include=True)
         
         # Alternative work macros
         self.registerStage(None,"cached-only",help="Use cached subimages to construct final image",description="Building image from caches",dependencies=["merge-cached","crop","add-noise","add-scatter","transpose","save"])
