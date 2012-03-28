@@ -28,4 +28,8 @@ This Program contains SEDMachine Simulation and plotting scripts. They are writt
 * 0.2.0a1
 	- This alpha is simply a port to the new simulator framework. Only the main simulator has been ported at this point.
 	- All modules will now use the framework-based logging system. This still produces slightly odd results.
-	
+* 0.3.0
+	- Simulator works for a variety of sources. Runs on the latest edition of the AstroObject module.
+	- Documentation available from Sphinx Autodoc
+	- Dependencies updated and run properly.
+	- Simulator includes Calibration Source, Sky-only, flat, and simple-source modes.
