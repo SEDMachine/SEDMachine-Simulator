@@ -35,3 +35,7 @@ Documentation is avaliable on GitHub Pages: <http://alexrudy.github.com/SEDMachi
 	- Documentation available from Sphinx Autodoc
 	- Dependencies updated and run properly.
 	- Simulator includes Calibration Source, Sky-only, flat, and simple-source modes.
+* 0.3.1
+	- Rename SEDSpec2 to SEDTools
+	- Remove and re-include data files
+	- Make SEDMsetup command
