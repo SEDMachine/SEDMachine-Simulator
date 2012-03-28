@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 # 
 #  make_files.py
 #  SEDM-Dev
@@ -8,25 +8,9 @@
 #  Version 0.2.0a1
 # 
 
-import math
-import copy
-import sys
-import time
-import logging
 import os
-import argparse
-import yaml
-import collections
 
 import numpy as np
-import pyfits as pf
-import scipy as sp
-import matplotlib as mp
-import matplotlib.pyplot as plt
-
-import logging.handlers
-
-import arpytools.progressbar
 
 try:
     from AstroObject.AstroSpectra import SpectraObject
@@ -35,8 +19,6 @@ try:
 except ImportError:
     print "Ensure you have AstroObject installed: please run get-AstroObject.sh"
     raise
-
-import scipy.signal
 
 # Background Functions
 def abmag_to_flambda(AB , lam):
@@ -68,9 +50,7 @@ for i in xrange(len(moon_phase)):
 
     ff= np.poly1d(np.polyfit(sky_ls, np.array([gm, rm, im, zm]), 2))
     
-    plt.plot(sky_ls, [gm, rm, im, zm], 'o')
     ll = np.arange(3700, 10000)
-    plt.plot(ll, ff(ll))
 
     moon_funs.append(ff)
 
@@ -80,38 +60,38 @@ from Data.massey import skyab
 # Convert some sky spec from AB to fLambda
 # This sky spectrum is imported from the massey module, and uses the mag conversion functions above.
 skyflam = np.array([skyab[:,0], abmag_to_flambda(skyab[:,1], skyab[:,0])])
-MasseySky = SpectraObject(filename="../Data/MasseySky.fits")
+MasseySky = SpectraObject(filename="./Data/MasseySky.fits")
 MasseySky.save(skyab.T,"SkyAB")
 MasseySky.save(skyflam,"SkyFL")
 MasseySky.write(clobber=True)
 
 # Hansuchik.py -> HansuchikUVES.FITS
 from Data.Hansuchik import uves_sky
-HansuchikUVES = SpectraObject(filename="../Data/UVESSky.fits")
+HansuchikUVES = SpectraObject(filename="./Data/UVESSky.fits")
 HansuchikUVES.save(uves_sky.T,"UVESSky")
 HansuchikUVES.write(clobber=True)
 
 # Turnrose.py -> Turnrose.FITS
 from Data.Turnrose import skyspec
-TurnroseSKY = SpectraObject(filename="../Data/TurnroseSKY.fits")
+TurnroseSKY = SpectraObject(filename="./Data/TurnroseSKY.fits")
 TurnroseSKY.save(skyspec.T,"TurnroseSKY")
 TurnroseSKY.write(clobber=True)
 
 # Quimby.py -> QuimbySky.FITS
 from Data.Quimby import quimby_sky
-QuimbySKY = SpectraObject(filename="../Data/QuimbySky.fits")
+QuimbySKY = SpectraObject(filename="./Data/QuimbySky.fits")
 QuimbySKY.save(quimby_sky.T,"QuimbySky")
 QuimbySKY.write(clobber=True)
 
 # atmosphere.py -> atmosphere.FITS
 from Data.atmosphere import palextinct
-atmosphereEXT = SpectraObject(filename="../Data/atmosphere.fits")
+atmosphereEXT = SpectraObject(filename="./Data/atmosphere.fits")
 atmosphereEXT.save(palextinct.T,"Atmosph")
 atmosphereEXT.write(clobber=True)
 
 # palsky_100318.dat -> Palsky.FITS
-palskydata = np.genfromtxt("../Data/palsky_100318.dat").T
-palSKY = SpectraObject(filename="../Data/PalSky.fits")
+palskydata = np.genfromtxt("./Data/palsky_100318.dat").T
+palSKY = SpectraObject(filename="./Data/PalSky.fits")
 palSKY.save(palskydata,"PalSky")
 palSKY.write(clobber=True)
 

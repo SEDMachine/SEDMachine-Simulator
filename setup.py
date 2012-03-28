@@ -10,6 +10,6 @@ setup(
     dependency_links = ['https://github.com/alexrudy/AstroObject/zipball/v0.3.2#egg=AstroObject-0.3.2'],
     test_suite = 'Tests',
     entry_points = {
-        'console_scripts' : ['SEDMsim = SEDMachine.Simulator:run', 'SEDMsrc = SEDSpec2.Source:run'],
+        'console_scripts' : ['SEDMsim = SEDMachine.Simulator:run', 'SEDMsetup = SEDSpec2.setup:setup'],
     },
 )
