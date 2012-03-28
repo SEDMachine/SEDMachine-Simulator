@@ -223,6 +223,7 @@ class Lenslet(ImageObject):
     def valid(self,strict=True):
         """Returns true if this is a valid lenslet, false if it fails any of the tests.
         
+        :param strict: In not strict mode, validator will let many lenslets which are not well-formed through the system.
         :returns: bool
         
         Checks performed:
@@ -234,6 +235,8 @@ class Lenslet(ImageObject):
         - The distance between the start and end of the spectrum is non-zero.
         - The lenslet positions are not within some configured tolerance of the edge of the spectrum.
         - Warning about the units for wavelengths.
+        
+        
         
         """
         if self.checked:

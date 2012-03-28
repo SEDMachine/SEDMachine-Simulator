@@ -44,7 +44,9 @@ from Lenslet import *
 
 
 class SEDSimulator(Simulator,ImageObject):
-    """A simulator for the SED Machine"""
+    """A simulator implementation for the SED Machine.
+    
+    This simulator is based on :class:`AstroObject.AstroSimulator.Simulator`. It is designed to run as a series of dependent stages. The simulator is first setup, with basic data structures created in the constructor, and then simulator stages registered in :meth:`setup_stages`."""
     def __init__(self):
         super(SEDSimulator, self).__init__(name="SEDMachine")
         self.debug = False
@@ -251,7 +253,16 @@ class SEDSimulator(Simulator,ImageObject):
     }
     
     def setup_stages(self):
-        """Sets up all simulator stages"""
+        """Registers all of the availalbe simulator stages. For basic command help on the options registered here, use::
+            
+            $ SEDMsim --help
+            
+        To get a list of all available stages, use::
+            
+            $ SEDMsim --stages
+        
+        This function is **ONLY** used to register stages and configuration options with the command-line parser. It is called by :class:`SEDSimulator` during construction.
+        """
         self.registerConfigOpts("D",{"Lenslets":{"start":2100,"number":50},"Debug":True,"Output":{"Label":"DFlag",},},help="Debug, Limit lenslets (50,start from 2100)")
         self.registerConfigOpts("S",{"Lenslets":{"start":2100,"number":5},"Debug":True,"Output":{"Label":"SFlag",},},help="Debug, Limit lenslets (5,start from 2100)")
         self.registerConfigOpts("T",{"Lenslets":{"start":2100,"number":50},"Debug":False,"Output":{"Label":"TFlag",},},help="Limit lenslets (50,start from 2100)")
@@ -355,7 +366,10 @@ class SEDSimulator(Simulator,ImageObject):
         self.registerStage(None,"plot",help="Create all plots",description="Plotting everything",dependencies=["plot-lenslet-xy","plot-lenslets","plot-sky","plot-qe","plot-source","plot-p-geometry","plot-hexagons","plot-pixels","plot-spectrum-tests","plot-kernel"])
         
     def setup_caches(self):
-        """Register all of the cache objects and types"""
+        """Establish Cache objects for image kernels. The Caching algorithm doesn't quite work properly yet, so this method is really superfluous.
+        
+        **Command Name:** ``*setup-caches``
+        """
         for key in self.config["Caches"]:
             self.config["Caches"][key] = "%s/%s" % (self.config["Dirs"]["Caches"],self.config["Caches"][key])
         self.Caches["TEL"] = NumpyCache(self.get_tel_kern,filename=self.config["Caches"]["Telescope"])
@@ -368,7 +382,16 @@ class SEDSimulator(Simulator,ImageObject):
             self.Caches.flag('saving',False)
     
     def setup_constants(self):
-        """Establish Physical Constants"""
+        """Generate the physical constants required for simple calculations.
+        
+        **Command Name:** ``*setup-constants``
+        
+        
+        **Constants Generated**
+        
+        :var hc: Plank's constant times the speed of light. For the conversion between energy and photons.
+        
+        """
         self.const = StructuredConfiguration()
         self.const.setFile("const","SED.const.config.yaml")
         self.const["hc"] = 1.98644521e-8 # erg angstrom
@@ -376,19 +399,44 @@ class SEDSimulator(Simulator,ImageObject):
         
         
     def setup_lenslets(self):
-       """This function loads data about lenslet positions, and thier dispersion through the prism. The data are original produced by Zeemax. This function reads the Zeemax data directly and then cleans the data in certain ways, preparing it for use later in the system.
+       """This function loads data about lenslet positions, and thier dispersion through the prism. The data are original produced by ZEMAX. This function reads the Zeemax data directly and then cleans the data in certain ways, preparing it for use later in the system.
+       
+       **Command Name:** ``*setup-lenslets``
+       
+       Cleaning actions taken:
+       
+       - Indexes (ix) become integers
+       - Wavelenghts are converted to SI units (m) instead of microns
+       - Center of the lenslet array is calculated
+       - Lenslets are validated. See :meth:`SEDMachine.Lenslet.Lenslet.valid`.
         
-       ..Note:: The source of this function is well documented.
-        
-       ..Note:: This function does not store variables neatly. As such, it has no built-in caching system.
+       **Data expected from ZEMAX**:
+       
+       The data are given as a list of spots. Each lenslet will have many spots. The variables below are listed in order.
+       
+       :var ix: index of the lenslet
+       :var xps: Pupil position in the x-direction in mm
+       :var yps: Pupil position in the y-direction in mm
+       :var lams: Wavelength of this spot in microns
+       :var xcs: Camera image position of the spot in the x direction in mm.
+       :var ycs: Camera image position of the spot in the y direction in mm.
+       :var xls: Camera image position of the next R=100 resolution element in the x direction in mm.
+       :var yls: Camera image position of the next R=100 resolution element in the y direction in mm.
+       :var xas: Camera image position of the major axis extent of the telescope image in the x direction in mm.
+       :var yas: Camera image position of the major axis extent of the telescope image in the y direction in mm.
+       :var xbs: Camera image position of the minor axis extent of the telescope image in the x direction in mm.
+       :var ybs: Camera image position of the minor axis extent of the telescope image in the y direction in mm.
+       :var rs: Instantaneous resolution of this position.
+       
+      
        """
        # Load Lenslet Specification File
        self.log.debug("Opening filename %s" % self.config["Instrument"]["files"]["lenslets"])
-       ix, p1, p2, lams, xcs, ycs, xls, yls, xas, yas, xbs, ybs, rs = np.genfromtxt(self.config["Instrument"]["files"]["lenslets"],skip_header=1,comments="#").T
+       ix, xps, yps, lams, xcs, ycs, xls, yls, xas, yas, xbs, ybs, rs = np.genfromtxt(self.config["Instrument"]["files"]["lenslets"],skip_header=1,comments="#").T
        # This data describes the following:
        # ix - Index (number)
-       # p1 - Pupil position in the x-direction
-       # p2 - Pupil position in the y-direction
+       # xps - Pupil position in the x-direction
+       # yps - Pupil position in the y-direction
        # lams - wavelengths for this position
        # xs - X position (in mm, offest from top right corner) of this wavelength
        # ys - Y Position (in mm, offset from top right corner) of this wavelength
@@ -402,7 +450,7 @@ class SEDSimulator(Simulator,ImageObject):
        self.lensletIndex = np.unique(ix)
         
        # Determine the center of the whole system by finding the x position that is closest to 0,0 in pupil position
-       cntix = np.argmin(p1**2 + p2**2)
+       cntix = np.argmin(xps**2 + yps**2)
        self.center = ((xcs[cntix] + (self.config["Instrument"]["image"]["size"]["mm"]/2))* self.config["Instrument"]["convert"]["mmtopx"], (ycs[cntix] + (self.config["Instrument"]["image"]["size"]["mm"]/2)) * self.config["Instrument"]["convert"]["mmtopx"])
        
         
@@ -418,7 +466,7 @@ class SEDSimulator(Simulator,ImageObject):
        with open(FileName,'w') as stream:
            for idx in self.lensletIndex:
                select = idx == ix
-               lenslet = Lenslet(p1[select],p2[select],lams[select],idx,xcs[select], ycs[select],xls[select], yls[select],  xas[select], yas[select], xbs[select], ybs[select], rs[select],self.config,self.Caches)
+               lenslet = Lenslet(xps[select],yps[select],lams[select],idx,xcs[select], ycs[select],xls[select], yls[select],  xas[select], yas[select], xbs[select], ybs[select], rs[select],self.config,self.Caches)
                if lenslet.valid(strict=self.config["Instrument"]["Lenslets"]["strict"]):
                    self.lenslets[idx] = lenslet
                    stream.write(lenslet.introspect())
@@ -453,18 +501,29 @@ class SEDSimulator(Simulator,ImageObject):
            lx.idx = ix
     
     def setup_blank(self):
-        """Establish a blank Image"""
+        """Establish a blank image of zeros in every position. The image is established as ``np.int32`` values.
+        
+        **Command Name:** ``*setup-blank``
+        """
         self["Blank"] = np.zeros((self.config["Instrument"]["image"]["size"]["px"],self.config["Instrument"]["image"]["size"]["px"])).astype(np.int32)
         
     def setup_dummy_blank(self):
-        """Setup Dummy Blank"""
+        """Setup a dummy blank image with a single value of 1.0 in the center of the image. This is useful for a sanity-check of the scattered light calculation.
+        
+        **Command Name:** ``*setup-blank-d``
+        """
         blank = np.zeros((self.config["Instrument"]["image"]["size"]["px"],self.config["Instrument"]["image"]["size"]["px"])).astype(np.int32)
         center = np.int(self.config["Instrument"]["image"]["size"]["px"]/2.0)
         blank[center,center] = 1.0
         self["Blank"] = blank
         
     def setup_source(self):
-        """Sets up a uniform source file based spectrum"""
+        """Set up a source for use with this system.
+        
+        **Command Name:** ``*setup-source``
+        
+        .. Warning::
+            This method is not ready for use yet. It requires some concept of the wavelength data for a data-cube. Extracting the wavelength calibration may be non-trivial."""
         
         self.log.warning("Stage 'setup-source' not ready yet, doing nothing!")
         return
@@ -493,7 +552,18 @@ class SEDSimulator(Simulator,ImageObject):
         
         
     def setup_simple_source(self):
-        """docstring for setup_simple_source"""        
+        """Creates a simple-source object. The simple source is placed in three fixed positions on the image plane. Each source is a uniform distribution of the provided spectrum.
+        
+        **Command Name:** ``*simple-source``        
+        
+        The spectrum is set up using the source configuration values::
+            
+            Source:
+              Filename: Data/SNIa.R1000.dat
+        
+        There is no amplification applied to the source. Sources are expected to be in cgs units during input.
+            
+        """        
         WL,FL = np.genfromtxt(self.config["Source"]["Filename"]).T
         FL /= self.const["hc"] / WL
         FL *= 1e10 #Spectrum was per Angstrom, should now be per Meter
@@ -506,7 +576,12 @@ class SEDSimulator(Simulator,ImageObject):
             px.idx = ix
     
     def setup_cameras(self):
-        """Set up camera configuration values"""
+        """Set up camera configuration values. Camera configuratiosn can be slightly dynamic, so some values are copied from others.
+        
+        .. Note:: 
+            Camera configurations do not contain QE values (unlike the SEDSpec simulators).
+        
+        """
         self.config["Instrument"]["Cameras"]["PI-fast"] = self.config["Instrument"]["Cameras"]["PI"]
         self.config["Instrument"]["Cameras"]["PI-fast"]["RN"] = 12
         self.config["Instrument"]["Cameras"]["PI-fast"]["readtime"] = 2.265
@@ -517,7 +592,39 @@ class SEDSimulator(Simulator,ImageObject):
         
     
     def setup_sky(self):
-        """Setup sky spectrum information"""
+        """Setup sky spectrum from a file. Sky spectrum setup also includes moon spectrum, atmospheric extinction setup and quantum efficiency setup for cameras.
+        
+        **Command Name:** ``*setup-sky``
+        
+        Configuration for this stage is included in both the ``Instrument`` values and ``Observation``::
+            
+            Observation:
+              Background:
+                Atmosphere: Atmosph
+                Files:
+                  Atmosph:
+                    Amplifier: 1
+                    Filename: Data/atmosphere.fits
+                  PalSky:
+                    Amplifier: 1
+                    Filename: Data/PalSky.fits
+                Sky: PalSky
+              Moon:
+                Phase: 0.45
+              airmass: 1
+            Instrument:
+              Thpt:
+                File: SEDSpec2/Data/thpt.npy
+                Type: prism_pi
+            
+            
+        These configuration values allow for multiple possibilities for sky and atmosphere spectra. See the default configuration values found with::
+            
+            $ SEDMsim --dump *none
+            
+        for more information.
+            
+        """
 
         
         # Sky Data (From sim_pdr.py by Nick, regenerated using SEDSpec2 module's make_files.py script)
@@ -545,7 +652,7 @@ class SEDSimulator(Simulator,ImageObject):
         
         fluxes = np.array([gm, rm, im, zm])
         
-        moon_specs = [ scipy.interpolate.interp1d(moon_phase,fl) for fl in fluxes]            
+        moon_specs = [ scipy.interpolate.interxpsd(moon_phase,fl) for fl in fluxes]            
         mfl = []
         mls = []
         for i in xrange(len(moon_specs)):
