@@ -1,0 +1,557 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>6. Simulator Operational Algorithms &mdash; SEDMsim 0.3.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="SEDMsim 0.3.0 documentation" href="index.html" />
+    <link rel="next" title="7. Lenslets Suppporting Classes" href="Lenslets.html" />
+    <link rel="prev" title="5. Simulator AstroSimulator" href="AstroSimulator.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="Lenslets.html" title="7. Lenslets Suppporting Classes"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="AstroSimulator.html" title="5. Simulator AstroSimulator"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">SEDMsim 0.3.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <span class="target" id="module-SEDMachine.Simulator"></span><div class="section" id="simulator-operational-algorithms">
+<h1>6. <tt class="xref py py-mod docutils literal"><span class="pre">Simulator</span></tt> Operational Algorithms<a class="headerlink" href="#simulator-operational-algorithms" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="SEDMachine.Simulator.SEDSimulator">
+<em class="property">class </em><tt class="descclassname">SEDMachine.Simulator.</tt><tt class="descname">SEDSimulator</tt><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator" title="Permalink to this definition">¶</a></dt>
+<dd><p>A simulator for the SED Machine</p>
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.apply_atmosphere">
+<tt class="descname">apply_atmosphere</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.apply_atmosphere"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.apply_atmosphere" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply the atmospheric extinction term.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.apply_noise">
+<tt class="descname">apply_noise</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.apply_noise"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.apply_noise" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply the noise masks to the target image label</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.apply_qe">
+<tt class="descname">apply_qe</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.apply_qe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.apply_qe" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply the instrument quantum efficiency</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.apply_scatter">
+<tt class="descname">apply_scatter</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.apply_scatter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.apply_scatter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply the scattered light frame</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.apply_sky">
+<tt class="descname">apply_sky</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.apply_sky"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.apply_sky" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply Sky Spectrum to each lenslet</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.ccd_crop">
+<tt class="descname">ccd_crop</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.ccd_crop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.ccd_crop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Crops the image to the appropriate ccd size</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.circle_kern">
+<tt class="descname">circle_kern</tt><big>(</big><em>radius</em>, <em>size=0</em>, <em>sizey=0</em>, <em>normalize=False</em><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.circle_kern"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.circle_kern" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate a Circle Kernel for modeling the &#8220;Image of the Telescope&#8221;. The radius should be set in array units.</p>
+<p><cite>size</cite> will determine the size of the array image, unless <cite>size</cite> is less than <cite>radius</cite>, in which case the image will be automatically increased to fit the entire circle.</p>
+<p><cite>normalize</cite> controls whether the data is normalized or not. If it is not normalized, the data will have only 1.0 and 0.0 values, where 1.0 is within the radius, and 0.0 is outside the raidus.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.compare_methods">
+<tt class="descname">compare_methods</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.compare_methods"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.compare_methods" title="Permalink to this definition">¶</a></dt>
+<dd><p>A plot for comparing resolving methods</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.crop">
+<tt class="descname">crop</tt><big>(</big><em>x</em>, <em>y</em>, <em>xsize</em>, <em>ysize=None</em>, <em>label=None</em><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.crop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.crop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Crops the provided image to twice the specified size, centered around the x and y coordinates provided.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.ellipse_kern">
+<tt class="descname">ellipse_kern</tt><big>(</big><em>major</em>, <em>minor</em>, <em>alpha=0</em>, <em>size=0</em>, <em>sizey=False</em>, <em>normalize=False</em><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.ellipse_kern"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.ellipse_kern" title="Permalink to this definition">¶</a></dt>
+<dd><p>docstring for elipse_kern</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.flat_source">
+<tt class="descname">flat_source</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.flat_source"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.flat_source" title="Permalink to this definition">¶</a></dt>
+<dd><p>Replace the default file-source with a flat spectrum</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.gauss_kern">
+<tt class="descname">gauss_kern</tt><big>(</big><em>stdev</em>, <em>size=0</em>, <em>stdevy=None</em>, <em>sizey=None</em>, <em>enlarge=True</em>, <em>normalize=True</em><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.gauss_kern"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.gauss_kern" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a normalized 2D gaussian kernel array for convolutions.</p>
+<p><cite>stdev</cite> is the standard deviation in the x-direction. If the <cite>stdevy</cite> keyword is not set, then it will be used as the standard deviation in the y-direction as well.</p>
+<p><cite>size</cite> will determine the size of the returned image unless <cite>size</cite> is less than <cite>stdev**2</cite>.</p>
+<p>Results from this function are always normalized.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.generate_poisson_noise">
+<tt class="descname">generate_poisson_noise</tt><big>(</big><em>label=None</em>, <em>lam=2.0</em>, <em>num=1</em><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.generate_poisson_noise"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.generate_poisson_noise" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates a poisson noise mask, saving to this object</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.geometric_resample">
+<tt class="descname">geometric_resample</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.geometric_resample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.geometric_resample" title="Permalink to this definition">¶</a></dt>
+<dd><p>docstring for fname</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.get_conv">
+<tt class="descname">get_conv</tt><big>(</big><em>wavelength</em>, <em>a=None</em>, <em>b=None</em>, <em>rot=None</em><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.get_conv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.get_conv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a PSF for a given wavelength in the system</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.get_psf_kern">
+<tt class="descname">get_psf_kern</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.get_psf_kern"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.get_psf_kern" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the PSF Kernel. The function first tries to read the encircled energy file. In this case, if a <cite>psf_size</cite> is set in the instrument configuration, this value will be used to truncate the size of the encircled energy function. If the encircled energy function cannot be loaded, the system will fall back on to a gaussian psf as configured by the instrument.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.get_resolution_spectrum">
+<tt class="descname">get_resolution_spectrum</tt><big>(</big><em>minwl</em>, <em>maxwl</em>, <em>resolution</em><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.get_resolution_spectrum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.get_resolution_spectrum" title="Permalink to this definition">¶</a></dt>
+<dd><p>docstring for get_resolution_spectrum</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.get_tel_kern">
+<tt class="descname">get_tel_kern</tt><big>(</big><em>major=None</em>, <em>minor=None</em><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.get_tel_kern"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.get_tel_kern" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the telescope kernel. This kernel is built by creating a circle mask for the size of the telescope mirror, and then subtracting a telescope obscuration from the center of the mirror image. The values for all of these items are set in the configuration file.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.image_merge">
+<tt class="descname">image_merge</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.image_merge"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.image_merge" title="Permalink to this definition">¶</a></dt>
+<dd><p>Merge subimages into master image</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.lenslet_dispersion">
+<tt class="descname">lenslet_dispersion</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.lenslet_dispersion"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.lenslet_dispersion" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the dispersion for each lenslet</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.lenslet_place">
+<tt class="descname">lenslet_place</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.lenslet_place"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.lenslet_place" title="Permalink to this definition">¶</a></dt>
+<dd><p>Place each spectrum into the subimage</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.lenslet_trace">
+<tt class="descname">lenslet_trace</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.lenslet_trace"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.lenslet_trace" title="Permalink to this definition">¶</a></dt>
+<dd><p>Trace out each lenslet</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.line_source">
+<tt class="descname">line_source</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.line_source"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.line_source" title="Permalink to this definition">¶</a></dt>
+<dd><p>Use the line spectrum only</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.map_over_collection">
+<tt class="descname">map_over_collection</tt><big>(</big><em>function</em>, <em>idfun</em>, <em>collection</em>, <em>exceptions=True</em>, <em>color='green'</em><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.map_over_collection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.map_over_collection" title="Permalink to this definition">¶</a></dt>
+<dd><p>docstring for map_over_collection</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.map_over_lenslets">
+<tt class="descname">map_over_lenslets</tt><big>(</big><em>function</em>, <em>exceptions=True</em>, <em>color='green'</em><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.map_over_lenslets"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.map_over_lenslets" title="Permalink to this definition">¶</a></dt>
+<dd><p>Maps a given function to operate on each lenslet, and displays a progress bar along the way.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.map_over_pixels">
+<tt class="descname">map_over_pixels</tt><big>(</big><em>function</em>, <em>exceptions=True</em>, <em>color='green'</em><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.map_over_pixels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.map_over_pixels" title="Permalink to this definition">¶</a></dt>
+<dd><p>Maps some function over a bunch of source pixels</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.place">
+<tt class="descname">place</tt><big>(</big><em>img</em>, <em>corner</em><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.place"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.place" title="Permalink to this definition">¶</a></dt>
+<dd><p>Place the given AstroObject.AnalyticSpectra.AnalyticSpectrum onto the SEDMachine Image</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.plot_dispersion_data">
+<tt class="descname">plot_dispersion_data</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.plot_dispersion_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.plot_dispersion_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Outputs dispersion debugging data</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.plot_ellipses">
+<tt class="descname">plot_ellipses</tt><big>(</big><big>)</big><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.plot_ellipses" title="Permalink to this definition">¶</a></dt>
+<dd><p>docstring for plot_ellipses</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.plot_geometry">
+<tt class="descname">plot_geometry</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.plot_geometry"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.plot_geometry" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot all of the geomoetry stacked</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.plot_hexagons">
+<tt class="descname">plot_hexagons</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.plot_hexagons"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.plot_hexagons" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot the lenslet Hexagons</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.plot_invalid_hexagons">
+<tt class="descname">plot_invalid_hexagons</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.plot_invalid_hexagons"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.plot_invalid_hexagons" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot invalid shapes</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.plot_invalid_pixels">
+<tt class="descname">plot_invalid_pixels</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.plot_invalid_pixels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.plot_invalid_pixels" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot invalid shapes</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.plot_kernel_partials">
+<tt class="descname">plot_kernel_partials</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.plot_kernel_partials"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.plot_kernel_partials" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plots the kernel data partials</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.plot_lenslet_data">
+<tt class="descname">plot_lenslet_data</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.plot_lenslet_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.plot_lenslet_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Outputs the lenslet data</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.plot_lenslet_raw">
+<tt class="descname">plot_lenslet_raw</tt><big>(</big><big>)</big><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.plot_lenslet_raw" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot lesnlet raw data</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.plot_original_calibration">
+<tt class="descname">plot_original_calibration</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.plot_original_calibration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.plot_original_calibration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot the original calibration source</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.plot_original_source">
+<tt class="descname">plot_original_source</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.plot_original_source"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.plot_original_source" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot the original source spectrum only</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.plot_pixels">
+<tt class="descname">plot_pixels</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.plot_pixels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.plot_pixels" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot the source pixels</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.plot_qe">
+<tt class="descname">plot_qe</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.plot_qe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.plot_qe" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot sky spectrum</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.plot_resample">
+<tt class="descname">plot_resample</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.plot_resample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.plot_resample" title="Permalink to this definition">¶</a></dt>
+<dd><p>Show the geometric resample</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.plot_rotation">
+<tt class="descname">plot_rotation</tt><big>(</big><big>)</big><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.plot_rotation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot rotation</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.plot_sky">
+<tt class="descname">plot_sky</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.plot_sky"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.plot_sky" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot sky spectrum</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.plot_sky_original">
+<tt class="descname">plot_sky_original</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.plot_sky_original"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.plot_sky_original" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot sky spectrum</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.plot_source">
+<tt class="descname">plot_source</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.plot_source"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.plot_source" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot the source spectrum</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.plot_spectrum_data">
+<tt class="descname">plot_spectrum_data</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.plot_spectrum_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.plot_spectrum_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Outputs plots about each lenslet trace</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.plot_trace_data">
+<tt class="descname">plot_trace_data</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.plot_trace_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.plot_trace_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Outputs plots about each lenslet trace</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.psf_kern">
+<tt class="descname">psf_kern</tt><big>(</big><em>filename</em>, <em>size=0</em>, <em>truncate=False</em>, <em>header_lines=18</em><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.psf_kern"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.psf_kern" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates a PSF Kernel from a file with micron-encircled energy conversions. The file should have two columns, first, microns from the center of the PSF, and second, the fraction of encircled energy at that distance from the PSF.</p>
+<p>The calculation is then carried out using a spline fit to this data. From the spline fit, the function returns the first derivative of the encircled energy at each point. This in effect is the amount of energy at each point. These values are then normalized, to create a PSF mask for the instrument.</p>
+<p>The <cite>size</cite> parameter specifies the size of the kernel to use. If the size is greater than the encircled energy data, then a larger figure will be returned. If <cite>size</cite> is smaller than the encircled energy data, it will return an image the size of the encircled energy data, unless the <cite>truncate</cite> parameter is set to <cite>true</cite>.</p>
+<p>The <cite>header_lines</cite> parameter defaults to 18, which works with Zemax encircled energy output.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.replace_source">
+<tt class="descname">replace_source</tt><big>(</big><em>spectrum</em><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.replace_source"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.replace_source" title="Permalink to this definition">¶</a></dt>
+<dd><p>Replace the default file-source with a flat spectrum</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.save_file">
+<tt class="descname">save_file</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.save_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.save_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Saves the file</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.setup_blank">
+<tt class="descname">setup_blank</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.setup_blank"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.setup_blank" title="Permalink to this definition">¶</a></dt>
+<dd><p>Establish a blank Image</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.setup_caches">
+<tt class="descname">setup_caches</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.setup_caches"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.setup_caches" title="Permalink to this definition">¶</a></dt>
+<dd><p>Register all of the cache objects and types</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.setup_cameras">
+<tt class="descname">setup_cameras</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.setup_cameras"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.setup_cameras" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set up camera configuration values</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.setup_configuration">
+<tt class="descname">setup_configuration</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.setup_configuration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.setup_configuration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate dynamic configuration values.</p>
+<p>Currently, the configuration variables that use &#8220;px&#8221; or &#8220;mm&#8221; keys automatically have their counter-part filled in. As well, the conversion has its counterpart filled in. To disable this dynamic value setting, include a &#8220;calc:False&#8221; variable in the configuration.</p>
+<p>Example Configuration:</p>
+<div class="highlight-python"><pre>image_size:
+    mm: 40 # system will calculate pixels
+ccd_size:
+    px: 2048
+    calc: False # Conversion will not be performed by system
+    mm: 30</pre>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.setup_constants">
+<tt class="descname">setup_constants</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.setup_constants"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.setup_constants" title="Permalink to this definition">¶</a></dt>
+<dd><p>Establish Physical Constants</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.setup_dummy_blank">
+<tt class="descname">setup_dummy_blank</tt><big>(</big><big>)</big><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.setup_dummy_blank" title="Permalink to this definition">¶</a></dt>
+<dd><p>Setup Dummy Blank</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.setup_hexagons">
+<tt class="descname">setup_hexagons</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.setup_hexagons"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.setup_hexagons" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make the lenslet hexagons</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.setup_lenslets">
+<tt class="descname">setup_lenslets</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.setup_lenslets"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.setup_lenslets" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function loads data about lenslet positions, and thier dispersion through the prism. The data are original produced by Zeemax. This function reads the Zeemax data directly and then cleans the data in certain ways, preparing it for use later in the system.</p>
+<p>..Note:: The source of this function is well documented.</p>
+<p>..Note:: This function does not store variables neatly. As such, it has no built-in caching system.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.setup_line_list">
+<tt class="descname">setup_line_list</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.setup_line_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.setup_line_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set up a line-list based spectrum for wavelength calibration.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.setup_noise">
+<tt class="descname">setup_noise</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.setup_noise"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.setup_noise" title="Permalink to this definition">¶</a></dt>
+<dd><p>Makes noise masks</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.setup_scatter">
+<tt class="descname">setup_scatter</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.setup_scatter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.setup_scatter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets up scattered light level</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.setup_simple_source">
+<tt class="descname">setup_simple_source</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.setup_simple_source"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.setup_simple_source" title="Permalink to this definition">¶</a></dt>
+<dd><p>docstring for setup_simple_source</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.setup_sky">
+<tt class="descname">setup_sky</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.setup_sky"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.setup_sky" title="Permalink to this definition">¶</a></dt>
+<dd><p>Setup sky spectrum information</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.setup_source">
+<tt class="descname">setup_source</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.setup_source"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.setup_source" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets up a uniform source file based spectrum</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.setup_source_pixels">
+<tt class="descname">setup_source_pixels</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.setup_source_pixels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.setup_source_pixels" title="Permalink to this definition">¶</a></dt>
+<dd><p>Setup source pixels</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.setup_stages">
+<tt class="descname">setup_stages</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.setup_stages"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.setup_stages" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets up all simulator stages</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.sky_source">
+<tt class="descname">sky_source</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.sky_source"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.sky_source" title="Permalink to this definition">¶</a></dt>
+<dd><p>Use the sky spectrum only</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.transpose">
+<tt class="descname">transpose</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.transpose"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.transpose" title="Permalink to this definition">¶</a></dt>
+<dd><p>transpose the final image</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Simulator.SEDSimulator.write_resample">
+<tt class="descname">write_resample</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Simulator.html#SEDSimulator.write_resample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Simulator.SEDSimulator.write_resample" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write the resample matrix to file</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="AstroSimulator.html"
+                        title="previous chapter">5. Simulator <tt class="docutils literal docutils literal docutils literal"><span class="pre">AstroSimulator</span></tt></a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="Lenslets.html"
+                        title="next chapter">7. <tt class="docutils literal docutils literal"><span class="pre">Lenslets</span></tt> Suppporting Classes</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/Simulator.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="Lenslets.html" title="7. Lenslets Suppporting Classes"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="AstroSimulator.html" title="5. Simulator AstroSimulator"
+             >previous</a> |</li>
+        <li><a href="index.html">SEDMsim 0.3.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012, Alexander Rudy.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

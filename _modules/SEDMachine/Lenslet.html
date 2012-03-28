@@ -1,0 +1,742 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>SEDMachine.Lenslet &mdash; SEDMsim 0.3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="SEDMsim 0.3.0 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">SEDMsim 0.3.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for SEDMachine.Lenslet</h1><div class="highlight"><pre>
+<span class="c"># </span>
+<span class="c">#  Lenslet.py</span>
+<span class="c">#  An object model of SED Machine Lenslets, containing most of the lenslet action logic.</span>
+<span class="c">#  SED</span>
+<span class="c">#  </span>
+<span class="c">#  Created by Alexander Rudy on 2012-01-31.</span>
+<span class="c">#  Copyright 2012 Alexander Rudy. All rights reserved.</span>
+<span class="c">#  Version 0.3.0</span>
+<span class="c"># </span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pyfits</span> <span class="kn">as</span> <span class="nn">pf</span>
+<span class="kn">import</span> <span class="nn">scipy</span> <span class="kn">as</span> <span class="nn">sp</span>
+<span class="kn">import</span> <span class="nn">matplotlib</span> <span class="kn">as</span> <span class="nn">mpl</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">matplotlib.cm</span> <span class="kn">as</span> <span class="nn">cm</span> <span class="c"># Python Color Systems</span>
+<span class="kn">from</span> <span class="nn">matplotlib.colors</span> <span class="kn">import</span> <span class="n">Normalize</span> <span class="c"># Math Normailzation</span>
+
+
+<span class="kn">import</span> <span class="nn">scipy.signal</span>
+<span class="kn">import</span> <span class="nn">scipy.interpolate</span>
+<span class="kn">import</span> <span class="nn">yaml</span>
+
+<span class="kn">import</span> <span class="nn">shapely</span> <span class="kn">as</span> <span class="nn">sh</span>
+<span class="kn">import</span> <span class="nn">shapely.geometry</span>
+
+<span class="kn">import</span> <span class="nn">arpytools.progressbar</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">logging</span><span class="o">,</span><span class="nn">logging.handlers</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">import</span> <span class="nn">gc</span>
+
+<span class="kn">import</span> <span class="nn">AstroObject</span>
+<span class="kn">import</span> <span class="nn">AstroObject.AstroSimulator</span>
+<span class="kn">from</span> <span class="nn">AstroObject.AstroCache</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">AstroObject.AstroSpectra</span> <span class="kn">import</span> <span class="n">SpectraObject</span>
+<span class="kn">from</span> <span class="nn">AstroObject.AstroImage</span> <span class="kn">import</span> <span class="n">ImageObject</span><span class="p">,</span><span class="n">ImageFrame</span>
+<span class="kn">from</span> <span class="nn">AstroObject.AnalyticSpectra</span> <span class="kn">import</span> <span class="n">BlackBodySpectrum</span><span class="p">,</span> <span class="n">AnalyticSpectrum</span><span class="p">,</span> <span class="n">FlatSpectrum</span><span class="p">,</span> <span class="n">InterpolatedSpectrum</span>
+<span class="kn">from</span> <span class="nn">AstroObject.Utilities</span> <span class="kn">import</span> <span class="o">*</span>
+
+
+<span class="n">__version__</span> <span class="o">=</span> <span class="n">getVersion</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;SEDLimits&quot;</span><span class="p">,</span><span class="s">&quot;Lenslet&quot;</span><span class="p">,</span><span class="s">&quot;SubImage&quot;</span><span class="p">,</span><span class="s">&quot;SourcePixel&quot;</span><span class="p">]</span>
+
+<span class="k">class</span> <span class="nc">SEDLimits</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A Basic Error-Differentiation Class.</span>
+<span class="sd">    This error is used to express the fact that the SEDModel has encountered a spectrum which can&#39;t be placed as some part of it falls outside of the limits of the SED system.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span>
+
+<div class="viewcode-block" id="SubImage"><a class="viewcode-back" href="../../Lenslets.html#SEDMachine.Lenslet.SubImage">[docs]</a><span class="k">class</span> <span class="nc">SubImage</span><span class="p">(</span><span class="n">ImageFrame</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A custom frame type for SEDMachine Sub-Images&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SubImage</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">array</span><span class="p">,</span><span class="n">label</span><span class="p">,</span><span class="n">header</span><span class="p">,</span><span class="n">metadata</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lensletNumber</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">corner</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configHash</span> <span class="o">=</span> <span class="nb">hash</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spectrum</span> <span class="o">=</span> <span class="s">&quot;NO SPEC&quot;</span>
+
+    <span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s">&quot;SEDMachine&quot;</span><span class="p">)</span>
+    
+        
+<div class="viewcode-block" id="SubImage.sync_header"><a class="viewcode-back" href="../../Lenslets.html#SEDMachine.Lenslet.SubImage.sync_header">[docs]</a>    <span class="k">def</span> <span class="nf">sync_header</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Synchronizes the header dictionary with the HDU header&quot;&quot;&quot;</span>
+        <span class="c"># assert self.label == self.header[&#39;SEDlabel&#39;], &quot;Label does not match value specified in header: %s and %s&quot; % (self.label,self.header[&#39;SEDlabel&#39;])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configHash</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;SEDconf&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">corner</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;SEDcrx&#39;</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;SEDcry&#39;</span><span class="p">]]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spectrum</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;SEDspec&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lensletNumber</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;SEDlens&#39;</span><span class="p">]</span>
+    </div>
+    <span class="k">def</span> <span class="nf">__hdu__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">primary</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Retruns an HDU which represents this frame. HDUs are either ``pyfits.PrimaryHDU`` or ``pyfits.ImageHDU`` depending on the *primary* keyword.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">primary</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span><span class="s">&quot;Generating a primary HDU for </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="p">)</span>
+            <span class="n">HDU</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">PrimaryHDU</span><span class="p">(</span><span class="bp">self</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span><span class="s">&quot;Generating an image HDU for </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="p">)</span>
+            <span class="n">HDU</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">ImageHDU</span><span class="p">(</span><span class="bp">self</span><span class="p">())</span>
+        <span class="n">HDU</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s">&#39;object&#39;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="p">)</span>
+        <span class="n">HDU</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s">&#39;SEDlabel&#39;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="p">)</span>
+        <span class="n">HDU</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s">&#39;SEDconf&#39;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">configHash</span><span class="p">)</span>
+        <span class="n">HDU</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s">&#39;SEDcrx&#39;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">corner</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">HDU</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s">&#39;SEDcry&#39;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">corner</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">HDU</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s">&#39;SEDspec&#39;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">spectrum</span><span class="p">)</span>
+        <span class="n">HDU</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s">&#39;SEDlens&#39;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">lensletNumber</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span><span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+            <span class="n">HDU</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">key</span><span class="p">,</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">HDU</span>
+    
+    <span class="k">def</span> <span class="nf">__show__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Plots the image in this frame using matplotlib&#39;s ``imshow`` function. The color map is set to an inverted binary, as is often useful when looking at astronomical images. The figure object is returned, and can be manipulated further.</span>
+<span class="sd">        </span>
+<span class="sd">        .. Note::</span>
+<span class="sd">            This function serves as a quick view of the current state of the frame. It is not intended for robust plotting support, as that can be easily accomplished using ``matplotlib``. Rather, it attempts to do the minimum possible to create an acceptable image for immediate inspection.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Plotting </span><span class="si">%s</span><span class="s"> using matplotlib.pyplot.imshow&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="n">figure</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="bp">self</span><span class="p">())</span>
+        <span class="n">figure</span><span class="o">.</span><span class="n">set_cmap</span><span class="p">(</span><span class="s">&#39;binary_r&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">figure</span>
+    
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">__read__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span><span class="n">HDU</span><span class="p">,</span><span class="n">label</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Attempts to convert a given HDU into an object of type :class:`ImageFrame`. This method is similar to the :meth:`__save__` method, but instead of taking data as input, it takes a full HDU. The use of a full HDU allows this method to check for the correct type of HDU, and to gather header information from the HDU. When reading data from a FITS file, this is the prefered method to initialize a new frame.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cls</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Attempting to read as </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">cls</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">HDU</span><span class="p">,(</span><span class="n">pf</span><span class="o">.</span><span class="n">ImageHDU</span><span class="p">,</span><span class="n">pf</span><span class="o">.</span><span class="n">PrimaryHDU</span><span class="p">)):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s">&quot;Must save a PrimaryHDU or ImageHDU to a </span><span class="si">%s</span><span class="s">, found </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">cls</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span><span class="nb">type</span><span class="p">(</span><span class="n">HDU</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="n">AbstractError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">HDU</span><span class="o">.</span><span class="n">data</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s">&quot;HDU Data must be </span><span class="si">%s</span><span class="s"> for </span><span class="si">%s</span><span class="s">, found data of </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span><span class="n">cls</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span><span class="nb">type</span><span class="p">(</span><span class="n">HDU</span><span class="o">.</span><span class="n">data</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="n">AbstractError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">Object</span> <span class="o">=</span> <span class="n">cls</span><span class="p">(</span><span class="n">HDU</span><span class="o">.</span><span class="n">data</span><span class="p">,</span><span class="n">label</span><span class="p">,</span><span class="n">header</span><span class="o">=</span><span class="n">HDU</span><span class="o">.</span><span class="n">header</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">AssertionError</span> <span class="k">as</span> <span class="n">AE</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s">&quot;</span><span class="si">%s</span><span class="s"> data did not validate: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">cls</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span><span class="n">AE</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">AbstractError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="n">cls</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Created </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">Object</span><span class="p">)</span>
+        <span class="n">Object</span><span class="o">.</span><span class="n">sync_header</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">Object</span>
+
+</div>
+<div class="viewcode-block" id="Lenslet"><a class="viewcode-back" href="../../Lenslets.html#SEDMachine.Lenslet.Lenslet">[docs]</a><span class="k">class</span> <span class="nc">Lenslet</span><span class="p">(</span><span class="n">ImageObject</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;An object-representation of a lenslet&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">xs</span><span class="p">,</span><span class="n">ys</span><span class="p">,</span><span class="n">p1s</span><span class="p">,</span><span class="n">p2s</span><span class="p">,</span><span class="n">ls</span><span class="p">,</span><span class="n">ix</span><span class="p">,</span><span class="n">config</span><span class="p">,</span><span class="n">caches</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Lenslet</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataClasses</span> <span class="o">=</span> <span class="p">[</span><span class="n">SubImage</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s">&quot;SEDMachine&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num</span> <span class="o">=</span> <span class="n">ix</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">xcs</span> <span class="o">=</span> <span class="n">xs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ycs</span> <span class="o">=</span> <span class="n">ys</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">xs</span><span class="p">,</span><span class="n">ys</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>
+        <span class="c"># Convert the xs and ys to pixel positions</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">xpixs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">xs</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;convert&quot;</span><span class="p">][</span><span class="s">&quot;mmtopx&quot;</span><span class="p">],</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ypixs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">ys</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;convert&quot;</span><span class="p">][</span><span class="s">&quot;mmtopx&quot;</span><span class="p">],</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pixs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">xpixs</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">ypixs</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">p1s</span><span class="p">,</span><span class="n">p2s</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ls</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ls</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ellipses</span> <span class="o">=</span> <span class="bp">False</span>
+                
+        <span class="bp">self</span><span class="o">.</span><span class="n">dispersion</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">checked</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">passed</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">traced</span> <span class="o">=</span> <span class="bp">False</span>
+    
+<div class="viewcode-block" id="Lenslet.reset"><a class="viewcode-back" href="../../Lenslets.html#SEDMachine.Lenslet.Lenslet.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Reset Flag Variables&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">checked</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">passed</span> <span class="o">=</span> <span class="bp">False</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dispersion</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dispersion</span> <span class="o">=</span> <span class="bp">False</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">dxs</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">dys</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">dwl</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">drs</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">dis</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">traced</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">traced</span> <span class="o">=</span> <span class="bp">False</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">txs</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">tys</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">trd</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">tfl</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">twl</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">tdw</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">trs</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">subshape</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">subcorner</span>
+            
+        <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+        
+        
+    </div>
+<div class="viewcode-block" id="Lenslet.introspect"><a class="viewcode-back" href="../../Lenslets.html#SEDMachine.Lenslet.Lenslet.introspect">[docs]</a>    <span class="k">def</span> <span class="nf">introspect</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Show all sorts of fun data about this lenslet&quot;&quot;&quot;</span>
+        <span class="n">STR</span>  <span class="o">=</span> <span class="s">&quot;--Lenslet </span><span class="si">%(index)04d</span><span class="s"> is </span><span class="si">%(valid)s</span><span class="se">\n</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">{</span><span class="s">&#39;index&#39;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">num</span><span class="p">,</span> <span class="s">&#39;valid&#39;</span><span class="p">:</span> <span class="s">&#39;valid&#39;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">valid</span><span class="p">()</span> <span class="k">else</span> <span class="s">&#39;invalid&#39;</span><span class="p">}</span>
+        <span class="n">STR</span> <span class="o">+=</span> <span class="s">&quot;|    x    |    y    |    xp    |    yp    |    p1    |    p2    |    wl    |</span><span class="se">\n</span><span class="s">&quot;</span>
+        <span class="k">for</span> <span class="n">xy</span><span class="p">,</span><span class="n">pixs</span><span class="p">,</span><span class="n">p</span><span class="p">,</span><span class="n">wl</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">points</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">pixs</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">ps</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">ls</span><span class="p">):</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="p">{</span> <span class="s">&#39;x&#39;</span><span class="p">:</span> <span class="n">xy</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s">&#39;y&#39;</span><span class="p">:</span> <span class="n">xy</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s">&#39;pA&#39;</span><span class="p">:</span> <span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s">&#39;pB&#39;</span><span class="p">:</span> <span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s">&#39;wl&#39;</span><span class="p">:</span> <span class="n">wl</span> <span class="p">,</span><span class="s">&#39;pxA&#39;</span><span class="p">:</span><span class="n">pixs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="s">&#39;pxB&#39;</span><span class="p">:</span><span class="n">pixs</span><span class="p">[</span><span class="mi">1</span><span class="p">]}</span>
+            <span class="n">STR</span> <span class="o">+=</span> <span class="s">&quot;|</span><span class="si">%(x) 9.6g</span><span class="s">|</span><span class="si">%(y) 9.6g</span><span class="s">|</span><span class="si">%(pxA) 10.6g</span><span class="s">|</span><span class="si">%(pxB) 10.6g</span><span class="s">|</span><span class="si">%(pA) 10.6g</span><span class="s">|</span><span class="si">%(pB) 10.6g</span><span class="s">|</span><span class="si">%(wl) 10.6g</span><span class="s">|</span><span class="se">\n</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">data</span>
+        <span class="k">return</span> <span class="n">STR</span>
+    </div>
+<div class="viewcode-block" id="Lenslet.valid"><a class="viewcode-back" href="../../Lenslets.html#SEDMachine.Lenslet.Lenslet.valid">[docs]</a>    <span class="k">def</span> <span class="nf">valid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns true if this is a valid lenslet, false if it fails any of the tests&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">checked</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">passed</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">checked</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">passed</span> <span class="o">=</span> <span class="bp">False</span>
+        
+        <span class="c"># Data consistency</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">points</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ps</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">points</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ls</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">points</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pixs</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s">&quot;Lenslet </span><span class="si">%d</span><span class="s"> failed: The data had inconsistent points&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">num</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">passed</span>
+        
+        <span class="c"># Data utility</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">points</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Lenslet </span><span class="si">%d</span><span class="s"> failed: There were fewer than three data points&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">num</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">passed</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pixs</span><span class="o">.</span><span class="n">flatten</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Lenslet </span><span class="si">%d</span><span class="s"> failed: Some (x,y) were exactly zero&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">num</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">passed</span>
+        
+        <span class="c"># X distance calculation (all spectra should be roughly constant in x, as they are fairly well aligned)</span>
+        <span class="c"># NOTE: There really isn&#39;t a whole lot to this requriement</span>
+        <span class="n">dist</span> <span class="o">=</span> <span class="mi">30</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xpixs</span><span class="p">))</span> <span class="o">&gt;</span> <span class="n">dist</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Lenslet </span><span class="si">%d</span><span class="s"> failed: x distance was more than </span><span class="si">%d</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num</span><span class="p">,</span><span class="n">dist</span><span class="p">))</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">passed</span>
+        
+        <span class="c"># The spectrum should span some finite distance</span>
+        <span class="n">startix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ls</span><span class="p">)</span>
+        <span class="n">endix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ls</span><span class="p">)</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">xcs</span><span class="p">[</span><span class="n">startix</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">ycs</span><span class="p">[</span><span class="n">startix</span><span class="p">]])</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">xcs</span><span class="p">[</span><span class="n">endix</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">ycs</span><span class="p">[</span><span class="n">endix</span><span class="p">]])</span>
+
+        <span class="c"># Get the total length of the spectra</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">distance</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">end</span><span class="o">-</span><span class="n">start</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">distance</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Lenslet </span><span class="si">%d</span><span class="s"> failed: The points have no separating distance&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">num</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">passed</span>
+        
+        <span class="c"># Find the xs and ys that are not within 0.1 mm of the edge of the detector...</span>
+        <span class="n">padding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;image_pad&quot;</span><span class="p">][</span><span class="s">&quot;mm&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">xcs</span> <span class="o">&gt;</span> <span class="mf">0.1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xcs</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;image_size&quot;</span><span class="p">][</span><span class="s">&quot;mm&quot;</span><span class="p">]</span><span class="o">-</span><span class="n">padding</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ycs</span> <span class="o">&gt;</span> <span class="n">padding</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ycs</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;image_size&quot;</span><span class="p">][</span><span class="s">&quot;mm&quot;</span><span class="p">]</span><span class="o">-</span><span class="n">padding</span><span class="p">))</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Lenslet </span><span class="si">%d</span><span class="s"> failed: The points are too close to the image edge&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">num</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">passed</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">passed</span> <span class="o">=</span> <span class="bp">True</span>
+        
+        <span class="c"># Warnings about our data go here.</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ls</span> <span class="o">&lt;</span> <span class="mf">1e-12</span><span class="p">)</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ls</span> <span class="o">&gt;</span> <span class="mf">1e-3</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s">&quot;The wavelengths provided for lenslet </span><span class="si">%d</span><span class="s"> appear as if they aren&#39;t SI units.&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">num</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">npArrayInfo</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ls</span><span class="p">,</span><span class="s">&quot;Lenslet </span><span class="si">%d</span><span class="s"> Wavelengths&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">num</span><span class="p">))</span>
+                
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">passed</span>
+    </div>
+<div class="viewcode-block" id="Lenslet.return_dispersion"><a class="viewcode-back" href="../../Lenslets.html#SEDMachine.Lenslet.Lenslet.return_dispersion">[docs]</a>    <span class="k">def</span> <span class="nf">return_dispersion</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the dispersion&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">find_dispersion</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dis</span>
+        </div>
+<div class="viewcode-block" id="Lenslet.find_dispersion"><a class="viewcode-back" href="../../Lenslets.html#SEDMachine.Lenslet.Lenslet.find_dispersion">[docs]</a>    <span class="k">def</span> <span class="nf">find_dispersion</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Find the dispersion (dense, pixel aligned wavelength values) for this lenslet&quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">valid</span><span class="p">(),</span> <span class="s">&quot;Lenslet must contain valid data.&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dispersion</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dispersion</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ellipses</span><span class="p">:</span>
+            <span class="c"># Find ellipse major and minor axis from given data.</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">xcs</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">xas</span><span class="p">)</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ycs</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">yas</span><span class="p">)</span><span class="o">**</span><span class="mf">2.0</span><span class="p">)</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">xcs</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">xbs</span><span class="p">)</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ycs</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">ybs</span><span class="p">)</span><span class="o">**</span><span class="mf">2.0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fa</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">poly1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">polyfit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ls</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;dispfitorder&quot;</span><span class="p">]))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fb</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">poly1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">polyfit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ls</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;dispfitorder&quot;</span><span class="p">]))</span>
+            
+
+            
+        
+        <span class="c"># Interpolation to convert from wavelength to pixels.</span>
+        <span class="c">#   The accuracy of this interpolation is not important.</span>
+        <span class="c">#   Rather, it is used to find the pixels where the light will fall</span>
+        <span class="c">#   and is fed an array that is very dense, used on this dense interpolation</span>
+        <span class="c">#   and then binned back onto pixels. Thus it will be used to get a list</span>
+        <span class="c">#   of all illuminated pixels.</span>
+        <span class="n">fx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">poly1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">polyfit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ls</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">xpixs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;dispfitorder&quot;</span><span class="p">]))</span>
+        <span class="n">fy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">poly1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">polyfit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ls</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ypixs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;dispfitorder&quot;</span><span class="p">]))</span>
+        
+        <span class="c"># Find the starting and ending position of the spectra</span>
+        <span class="n">startix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ls</span><span class="p">)</span>
+        <span class="n">endix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ls</span><span class="p">)</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">xcs</span><span class="p">[</span><span class="n">startix</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">ycs</span><span class="p">[</span><span class="n">startix</span><span class="p">]])</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">xcs</span><span class="p">[</span><span class="n">endix</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">ycs</span><span class="p">[</span><span class="n">endix</span><span class="p">]])</span>
+        
+        <span class="c"># Get the total length of the spectra</span>
+        <span class="n">distance</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">end</span><span class="o">-</span><span class="n">start</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+        
+        <span class="c"># This should have been checked in the validity function.</span>
+        <span class="k">if</span> <span class="n">distance</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">SEDLimits</span>
+        
+        <span class="c"># Find the length in units of (int) pixels</span>
+        <span class="n">npix</span> <span class="o">=</span> <span class="p">(</span><span class="n">distance</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;convert&quot;</span><span class="p">][</span><span class="s">&quot;mmtopx&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;density&quot;</span><span class="p">]</span>
+        
+        <span class="c"># Create a data array one hundred times as dense as the number of pixels</span>
+        <span class="c">#   This is the super dense array which will use the above interpolation</span>
+        <span class="n">superDense_lam</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ls</span><span class="p">),</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ls</span><span class="p">),</span><span class="n">npix</span><span class="o">*</span><span class="mi">100</span><span class="p">)</span>
+        
+        <span class="c"># Interpolate along our really dense set of wavelengths to find all possible</span>
+        <span class="c"># illuminated pixel positions in this spectrum</span>
+        <span class="n">superDense_pts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">fx</span><span class="p">(</span><span class="n">superDense_lam</span><span class="p">),</span><span class="n">fy</span><span class="p">(</span><span class="n">superDense_lam</span><span class="p">)])</span>
+        
+        <span class="c"># Measure the distance along our really dense set of points</span>
+        <span class="n">superDense_interval</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">superDense_pts</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span><span class="mi">2</span><span class="p">),</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+        <span class="n">superDense_distance</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">superDense_interval</span><span class="p">)</span>
+        
+        <span class="c"># Adjust the density of our points. This rounds all values to only full pixel values.</span>
+        <span class="n">superDense_pts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">superDense_pts</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;density&quot;</span><span class="p">])</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;density&quot;</span><span class="p">]</span>
+        <span class="n">superDense_int</span> <span class="o">=</span> <span class="p">(</span><span class="n">superDense_pts</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;density&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">)</span>
+        
+        <span class="c"># We can identify unique points using the points when the integer position ratchets up or down.</span>
+        <span class="n">unique_x</span><span class="p">,</span><span class="n">unique_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">superDense_int</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+        
+        <span class="c"># We want unique index to include points where either &#39;y&#39; or &#39;x&#39; ratchets up or down</span>
+        <span class="n">unique_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">unique_x</span><span class="p">,</span><span class="n">unique_y</span><span class="p">)</span>
+        
+        <span class="c"># Remove any duplicate points. This does not do so in order, so we must</span>
+        <span class="c"># sort the array of unique points afterwards...</span>
+        <span class="n">unique_pts</span> <span class="o">=</span> <span class="n">superDense_pts</span><span class="p">[:,</span><span class="mi">1</span><span class="p">:][:,</span><span class="n">unique_idx</span><span class="p">]</span>
+        
+        <span class="c"># An array of distances to the origin of this spectrum, can be used to find wavelength</span>
+        <span class="c"># of light at each distance</span>
+        <span class="n">distance</span> <span class="o">=</span> <span class="n">superDense_distance</span><span class="p">[</span><span class="n">unique_idx</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;convert&quot;</span><span class="p">][</span><span class="s">&quot;pxtomm&quot;</span><span class="p">]</span>
+        
+        <span class="c"># Re sort everything by distnace along the trace.</span>
+        <span class="c"># Strictly, this shouldn&#39;t be necessary if all of the above functions preserved order.</span>
+        <span class="n">sorted_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">distance</span><span class="p">)</span>
+        
+        <span class="c"># Pull out sorted valuses</span>
+        <span class="n">distance</span> <span class="o">=</span> <span class="n">distance</span><span class="p">[</span><span class="n">sorted_idx</span><span class="p">]</span>
+        <span class="n">points</span> <span class="o">=</span> <span class="n">unique_pts</span><span class="p">[:,</span><span class="n">sorted_idx</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">npArrayInfo</span><span class="p">(</span><span class="n">points</span><span class="p">,</span><span class="s">&quot;Points&quot;</span><span class="p">))</span>
+        
+        
+        <span class="c"># Pull out the original wavelengths</span>
+        <span class="n">wl_orig</span> <span class="o">=</span> <span class="n">superDense_lam</span><span class="p">[</span><span class="n">unique_idx</span><span class="p">][</span><span class="n">sorted_idx</span><span class="p">]</span>
+        <span class="n">wl</span> <span class="o">=</span> <span class="n">wl_orig</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">npArrayInfo</span><span class="p">(</span><span class="n">wl</span><span class="p">,</span><span class="s">&quot;Wavelengths&quot;</span><span class="p">))</span>
+        <span class="c"># We are getting some odd behavior, where the dispersion function seems to not cover the whole</span>
+        <span class="c"># arc length and instead covers only part of it. This causes much of our arc to leave the desired</span>
+        <span class="c"># and available wavelength boundaries. As such, I&#39;m disabling the more accurate dispersion mode.</span>
+        
+        <span class="c"># Convert to wavelength space along the dispersion spline.</span>
+        <span class="c"># wl = self.spline(distance)</span>
+        <span class="n">xs</span><span class="p">,</span><span class="n">ys</span> <span class="o">=</span> <span class="n">points</span><span class="o">.</span><span class="n">T</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dxs</span> <span class="o">=</span> <span class="n">xs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dys</span> <span class="o">=</span> <span class="n">ys</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dwl</span> <span class="o">=</span> <span class="n">wl</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">drs</span> <span class="o">=</span> <span class="n">distance</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">xs</span><span class="p">,</span><span class="n">ys</span><span class="p">,</span><span class="n">wl</span><span class="p">,</span><span class="n">distance</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dispersion</span> <span class="o">=</span> <span class="bp">True</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dispersion</span>
+                </div>
+<div class="viewcode-block" id="Lenslet.get_trace"><a class="viewcode-back" href="../../Lenslets.html#SEDMachine.Lenslet.Lenslet.get_trace">[docs]</a>    <span class="k">def</span> <span class="nf">get_trace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">spectrum</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a trace of this &quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">traced</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">traced</span>
+            
+        <span class="c"># Variables taken from the dispersion calculation</span>
+        <span class="n">points</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">dxs</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">dys</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>
+        <span class="n">deltawl</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dwl</span><span class="p">)</span>
+        
+        
+        <span class="c"># Take our points out. Note from the above that we multiply by the density in order to do this</span>
+        <span class="n">xorig</span><span class="p">,</span><span class="n">yorig</span> <span class="o">=</span> <span class="p">(</span><span class="n">points</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;density&quot;</span><span class="p">])[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">)</span>
+        <span class="n">x</span><span class="p">,</span><span class="n">y</span> <span class="o">=</span> <span class="p">(</span><span class="n">points</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;density&quot;</span><span class="p">])[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">)</span>
+        <span class="c"># Get the way in which those points correspond to actual pixels.</span>
+        <span class="c"># As such, this array of points should have duplicates</span>
+        <span class="n">xint</span><span class="p">,</span><span class="n">yint</span> <span class="o">=</span> <span class="n">points</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">)</span>
+        
+        <span class="c"># Zero-adjust our x and y points. They will go into a fake subimage anyways, so we don&#39;t care</span>
+        <span class="c"># for now where they would be on the real image</span>
+        <span class="n">x</span> <span class="o">-=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">y</span> <span class="o">-=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+        
+        <span class="c"># Get the approximate size of our spectra</span>
+        <span class="n">xdist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">ydist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">y</span><span class="p">)</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+        
+        <span class="c"># Convert this size into an integer number of pixels for our subimage. This makes it</span>
+        <span class="c"># *much* easier to register our sub-image to the master, larger pixel image</span>
+        <span class="n">xdist</span> <span class="o">+=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;density&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">xdist</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;density&quot;</span><span class="p">])</span>
+        <span class="n">ydist</span> <span class="o">+=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;density&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">ydist</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;density&quot;</span><span class="p">])</span>
+        
+        <span class="c"># Move our x and y coordinates to the middle of our sub image by applying padding below each one.</span>
+        <span class="n">x</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;padding&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;density&quot;</span><span class="p">]</span>
+        <span class="n">y</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;padding&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;density&quot;</span><span class="p">]</span>
+        
+        <span class="c"># Find the first (by the flatten method) corner of the subimage,</span>
+        <span class="c"># useful for placing the sub-image into the full image.</span>
+        <span class="n">corner</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span> <span class="n">xint</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">x</span><span class="p">)],</span> <span class="n">yint</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">y</span><span class="p">)]])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Corner Position in Integer Space: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">corner</span><span class="p">)</span>
+        <span class="n">corner</span> <span class="o">*=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;density&quot;</span><span class="p">]</span>
+        <span class="n">realcorner</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span> <span class="n">xorig</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">x</span><span class="p">)],</span> <span class="n">yorig</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">y</span><span class="p">)]])</span>
+        <span class="n">offset</span> <span class="o">=</span> <span class="n">corner</span> <span class="o">-</span> <span class="n">realcorner</span>
+        <span class="n">corner</span> <span class="o">/=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;density&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Corner Position Offset in Dense Space: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">offset</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">getEffectiveLevel</span><span class="p">()</span> <span class="o">&lt;=</span> <span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s">&quot;</span><span class="si">%(Partials)s</span><span class="s">/Instrument-Offsets.dat&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Dirs&quot;</span><span class="p">],</span><span class="s">&#39;a&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">handle</span><span class="p">:</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="n">handle</span><span class="p">,</span><span class="n">offset</span><span class="p">)</span>
+        <span class="n">corner</span> <span class="o">-=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;padding&quot;</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;padding&quot;</span><span class="p">]])</span>
+        
+        <span class="n">x</span> <span class="o">+=</span> <span class="n">offset</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">y</span> <span class="o">+=</span> <span class="n">offset</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        
+        <span class="c"># Create our sub-image, using the x and y width of the spectrum, plus 2 padding widths.</span>
+        <span class="c"># Padding is specified in full-size pixels to ensure that the final image is an integer</span>
+        <span class="c"># number of full-size pixels across.</span>
+        <span class="n">xsize</span> <span class="o">=</span> <span class="n">xdist</span><span class="o">+</span><span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;padding&quot;</span><span class="p">]</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;density&quot;</span><span class="p">]</span>
+        <span class="n">ysize</span> <span class="o">=</span> <span class="n">ydist</span><span class="o">+</span><span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;padding&quot;</span><span class="p">]</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;density&quot;</span><span class="p">]</span>
+        
+        <span class="c"># Calculate the resolution inherent to the pixels asked for</span>
+        <span class="n">WLS</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dwl</span>
+        <span class="n">DWL</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">WLS</span><span class="p">)</span> 
+        <span class="n">WLS</span> <span class="o">=</span> <span class="n">WLS</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">RS</span> <span class="o">=</span> <span class="n">WLS</span><span class="o">/</span><span class="n">DWL</span>
+        
+        
+        <span class="c"># Call and evaluate the spectrum</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">npArrayInfo</span><span class="p">(</span><span class="n">WLS</span><span class="p">,</span><span class="s">&quot;Calling Wavelength&quot;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">npArrayInfo</span><span class="p">(</span><span class="n">RS</span><span class="p">,</span><span class="s">&quot;Calling Resolution&quot;</span><span class="p">))</span>
+
+        <span class="n">wl</span><span class="p">,</span><span class="n">flux</span> <span class="o">=</span> <span class="n">spectrum</span><span class="p">(</span><span class="n">wavelengths</span><span class="o">=</span><span class="n">WLS</span><span class="p">,</span><span class="n">resolution</span><span class="o">=</span><span class="n">RS</span><span class="p">)</span> 
+                
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">npArrayInfo</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span><span class="s">&quot;Final Flux&quot;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">npArrayInfo</span><span class="p">(</span><span class="n">RS</span><span class="p">,</span><span class="s">&quot;Saving Resolution&quot;</span><span class="p">))</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">txs</span> <span class="o">=</span> <span class="n">x</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tys</span> <span class="o">=</span> <span class="n">y</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tfl</span> <span class="o">=</span> <span class="n">flux</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">twl</span> <span class="o">=</span> <span class="n">WLS</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tdw</span> <span class="o">=</span> <span class="n">DWL</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trs</span> <span class="o">=</span> <span class="n">RS</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">subshape</span> <span class="o">=</span> <span class="p">(</span><span class="n">xsize</span><span class="p">,</span><span class="n">ysize</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">subcorner</span> <span class="o">=</span> <span class="n">corner</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spectrum</span> <span class="o">=</span> <span class="n">spectrum</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">traced</span> <span class="o">=</span> <span class="bp">True</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">traced</span>
+        </div>
+<div class="viewcode-block" id="Lenslet.place_trace"><a class="viewcode-back" href="../../Lenslets.html#SEDMachine.Lenslet.Lenslet.place_trace">[docs]</a>    <span class="k">def</span> <span class="nf">place_trace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">get_conv</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Place the trace on the image&quot;&quot;&quot;</span>
+        
+        <span class="n">img</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subshape</span><span class="p">)</span>
+        
+        <span class="k">for</span> <span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">wl</span><span class="p">,</span><span class="n">flux</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">txs</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">tys</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">twl</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">tfl</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ellipses</span><span class="p">:</span>
+                <span class="n">a</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fa</span><span class="p">(</span><span class="n">wl</span><span class="p">)</span>
+                <span class="n">b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fb</span><span class="p">(</span><span class="n">wl</span><span class="p">)</span>
+                <span class="n">conv</span> <span class="o">=</span> <span class="n">get_conv</span><span class="p">(</span><span class="n">wl</span><span class="p">,</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">conv</span> <span class="o">=</span> <span class="n">get_conv</span><span class="p">(</span><span class="n">wl</span><span class="p">)</span>
+            <span class="n">tiny_image</span> <span class="o">=</span> <span class="n">conv</span> <span class="o">*</span> <span class="n">flux</span>
+            <span class="n">tl_corner</span> <span class="o">=</span> <span class="p">[</span> <span class="n">x</span> <span class="o">-</span> <span class="n">tiny_image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">y</span> <span class="o">-</span> <span class="n">tiny_image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="mf">2.0</span> <span class="p">]</span>
+            <span class="n">br_corner</span> <span class="o">=</span> <span class="p">[</span> <span class="n">x</span> <span class="o">+</span> <span class="n">tiny_image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">y</span> <span class="o">+</span> <span class="n">tiny_image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="mf">2.0</span> <span class="p">]</span>
+            <span class="n">img</span><span class="p">[</span><span class="n">tl_corner</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span><span class="n">br_corner</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">tl_corner</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span><span class="n">br_corner</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">+=</span> <span class="n">tiny_image</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">npArrayInfo</span><span class="p">(</span><span class="n">img</span><span class="p">,</span><span class="s">&quot;DenseSubImage&quot;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="p">[</span><span class="s">&quot;Raw Spectrum&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">img</span>
+        <span class="n">frame</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="p">()</span>
+        <span class="n">frame</span><span class="o">.</span><span class="n">lensletNumber</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">num</span>
+        <span class="n">frame</span><span class="o">.</span><span class="n">corner</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subcorner</span>
+        <span class="n">frame</span><span class="o">.</span><span class="n">configHash</span> <span class="o">=</span> <span class="nb">hash</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">extract</span><span class="p">()))</span>
+    </div>
+<div class="viewcode-block" id="Lenslet.write_subimage"><a class="viewcode-back" href="../../Lenslets.html#SEDMachine.Lenslet.Lenslet.write_subimage">[docs]</a>    <span class="k">def</span> <span class="nf">write_subimage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Writes a subimage to file&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;</span><span class="si">%(Caches)s</span><span class="s">/Subimage-</span><span class="si">%(num)4d%(ext)s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">dict</span><span class="p">(</span><span class="n">num</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num</span><span class="p">,</span><span class="n">ext</span><span class="o">=</span><span class="s">&quot;.fits&quot;</span><span class="p">,</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Dirs&quot;</span><span class="p">]),</span><span class="n">primaryState</span><span class="o">=</span><span class="s">&quot;Raw Spectrum&quot;</span><span class="p">,</span><span class="n">clobber</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        </div>
+<div class="viewcode-block" id="Lenslet.read_subimage"><a class="viewcode-back" href="../../Lenslets.html#SEDMachine.Lenslet.Lenslet.read_subimage">[docs]</a>    <span class="k">def</span> <span class="nf">read_subimage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Read a subimage from file&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s">&quot;</span><span class="si">%(Caches)s</span><span class="s">/Subimage-</span><span class="si">%(num)4d%(ext)s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">dict</span><span class="p">(</span><span class="n">num</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num</span><span class="p">,</span><span class="n">ext</span><span class="o">=</span><span class="s">&quot;.fits&quot;</span><span class="p">,</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Dirs&quot;</span><span class="p">]))</span>
+        <span class="n">frame</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num</span> <span class="o">=</span> <span class="n">frame</span><span class="o">.</span><span class="n">lensletNumber</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">subcorner</span> <span class="o">=</span> <span class="n">frame</span><span class="o">.</span><span class="n">corner</span>
+        </div>
+<div class="viewcode-block" id="Lenslet.bin_subimage"><a class="viewcode-back" href="../../Lenslets.html#SEDMachine.Lenslet.Lenslet.bin_subimage">[docs]</a>    <span class="k">def</span> <span class="nf">bin_subimage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Bin the selected subimage&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="p">[</span><span class="s">&quot;Binned Spectrum&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">(),</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;density&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int16</span><span class="p">)</span>
+    </div>
+<div class="viewcode-block" id="Lenslet.plot_raw_data"><a class="viewcode-back" href="../../Lenslets.html#SEDMachine.Lenslet.Lenslet.plot_raw_data">[docs]</a>    <span class="k">def</span> <span class="nf">plot_raw_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Debugging plots for raw lenslet data.&quot;&quot;&quot;</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ls</span><span class="o">*</span><span class="mf">1e6</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">ycs</span><span class="p">,</span><span class="s">&quot;.&quot;</span><span class="p">,</span><span class="n">linestyle</span><span class="o">=</span><span class="s">&#39;-&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">&quot;$\lambda$ along y-axis (</span><span class="si">%d</span><span class="s">)&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">num</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">&quot;Wavelength ($\mu m$)&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">&quot;Y-position ($mm$)&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s">&quot;</span><span class="si">%(Partials)s</span><span class="s">/Lenslet-</span><span class="si">%(num)04d</span><span class="s">-WL</span><span class="si">%(ext)s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">dict</span><span class="p">(</span><span class="n">num</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num</span><span class="p">,</span> <span class="n">ext</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Plots&quot;</span><span class="p">][</span><span class="s">&quot;format&quot;</span><span class="p">],</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Dirs&quot;</span><span class="p">]))</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span>
+        
+        </div>
+<div class="viewcode-block" id="Lenslet.plot_dispersion"><a class="viewcode-back" href="../../Lenslets.html#SEDMachine.Lenslet.Lenslet.plot_dispersion">[docs]</a>    <span class="k">def</span> <span class="nf">plot_dispersion</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Debugging for the dispersion process&quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">dispersion</span>
+        <span class="c"># This graph shows the change in distance along arc per pixel.</span>
+        <span class="c"># The graph should produce all data points close to each other, except a variety of much lower</span>
+        <span class="c"># data points which are caused by the arc crossing between pixels.</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">&quot;$\Delta$Distance Along Arc (</span><span class="si">%d</span><span class="s">)&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">num</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">&quot;x (px)&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">&quot;$\Delta$Distance along arc (px)&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dys</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">drs</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;convert&quot;</span><span class="p">][</span><span class="s">&quot;mmtopx&quot;</span><span class="p">],</span><span class="s">&#39;g.&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s">&quot;</span><span class="si">%(Partials)s</span><span class="s">/Instrument-</span><span class="si">%(num)04d</span><span class="s">-Delta-Distances</span><span class="si">%(ext)s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">dict</span><span class="p">(</span><span class="n">num</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num</span><span class="p">,</span> <span class="n">ext</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Plots&quot;</span><span class="p">][</span><span class="s">&quot;format&quot;</span><span class="p">],</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Dirs&quot;</span><span class="p">]))</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">drs</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">dwl</span><span class="o">*</span><span class="mf">1e6</span><span class="p">,</span><span class="s">&quot;g.&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">&quot;$\lambda$ for each pixel (</span><span class="si">%d</span><span class="s">)&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">num</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">&quot;Wavelength ($\mu m$)&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">&quot;Resolution $R = </span><span class="se">\\</span><span class="s">frac{\lambda}{\Delta\lambda}$ per pixel&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s">&quot;</span><span class="si">%(Partials)s</span><span class="s">/Instrument-</span><span class="si">%(num)04d</span><span class="s">-WL</span><span class="si">%(ext)s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">dict</span><span class="p">(</span><span class="n">num</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num</span><span class="p">,</span> <span class="n">ext</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Plots&quot;</span><span class="p">][</span><span class="s">&quot;format&quot;</span><span class="p">],</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Dirs&quot;</span><span class="p">]))</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span>
+        
+        
+        </div>
+<div class="viewcode-block" id="Lenslet.plot_spectrum"><a class="viewcode-back" href="../../Lenslets.html#SEDMachine.Lenslet.Lenslet.plot_spectrum">[docs]</a>    <span class="k">def</span> <span class="nf">plot_spectrum</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Plots the generated spectrum for this lenslet&quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">traced</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">npArrayInfo</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">twl</span><span class="o">*</span><span class="mf">1e6</span><span class="p">,</span><span class="s">&quot;Wavlength&quot;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">npArrayInfo</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tfl</span><span class="p">,</span><span class="s">&quot;Flux&quot;</span><span class="p">))</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">semilogy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">twl</span><span class="o">*</span><span class="mf">1e6</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">tfl</span><span class="p">,</span><span class="s">&quot;b.&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">&quot;Generated, Fluxed Spectra (</span><span class="si">%d</span><span class="s">)&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">num</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">&quot;Wavelength ($\mu m$)&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">&quot;Flux (Electrons)&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s">&quot;</span><span class="si">%(Partials)s</span><span class="s">/Instrument-</span><span class="si">%(num)04d</span><span class="s">-Flux</span><span class="si">%(ext)s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">dict</span><span class="p">(</span><span class="n">num</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num</span><span class="p">,</span> <span class="n">ext</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Plots&quot;</span><span class="p">][</span><span class="s">&quot;format&quot;</span><span class="p">],</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Dirs&quot;</span><span class="p">]))</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span>
+
+        
+    </div>
+<div class="viewcode-block" id="Lenslet.plot_trace"><a class="viewcode-back" href="../../Lenslets.html#SEDMachine.Lenslet.Lenslet.plot_trace">[docs]</a>    <span class="k">def</span> <span class="nf">plot_trace</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Plots aspects of the trace&quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">traced</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">twl</span><span class="o">*</span><span class="mf">1e6</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">tdw</span><span class="o">*</span><span class="mf">1e6</span><span class="p">,</span><span class="s">&quot;g.&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">&quot;$\Delta\lambda$ for each pixel (</span><span class="si">%d</span><span class="s">)&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">num</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">&quot;Wavelength ($\mu m$)&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">&quot;$\Delta\lambda$ per pixel&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s">&quot;</span><span class="si">%(Partials)s</span><span class="s">/Instrument-</span><span class="si">%(num)04d</span><span class="s">-DeltaWL</span><span class="si">%(ext)s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">dict</span><span class="p">(</span><span class="n">num</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num</span><span class="p">,</span> <span class="n">ext</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Plots&quot;</span><span class="p">][</span><span class="s">&quot;format&quot;</span><span class="p">],</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Dirs&quot;</span><span class="p">]))</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">npArrayInfo</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trs</span><span class="p">,</span><span class="s">&quot;Trace RS&quot;</span><span class="p">))</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">semilogy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">twl</span><span class="o">*</span><span class="mf">1e6</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">trs</span><span class="p">,</span><span class="s">&quot;g.&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">&quot;$R = </span><span class="se">\\</span><span class="s">frac{\lambda}{\Delta\lambda}$ for each pixel (</span><span class="si">%d</span><span class="s">)&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">num</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">&quot;Wavelength ($\mu m$)&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">&quot;Resolution $R = </span><span class="se">\\</span><span class="s">frac{\lambda}{\Delta\lambda}$ per pixel&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s">&quot;</span><span class="si">%(Partials)s</span><span class="s">/Instrument-</span><span class="si">%(num)04d</span><span class="s">-Resolution</span><span class="si">%(ext)s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">dict</span><span class="p">(</span><span class="n">num</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num</span><span class="p">,</span> <span class="n">ext</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Plots&quot;</span><span class="p">][</span><span class="s">&quot;format&quot;</span><span class="p">],</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Dirs&quot;</span><span class="p">]))</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span>
+    </div>
+<div class="viewcode-block" id="Lenslet.bin"><a class="viewcode-back" href="../../Lenslets.html#SEDMachine.Lenslet.Lenslet.bin">[docs]</a>    <span class="k">def</span> <span class="nf">bin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">array</span><span class="p">,</span><span class="n">factor</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Bins an array by the given factor&quot;&quot;&quot;</span>
+    
+        <span class="n">finalShape</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">/</span> <span class="n">factor</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">))</span>
+        <span class="n">Aout</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">finalShape</span><span class="p">)</span>
+    
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">factor</span><span class="p">):</span>
+            <span class="n">Ai</span> <span class="o">=</span> <span class="n">array</span><span class="p">[</span><span class="n">i</span><span class="p">::</span><span class="n">factor</span><span class="p">,</span><span class="n">i</span><span class="p">::</span><span class="n">factor</span><span class="p">]</span>
+            <span class="n">Aout</span> <span class="o">+=</span> <span class="n">Ai</span>
+    
+        <span class="k">return</span> <span class="n">Aout</span>
+        
+    </div>
+<div class="viewcode-block" id="Lenslet.rotate"><a class="viewcode-back" href="../../Lenslets.html#SEDMachine.Lenslet.Lenslet.rotate">[docs]</a>    <span class="k">def</span> <span class="nf">rotate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">point</span><span class="p">,</span><span class="n">angle</span><span class="p">,</span><span class="n">origin</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Rotate a given point by the provided angle around the origin given&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">origin</span> <span class="o">==</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">origin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">pA</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">((</span><span class="n">point</span> <span class="o">-</span> <span class="n">origin</span><span class="p">))</span>
+        <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">([[</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span><span class="o">-</span><span class="mi">1</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">)],[</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">)]])</span><span class="o">.</span><span class="n">T</span>
+        <span class="n">pB</span> <span class="o">=</span> <span class="n">pA</span> <span class="o">*</span> <span class="n">R</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">pB</span> <span class="o">+</span> <span class="n">origin</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    </div>
+<div class="viewcode-block" id="Lenslet.make_hexagon"><a class="viewcode-back" href="../../Lenslets.html#SEDMachine.Lenslet.Lenslet.make_hexagon">[docs]</a>    <span class="k">def</span> <span class="nf">make_hexagon</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Generates a hexagonal polygon for this lenslet, to be used for area calculations&quot;&quot;&quot;</span>
+        <span class="n">radius</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;lenslets&quot;</span><span class="p">][</span><span class="s">&quot;radius&quot;</span><span class="p">]</span>
+        <span class="n">angle</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">3.0</span>
+        <span class="n">rotation</span> <span class="o">=</span>  <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;lenslets&quot;</span><span class="p">][</span><span class="s">&quot;rotation&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">180.0</span><span class="p">)</span> <span class="c">#Absolute angle of rotation for hexagons</span>
+        <span class="n">A</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ps</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">radius</span><span class="p">,</span><span class="mi">0</span><span class="p">]),</span><span class="n">rotation</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">ps</span><span class="p">)</span>
+        <span class="n">points</span> <span class="o">=</span> <span class="p">[</span><span class="n">A</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
+            <span class="n">A</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="n">A</span><span class="p">,</span><span class="n">angle</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">ps</span><span class="p">)</span>
+            <span class="n">points</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">A</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="n">sh</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">Polygon</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">points</span><span class="p">))</span>
+        </div>
+<div class="viewcode-block" id="Lenslet.show_geometry"><a class="viewcode-back" href="../../Lenslets.html#SEDMachine.Lenslet.Lenslet.show_geometry">[docs]</a>    <span class="k">def</span> <span class="nf">show_geometry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s">&#39;#cccc00&#39;</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Show the source geometry&quot;&quot;&quot;</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">exterior</span><span class="o">.</span><span class="n">xy</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">fill</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">aa</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span> 
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s">&#39;#666600&#39;</span><span class="p">,</span> <span class="n">aa</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mf">0.25</span><span class="p">)</span>
+    </div>
+<div class="viewcode-block" id="Lenslet.setup_crosstalk"><a class="viewcode-back" href="../../Lenslets.html#SEDMachine.Lenslet.Lenslet.setup_crosstalk">[docs]</a>    <span class="k">def</span> <span class="nf">setup_crosstalk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">n</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;docstring for setup_crosstalk&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pixelValues</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spectrum</span> <span class="o">=</span> <span class="n">FlatSpectrum</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+    </div>
+<div class="viewcode-block" id="Lenslet.find_crosstalk"><a class="viewcode-back" href="../../Lenslets.html#SEDMachine.Lenslet.Lenslet.find_crosstalk">[docs]</a>    <span class="k">def</span> <span class="nf">find_crosstalk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">pixel</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Find the crosstalk overlap with another pixel&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">disjoint</span><span class="p">(</span><span class="n">pixel</span><span class="o">.</span><span class="n">shape</span><span class="p">):</span>
+            <span class="k">return</span>
+        <span class="n">overlap</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">pixel</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="o">.</span><span class="n">area</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">area</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spectrum</span> <span class="o">+=</span> <span class="n">pixel</span> <span class="o">*</span> <span class="n">overlap</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pixelValues</span><span class="p">[</span><span class="n">pixel</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">overlap</span>
+        <span class="n">pixel</span><span class="o">.</span><span class="n">pixelValues</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">overlap</span>
+        </div>
+<div class="viewcode-block" id="Lenslet.find_normalized_overlap"><a class="viewcode-back" href="../../Lenslets.html#SEDMachine.Lenslet.Lenslet.find_normalized_overlap">[docs]</a>    <span class="k">def</span> <span class="nf">find_normalized_overlap</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;docstring for find_normalized_overlap&quot;&quot;&quot;</span>
+        <span class="n">matrix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixelValues</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Norm_overlaps</span> <span class="o">=</span> <span class="n">Normalize</span><span class="p">(</span><span class="n">matrix</span><span class="p">)</span>
+
+        </div></div>
+<div class="viewcode-block" id="SourcePixel"><a class="viewcode-back" href="../../Lenslets.html#SEDMachine.Lenslet.SourcePixel">[docs]</a><span class="k">class</span> <span class="nc">SourcePixel</span><span class="p">(</span><span class="n">InterpolatedSpectrum</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Source Pixels are objects which handle the source shape and size for resampling&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">config</span><span class="p">,</span><span class="n">num</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SourcePixel</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">x</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="n">y</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num</span> <span class="o">=</span> <span class="n">num</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolve_and_integrate</span>
+    
+<div class="viewcode-block" id="SourcePixel.make_pixel_square"><a class="viewcode-back" href="../../Lenslets.html#SEDMachine.Lenslet.SourcePixel.make_pixel_square">[docs]</a>    <span class="k">def</span> <span class="nf">make_pixel_square</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Make a specific pixel square&quot;&quot;&quot;</span>
+        <span class="n">radius</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Source&quot;</span><span class="p">][</span><span class="s">&quot;PXSize&quot;</span><span class="p">][</span><span class="s">&quot;mm&quot;</span><span class="p">]</span>
+        <span class="n">rotation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Source&quot;</span><span class="p">][</span><span class="s">&quot;Rotation&quot;</span><span class="p">]</span>
+        <span class="n">angle</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">2.0</span>
+        <span class="n">A</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ps</span><span class="o">+</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="n">radius</span><span class="p">]),</span><span class="n">rotation</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">ps</span><span class="p">)</span>
+        <span class="n">points</span> <span class="o">=</span> <span class="p">[</span><span class="n">A</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+            <span class="n">A</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="n">A</span><span class="p">,</span><span class="n">angle</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">ps</span><span class="p">)</span>
+            <span class="n">points</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">A</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="n">sh</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">Polygon</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">points</span><span class="p">))</span>
+        </div>
+<div class="viewcode-block" id="SourcePixel.rotate"><a class="viewcode-back" href="../../Lenslets.html#SEDMachine.Lenslet.SourcePixel.rotate">[docs]</a>    <span class="k">def</span> <span class="nf">rotate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">point</span><span class="p">,</span><span class="n">angle</span><span class="p">,</span><span class="n">origin</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Rotate a given point by the provided angle around the origin given&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">origin</span> <span class="o">==</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">origin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">pA</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">((</span><span class="n">point</span> <span class="o">-</span> <span class="n">origin</span><span class="p">))</span>
+        <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">([[</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span><span class="o">-</span><span class="mi">1</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">)],[</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">)]])</span><span class="o">.</span><span class="n">T</span>
+        <span class="n">pB</span> <span class="o">=</span> <span class="n">pA</span> <span class="o">*</span> <span class="n">R</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">pB</span> <span class="o">+</span> <span class="n">origin</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        </div>
+<div class="viewcode-block" id="SourcePixel.show_geometry"><a class="viewcode-back" href="../../Lenslets.html#SEDMachine.Lenslet.SourcePixel.show_geometry">[docs]</a>    <span class="k">def</span> <span class="nf">show_geometry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s">&#39;#cccc00&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Show the source geometry&quot;&quot;&quot;</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">exterior</span><span class="o">.</span><span class="n">xy</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">fill</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">aa</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span> 
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s">&#39;#666600&#39;</span><span class="p">,</span> <span class="n">aa</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mf">0.25</span><span class="p">)</span>
+        </div>
+<div class="viewcode-block" id="SourcePixel.setup_crosstalk"><a class="viewcode-back" href="../../Lenslets.html#SEDMachine.Lenslet.SourcePixel.setup_crosstalk">[docs]</a>    <span class="k">def</span> <span class="nf">setup_crosstalk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">n</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;docstring for setup_crosstalk&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pixelValues</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">))</span>
+            </div>
+<div class="viewcode-block" id="SourcePixel.get_color"><a class="viewcode-back" href="../../Lenslets.html#SEDMachine.Lenslet.SourcePixel.get_color">[docs]</a>    <span class="k">def</span> <span class="nf">get_color</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">idx</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;docstring for get_color&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vals</span> <span class="o">=</span> <span class="n">Normalize</span><span class="p">()(</span><span class="bp">self</span><span class="o">.</span><span class="n">pixelValues</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">cm</span><span class="o">.</span><span class="n">jet</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vals</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span>
+    </div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">SEDMsim 0.3.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012, Alexander Rudy.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

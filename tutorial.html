@@ -1,0 +1,298 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>2. Basic Tutorial &mdash; SEDMsim 0.3.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="SEDMsim 0.3.0 documentation" href="index.html" />
+    <link rel="next" title="3. SEDMsim Program for running simulations" href="SEDMsim.html" />
+    <link rel="prev" title="1. Introduction to the SEDMachine Simulator" href="introduction.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="SEDMsim.html" title="3. SEDMsim Program for running simulations"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="introduction.html" title="1. Introduction to the SEDMachine Simulator"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">SEDMsim 0.3.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="basic-tutorial">
+<span id="tutorial"></span><h1>2. Basic Tutorial<a class="headerlink" href="#basic-tutorial" title="Permalink to this headline">¶</a></h1>
+<p>This tutorial should walk you through the installation and basic operation of the <strong class="program">SEDMsim</strong>. For more details, see <a class="reference internal" href="SEDMsim.html#sedmsim"><em>SEDMsim Program for running simulations</em></a>.</p>
+<div class="section" id="installation">
+<h2>2.1. Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
+<p>This module uses the <tt class="docutils literal"><span class="pre">setup.py</span></tt> paradigm for installation and operation. The included setup.py file should attempt to resolve the dependency on <a class="reference external" href="http://github.com/alexrudy/AstroObject/">AstroObject</a>. It may also try to resolve dependencies on <a class="reference external" href="http://matplotlib.sourceforge.net/">Matplotlib</a>, <a class="reference external" href="http://numpy.scipy.org/">Numpy</a> and <a class="reference external" href="http://scipy.org/">Scipy</a>. It is adivsable to install these three modules <strong>before</strong> you attempt to install this program. They are specific and picky modules which often require material to be compiled on your machine. A package manager like <a class="reference external" href="http://en.wikipedia.org/wiki/Advanced_Packaging_Tool">APT</a> or <a class="reference external" href="http://macports.org/">MacPorts</a> might be useful here.</p>
+<ol class="arabic">
+<li><p class="first">Install <tt class="docutils literal"><span class="pre">Python</span> <span class="pre">2.7</span></tt>. This program runs only in version 2.7 for now.</p>
+</li>
+<li><p class="first">Install <a class="reference external" href="http://matplotlib.sourceforge.net/">Matplotlib</a>, <a class="reference external" href="http://numpy.scipy.org/">Numpy</a> and <a class="reference external" href="http://scipy.org/">Scipy</a> in your prefered package manager.</p>
+</li>
+<li><p class="first">Run <tt class="docutils literal"><span class="pre">setup.py</span></tt> in the SEDM directory</p>
+<div class="highlight-python"><pre>$ sudo python setup.py install</pre>
+</div>
+</li>
+</ol>
+<p>This should complete your installation. Common problems are caused by the inability to install <a class="reference external" href="http://github.com/alexrudy/AstroObject/">AstroObject</a> correctly. If this happens, download <a class="reference external" href="http://github.com/alexrudy/AstroObject/">AstroObject</a> from GitHub (use the master branch, or look at the latest tag for the most up-to-date version), change to the AstroObject base directory, and run <tt class="docutils literal"><span class="pre">setup.py</span></tt> there</p>
+<div class="highlight-python"><pre>$ sudo python setup.py install</pre>
+</div>
+<p>Then return to step 3 above. As much as I try to make the installation of <a class="reference external" href="http://github.com/alexrudy/AstroObject/">AstroObject</a> painless, sometimes it doesn&#8217;t happen automatically with the <cite>setup.py</cite> file provided for SEDMachine.</p>
+</div>
+<div class="section" id="running-sedmsim">
+<h2>2.2. Running <strong class="program">SEDMsim</strong><a class="headerlink" href="#running-sedmsim" title="Permalink to this headline">¶</a></h2>
+<p>To run the program, choose a stage to run (see <em class="xref std std-option">{stages}</em> for a list of basic stages) and then run the SEDMsim command. The simplest command is <tt class="docutils literal"><span class="pre">*all</span></tt> which performs the default simulation</p>
+<div class="highlight-python"><pre>$ SEDMsim *all</pre>
+</div>
+<p>Run this command with the <tt class="docutils literal"><span class="pre">-T</span></tt> option to limit the number of lenslets evaluated</p>
+<div class="highlight-python"><pre>$ SEDMsim -T *all</pre>
+</div>
+<p>Due to the setup of the default command, this program should only be run fro the directory which contains the SEDM source. This directory should contain the following sub-directories which handle input and output:</p>
+<blockquote>
+<div><ul class="simple">
+<li><tt class="docutils literal"><span class="pre">Caches/</span></tt> which will contain cache files. Cache files include the <tt class="docutils literal"><span class="pre">.fits</span></tt> files for each individual spectra, useful to examine spectra in over-sampled view.</li>
+<li><tt class="docutils literal"><span class="pre">Data/</span></tt> which will contain the required data files.</li>
+<li><tt class="docutils literal"><span class="pre">Images/</span></tt> which is the output directory. The final <tt class="docutils literal"><span class="pre">.fits</span></tt> image will be saved there.</li>
+<li><tt class="docutils literal"><span class="pre">Logs/</span></tt> which contains simulation logs.</li>
+<li><tt class="docutils literal"><span class="pre">Partials/</span></tt> which will contain items produced part-way through the simulator. Many files will be placed there, including plots.</li>
+<li><tt class="docutils literal"><span class="pre">SEDSpec2/</span></tt> is distributed with the system. It contains some of the data files required for Sky and Atmosphere functions.</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="examining-sedmsim-output">
+<h2>2.3. Examining <strong class="program">SEDMsim</strong> output<a class="headerlink" href="#examining-sedmsim-output" title="Permalink to this headline">¶</a></h2>
+<p>The primary output will appear in the <tt class="docutils literal"><span class="pre">Images/</span></tt> directory. This directory will contain <tt class="docutils literal"><span class="pre">.fits</span></tt> files which are full ouput. Each simulation produces two <tt class="docutils literal"><span class="pre">.fits</span></tt> files. One file includes a <tt class="docutils literal"><span class="pre">-deep</span></tt> in the filename. Both will contain today&#8217;s date in the filename. The <tt class="docutils literal"><span class="pre">-deep</span></tt> file is an extended fits file with frames for a variety of stages in the simulation process. The other file is just the final output. If you use <tt class="docutils literal"><span class="pre">ds9</span></tt>, you can examine the extended frames in the fits file using</p>
+<div class="highlight-python"><pre>$ ds9 file-deep.fits[{0,1,3}]</pre>
+</div>
+<p>for frames 0, 1, and 3. The final image will always be in frame 0. Other frames will use the FITS keyword <tt class="docutils literal"><span class="pre">LABEL</span></tt> to describe their contents. These frames may also use the <tt class="docutils literal"><span class="pre">OBJECT</span></tt> keyword (if it in use) to describe their contents.</p>
+<p>If you made plots, or wish to look at results from the simulation which are not the final image, examine the <tt class="docutils literal"><span class="pre">Partials/</span></tt> directory. If you just ran the simulation normally, you can find the following files in the partials directory:</p>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">Instrument-Offsets.dat</span></tt>: Pixel offset values for subimages</li>
+<li><tt class="docutils literal"><span class="pre">LensletAudit.dat</span></tt>: Information about each lenslet processed, in a python-dictionary like way. Useful for detailed information about each lenslet used.</li>
+<li><tt class="docutils literal"><span class="pre">Lenslets-Raw.dat</span></tt>: Information about each lenslet, in human-readable form</li>
+<li><tt class="docutils literal"><span class="pre">center.dat</span></tt>: Information about the central lenslet</li>
+<li><tt class="docutils literal"><span class="pre">config-SEDMachine.yaml</span></tt>: Configuration file used for the simulation.</li>
+</ul>
+<p>If you ran the <tt class="docutils literal"><span class="pre">*plot</span></tt> stage, you will find a plethora of plots about the entire simulation. As plots are produced for each lenslet, it is advisable to limit the number of lenslets used for the <tt class="docutils literal"><span class="pre">*plot</span></tt> command, for example, run</p>
+<div class="highlight-python"><pre>$ SEDMsim -S *plot</pre>
+</div>
+<p>to only examine 5 lenslets.</p>
+</div>
+<div class="section" id="configuring-sedmsim">
+<h2>2.4. Configuring <strong class="program">SEDMsim</strong><a class="headerlink" href="#configuring-sedmsim" title="Permalink to this headline">¶</a></h2>
+<p>The SEDMsim program is primarily configuraed by a YAML file. The full configuration is described in <a class="reference internal" href="SEDMsim.html#configuration"><em>SEDMsim Configuration Files</em></a>. A simple configuration file is shown below:</p>
+<div class="highlight-python"><pre>Instrument:
+  density: 5
+  eADU: 0.03802
+Observation:
+  airmass: 1
+  exposure: 1200
+  number: 3
+  Moon:
+    Phase: 6
+  Sky:
+    Atmosphere: Atmosph
+    Use: TurnroseSKY
+Source:
+  Filename: Data/SNIa.R1000.dat</pre>
+</div>
+<p>Each directive is as follows:</p>
+<ul>
+<li><dl class="first docutils">
+<dt><tt class="docutils literal"><span class="pre">Instrument</span></tt> contains instrument specific directives</dt>
+<dd><ul class="first last simple">
+<li><tt class="docutils literal"><span class="pre">density</span></tt> is the level of oversampling for each spectrum. Higher numbers produce more accurate data, but are slower.</li>
+<li><tt class="docutils literal"><span class="pre">eADU</span></tt> is the conversion from photons to counts.</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt><tt class="docutils literal"><span class="pre">Observation</span></tt> Contains data about the individual observation.</dt>
+<dd><ul class="first last">
+<li><p class="first"><tt class="docutils literal"><span class="pre">airmass</span></tt> for the target, controls extinction</p>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">exposure</span></tt> time measured in seconds</p>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">number</span></tt> is the number of individual exposures which contribute to the overall exposure</p>
+</li>
+<li><dl class="first docutils">
+<dt><tt class="docutils literal"><span class="pre">Moon</span></tt> contains information about the moon.</dt>
+<dd><ul class="first last simple">
+<li><tt class="docutils literal"><span class="pre">Phase</span></tt> is an index for the moon phase.</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt><tt class="docutils literal"><span class="pre">Sky</span></tt> Controls directives about the sky model used.</dt>
+<dd><ul class="first last simple">
+<li><tt class="docutils literal"><span class="pre">Atmosphere</span></tt> is the label for the atmosphere spectrum <tt class="docutils literal"><span class="pre">.fits</span></tt> file.</li>
+<li><tt class="docutils literal"><span class="pre">Use</span></tt> is the label for the sky spectrum <tt class="docutils literal"><span class="pre">.fits</span></tt> file.</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt><tt class="docutils literal"><span class="pre">Source</span></tt> contains information about the source in use.</dt>
+<dd><ul class="first last simple">
+<li><tt class="docutils literal"><span class="pre">Filename</span></tt> is the filename for 1D source spectra</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<p>Placing this structure into a configuration file named <tt class="docutils literal"><span class="pre">SED.main.config.yaml</span></tt> will change the operational values for that spectrum.</p>
+</div>
+<div class="section" id="creating-alternative-data">
+<h2>2.5. Creating alternative data<a class="headerlink" href="#creating-alternative-data" title="Permalink to this headline">¶</a></h2>
+<p>There are few other data frames that could be useful with the <strong class="program">SEDMsim</strong> simulator. The simulator can create Flat, Bias, Dark, Calibration and Sky frames which all have universal source properties and are required for most data reduction pipelines.</p>
+<div class="section" id="flat-frames">
+<h3>2.5.1. Flat Frames<a class="headerlink" href="#flat-frames" title="Permalink to this headline">¶</a></h3>
+<p>Flat frames are substituted using the <tt class="docutils literal"><span class="pre">*flat-source</span></tt> stage. This stage uses the configuration values <tt class="docutils literal"><span class="pre">Source:</span> <span class="pre">Value:</span></tt> to get a flat value. To build a flat source frame, run</p>
+<div class="highlight-python"><pre>$ SEDMsim *flat-source *all</pre>
+</div>
+</div>
+<div class="section" id="bias-and-dark-frames">
+<h3>2.5.2. Bias and Dark Frames<a class="headerlink" href="#bias-and-dark-frames" title="Permalink to this headline">¶</a></h3>
+<p>Simple bias and dark frames (using the observatin characteristics in the configuration) can be created using</p>
+<div class="highlight-python"><pre>$ SEDMsim *add-noise *save</pre>
+</div>
+</div>
+<div class="section" id="calibration-lamp-frames">
+<h3>2.5.3. Calibration Lamp Frames<a class="headerlink" href="#calibration-lamp-frames" title="Permalink to this headline">¶</a></h3>
+<p>Calibration lamp frames are based on a line list and properties about that line list. The configuration is</p>
+<div class="highlight-python"><pre>WLCal:
+  List: Data/Lines.dat
+  sigma: 1.0e-09
+  value: 100000000.0</pre>
+</div>
+<p>and they can be run with</p>
+<div class="highlight-python"><pre>$ SEDMsim *line-source *all</pre>
+</div>
+</div>
+<div class="section" id="sky-line-frames">
+<h3>2.5.4. Sky Line Frames<a class="headerlink" href="#sky-line-frames" title="Permalink to this headline">¶</a></h3>
+<p>Frames with pure sky can be created using</p>
+<div class="highlight-python"><pre>$ SEDMsim *sky-source *all</pre>
+</div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">2. Basic Tutorial</a><ul>
+<li><a class="reference internal" href="#installation">2.1. Installation</a></li>
+<li><a class="reference internal" href="#running-sedmsim">2.2. Running <strong class="program">SEDMsim</strong></a></li>
+<li><a class="reference internal" href="#examining-sedmsim-output">2.3. Examining <strong class="program">SEDMsim</strong> output</a></li>
+<li><a class="reference internal" href="#configuring-sedmsim">2.4. Configuring <strong class="program">SEDMsim</strong></a></li>
+<li><a class="reference internal" href="#creating-alternative-data">2.5. Creating alternative data</a><ul>
+<li><a class="reference internal" href="#flat-frames">2.5.1. Flat Frames</a></li>
+<li><a class="reference internal" href="#bias-and-dark-frames">2.5.2. Bias and Dark Frames</a></li>
+<li><a class="reference internal" href="#calibration-lamp-frames">2.5.3. Calibration Lamp Frames</a></li>
+<li><a class="reference internal" href="#sky-line-frames">2.5.4. Sky Line Frames</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="introduction.html"
+                        title="previous chapter">1. Introduction to the SEDMachine Simulator</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="SEDMsim.html"
+                        title="next chapter">3. <strong class="program">SEDMsim</strong> Program for running simulations</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/tutorial.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="SEDMsim.html" title="3. SEDMsim Program for running simulations"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="introduction.html" title="1. Introduction to the SEDMachine Simulator"
+             >previous</a> |</li>
+        <li><a href="index.html">SEDMsim 0.3.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012, Alexander Rudy.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

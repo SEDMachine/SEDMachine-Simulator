@@ -1,0 +1,152 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>1. Introduction to the SEDMachine Simulator &mdash; SEDMsim 0.3.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="SEDMsim 0.3.0 documentation" href="index.html" />
+    <link rel="next" title="2. Basic Tutorial" href="tutorial.html" />
+    <link rel="prev" title="Welcome to SEDMsim documentation!" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="tutorial.html" title="2. Basic Tutorial"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to SEDMsim documentation!"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">SEDMsim 0.3.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="introduction-to-the-sedmachine-simulator">
+<span id="introduction"></span><h1>1. Introduction to the SEDMachine Simulator<a class="headerlink" href="#introduction-to-the-sedmachine-simulator" title="Permalink to this headline">¶</a></h1>
+<p>The SEDMachine Simulator is designed to simulate many aspects of the design and operation of the SEDMachine instrument. As such, it endeavors to be an accurate simulation of the optical processes in the SEDMachine and to faithfully reproduce data which might be created by the SEDMachine. This program can simulate the different types of data images that the SEDMachine is likely to produce. Images can be simulated which are based on data-cubes, simple sources (with a fixed geometry inserted), or uniform sources. Potential uniform sources include sky spectra, flat lamps (similar to what a quartz lamp would produce), calibration lamps (based on a line list) and arbitrary uniform sources (specified in a data file, with R&gt;1000). The simulator works by generating large FITS images, and doing spectral resolution and flux calibration math. It can take a little while to run each simulation (there are more than 5000 active lenslets in the SED machine!), so be patient, and test your simulation on a small number of lenslets first to ensure that it works.</p>
+<div class="section" id="organization">
+<h2>1.1. Organization<a class="headerlink" href="#organization" title="Permalink to this headline">¶</a></h2>
+<p>The program is contained within the <tt class="xref py py-mod docutils literal"><span class="pre">SEDMachine</span></tt> module. This module has two primary components: the Simulator, and the supporting classes. The <a class="reference internal" href="Simulator.html#module-SEDMachine.Simulator" title="SEDMachine.Simulator"><tt class="xref py py-mod docutils literal"><span class="pre">SEDMachine.Simulator</span></tt></a> module has a single class, <a class="reference internal" href="Simulator.html#SEDMachine.Simulator.SEDSimulator" title="SEDMachine.Simulator.SEDSimulator"><tt class="xref py py-class docutils literal"><span class="pre">SEDMachine.Simulator.SEDSimulator</span></tt></a> which implements the control functions for the program. When you call <strong class="program">SEDMsim</strong>, you are using this class&#8217;s <tt class="xref py py-meth docutils literal"><span class="pre">SEDMachine.Simulator.SEDSimulator.run()</span></tt> method. The program relies on the <tt class="xref py py-mod docutils literal"><span class="pre">AstroObject</span></tt> module, which I&#8217;ve (Alex Rudy) developed to make lots of astronomy tasks a lot more &#8220;object-focused&#8221;. <a class="reference external" href="http://github.com/alexrudy/AstroObject/">AstroObject</a> can be found online at <a class="reference external" href="http://github.com/alexrudy/AstroObject/">Github</a></p>
+</div>
+<div class="section" id="what-this-program-simulates">
+<h2>1.2. What this program simulates<a class="headerlink" href="#what-this-program-simulates" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="what-this-program-does-not-do">
+<h2>1.3. What this program does not do<a class="headerlink" href="#what-this-program-does-not-do" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="very-basic-tutorial">
+<h2>1.4. Very Basic Tutorial<a class="headerlink" href="#very-basic-tutorial" title="Permalink to this headline">¶</a></h2>
+<p>This is the bare minimum required to just run a simulation. For a more detailed tutorial, see <a class="reference internal" href="tutorial.html#tutorial"><em>Basic Tutorial</em></a>.</p>
+<p>Assuming you have <a class="reference external" href="http://matplotlib.sourceforge.net/">Matplotlib</a>, <a class="reference external" href="http://numpy.scipy.org/">Numpy</a> and <a class="reference external" href="http://scipy.org/">Scipy</a> installed, run:</p>
+<div class="highlight-python"><pre>$ sudo python setup.py install
+$ SEDMsim *all</pre>
+</div>
+<p>to perform a basic simulation. Simulations can take quite a long time to run. As such, you might want to try:</p>
+<div class="highlight-python"><pre>$ SEDMsim -T *all</pre>
+</div>
+<p>to perform the same simulation, but using only 50 lenslets.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">1. Introduction to the SEDMachine Simulator</a><ul>
+<li><a class="reference internal" href="#organization">1.1. Organization</a></li>
+<li><a class="reference internal" href="#what-this-program-simulates">1.2. What this program simulates</a></li>
+<li><a class="reference internal" href="#what-this-program-does-not-do">1.3. What this program does not do</a></li>
+<li><a class="reference internal" href="#very-basic-tutorial">1.4. Very Basic Tutorial</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">Welcome to <strong class="program">SEDMsim</strong> documentation!</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="tutorial.html"
+                        title="next chapter">2. Basic Tutorial</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/introduction.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="tutorial.html" title="2. Basic Tutorial"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to SEDMsim documentation!"
+             >previous</a> |</li>
+        <li><a href="index.html">SEDMsim 0.3.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012, Alexander Rudy.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

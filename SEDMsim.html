@@ -1,0 +1,648 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>3. SEDMsim Program for running simulations &mdash; SEDMsim 0.3.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="SEDMsim 0.3.0 documentation" href="index.html" />
+    <link rel="next" title="5. Simulator AstroSimulator" href="AstroSimulator.html" />
+    <link rel="prev" title="2. Basic Tutorial" href="tutorial.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="AstroSimulator.html" title="5. Simulator AstroSimulator"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="tutorial.html" title="2. Basic Tutorial"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">SEDMsim 0.3.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="sedmsim-program-for-running-simulations">
+<span id="sedmsim"></span><h1>3. <strong class="program">SEDMsim</strong> Program for running simulations<a class="headerlink" href="#sedmsim-program-for-running-simulations" title="Permalink to this headline">¶</a></h1>
+<p>The master simulator program is a command-line interface to the <a class="reference internal" href="AstroSimulator.html#AstroObject.AstroSimulator.Simulator.run" title="AstroObject.AstroSimulator.Simulator.run"><tt class="xref py py-meth docutils literal"><span class="pre">AstroObject.AstroSimulator.Simulator.run()</span></tt></a> method. Below are the major command line components.</p>
+<p>Usage Statement</p>
+<div class="highlight-python"><pre>SEDMsim [ options ][ configuration ] {stages}</pre>
+</div>
+<p>The program is actually agnostic to the order of arguments. Any argument may come in any position. As such, all arguments must be unique.</p>
+<dl class="option">
+<dt>
+<tt class="descname">{stages}</tt></dt>
+<dd><p>The stages option specifies individual stages for the program to run. You must specify at least one stage to run in the simulator. By default, two basic stages are provided, <tt class="docutils literal"><span class="pre">*all</span></tt> and <tt class="docutils literal"><span class="pre">*none</span></tt>. The default simulation is performed by <tt class="docutils literal"><span class="pre">*all</span></tt>. To test the simulator without running any stages (for example, to test <a class="reference internal" href="AstroSimulator.html#AstroObject.AstroSimulator.Simulator.registerFunction" title="AstroObject.AstroSimulator.Simulator.registerFunction"><tt class="xref py py-meth docutils literal"><span class="pre">AstroObject.AstroSimulator.Simulator.registerFunction()</span></tt></a> functionality), us the <tt class="docutils literal"><span class="pre">*none</span></tt> stage to opertate without using any stages.</p>
+<p>Stages are called with either a <tt class="docutils literal"><span class="pre">*</span></tt>, <tt class="docutils literal"><span class="pre">+</span></tt> or <tt class="docutils literal"><span class="pre">-</span></tt> character at the beginning. Their resepctive actions are shown below. All commands must include at least one macro. If you don&#8217;t want any particular macro, use the <tt class="docutils literal"><span class="pre">*none</span></tt> macro.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="8%" />
+<col width="11%" />
+<col width="80%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Character</th>
+<th class="head">Action</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><tt class="docutils literal"><span class="pre">*</span></tt></td>
+<td>Include</td>
+<td>To include a stage, use <tt class="docutils literal"><span class="pre">*stage</span></tt>. This will also run the dependents for that stage.</td>
+</tr>
+<tr class="row-odd"><td><tt class="docutils literal"><span class="pre">-</span></tt></td>
+<td>Exclude</td>
+<td>To exclude a stage, use <tt class="docutils literal"><span class="pre">-stage</span></tt>. This stage (and it&#8217;s dependents) will be skipped.</td>
+</tr>
+<tr class="row-even"><td><tt class="docutils literal"><span class="pre">+</span></tt></td>
+<td>Include-only</td>
+<td>To include a stage, but not the dependents of that stage, use <tt class="docutils literal"><span class="pre">+stage</span></tt>.</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p>Including an argument and excluding it simultaneously will have the effect of including it overall. So the following three commands are equivalent:</p>
+<div class="highlight-python"><pre>$ SEDMsim +stage -stage *none
+$ SEDMsim -stage +stage *none
+$ SEDMsim +stage *none</pre>
+</div>
+<p>Also, excluding a stage that is included as a macro will exclude that stage and not call it&#8217;s dependents, so the following calls are equivalent:</p>
+<div class="last highlight-python"><pre>$ SEDMsim -stage *stage
+$ SEDMsim *none</pre>
+</div>
+</div>
+<p>The commonly used stages in <strong class="program">SEDMsim</strong> are</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="31%" />
+<col width="69%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Stage</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><tt class="docutils literal"><span class="pre">*all</span></tt></td>
+<td>Run all default stages</td>
+</tr>
+<tr class="row-odd"><td><tt class="docutils literal"><span class="pre">*none</span></tt></td>
+<td>Run no stages</td>
+</tr>
+<tr class="row-even"><td><tt class="docutils literal"><span class="pre">*plot</span></tt></td>
+<td>Run all stages that make plots</td>
+</tr>
+<tr class="row-odd"><td><tt class="docutils literal"><span class="pre">*simple-source</span></tt></td>
+<td>Use a simple, centered source object</td>
+</tr>
+<tr class="row-even"><td><tt class="docutils literal"><span class="pre">*setup</span></tt></td>
+<td>System Setup</td>
+</tr>
+<tr class="row-odd"><td><tt class="docutils literal"><span class="pre">*sky-source</span></tt></td>
+<td>Use only sky spectrum</td>
+</tr>
+<tr class="row-even"><td><tt class="docutils literal"><span class="pre">*flat-source</span></tt></td>
+<td>Use a constant value source</td>
+</tr>
+<tr class="row-odd"><td><tt class="docutils literal"><span class="pre">*line-source</span></tt></td>
+<td>Use a calibration lamp source</td>
+</tr>
+<tr class="row-even"><td><tt class="docutils literal"><span class="pre">*crop</span></tt></td>
+<td>Crop Final Image</td>
+</tr>
+<tr class="row-odd"><td><tt class="docutils literal"><span class="pre">*add-noise</span></tt></td>
+<td>Add Dark/Bias noise to image</td>
+</tr>
+<tr class="row-even"><td><tt class="docutils literal"><span class="pre">*transpose</span></tt></td>
+<td>Transpose the image</td>
+</tr>
+<tr class="row-odd"><td><tt class="docutils literal"><span class="pre">*save</span></tt></td>
+<td>Save image to file</td>
+</tr>
+<tr class="row-even"><td><tt class="docutils literal"><span class="pre">*cached-only</span></tt></td>
+<td>Use cached subimages to construct final image</td>
+</tr>
+</tbody>
+</table>
+<p>Stages are registered by the <a class="reference internal" href="AstroSimulator.html#AstroObject.AstroSimulator.Simulator.registerStage" title="AstroObject.AstroSimulator.Simulator.registerStage"><tt class="xref py py-meth docutils literal"><span class="pre">AstroObject.AstroSimulator.Simulator.registerStage()</span></tt></a> method.</p>
+</dd></dl>
+
+<dl class="option">
+<dt>
+<tt class="descname">[configurations]</tt></dt>
+<dd><p>Configuration options override defaults set up in <a class="reference internal" href="Simulator.html#SEDMachine.Simulator.SEDSimulator" title="SEDMachine.Simulator.SEDSimulator"><tt class="xref py py-class docutils literal"><span class="pre">SEDMachine.Simulator.SEDSimulator</span></tt></a>. As such, they are useful quick changes to a configuration.</p>
+<blockquote>
+<div><table border="1" class="docutils">
+<colgroup>
+<col width="32%" />
+<col width="68%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Options</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><tt class="docutils literal"><span class="pre">-d</span></tt></td>
+<td>enable debugging messages and plots</td>
+</tr>
+<tr class="row-odd"><td><tt class="docutils literal"><span class="pre">-D</span></tt></td>
+<td>Debug, Limit lenslets (50,start from 2100)</td>
+</tr>
+<tr class="row-even"><td><tt class="docutils literal"><span class="pre">-S</span></tt></td>
+<td>Debug, Limit lenslets (5,start from 2100)</td>
+</tr>
+<tr class="row-odd"><td><tt class="docutils literal"><span class="pre">-T</span></tt></td>
+<td>Limit lenslets (50,start from 2100)</td>
+</tr>
+<tr class="row-even"><td><tt class="docutils literal"><span class="pre">-M</span></tt></td>
+<td>Limit lenslets (500,start from 1000)</td>
+</tr>
+<tr class="row-odd"><td><tt class="docutils literal"><span class="pre">-N</span></tt></td>
+<td>Limit lenslets (500,start from 1000)</td>
+</tr>
+<tr class="row-even"><td><tt class="docutils literal"><span class="pre">-A</span></tt></td>
+<td>Debug, Single lenslets (start from 2100)</td>
+</tr>
+</tbody>
+</table>
+</div></blockquote>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">This means if you dump the configuration file (see <a class="reference internal" href="#cmdoption-SEDMsim--dump"><em class="xref std std-option">--dump</em></a>) and use that directly as your new configuration file, these options will have no effect. Therefore, it is advisable that your configuration file contain the minimum amount of detail to override the default values set in the program. However, if you wish to use these options, but always disable debug, for example, you could disable debug in your configuration file. This will make none of these flags enable debugging.</p>
+</div>
+</dd></dl>
+
+<dl class="option">
+<dt id="cmdoption-SEDMsim-h">
+<tt class="descname">-h</tt><tt class="descclassname"></tt><tt class="descclassname">, </tt><tt class="descname">--help</tt><tt class="descclassname"></tt><a class="headerlink" href="#cmdoption-SEDMsim-h" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get help about the <strong class="program">SEDMsim</strong> command. Help will list commonly used stages, optional arguments, and configuration items.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">To get a full list of stages available, use <a class="reference internal" href="#cmdoption-SEDMsim--stages"><em class="xref std std-option">--stages</em></a></p>
+</div>
+</dd></dl>
+
+<dl class="option">
+<dt id="cmdoption-SEDMsim--version">
+<tt class="descname">--version</tt><tt class="descclassname"></tt><a class="headerlink" href="#cmdoption-SEDMsim--version" title="Permalink to this definition">¶</a></dt>
+<dd><p>Print the program version.</p>
+</dd></dl>
+
+<dl class="option">
+<dt id="cmdoption-SEDMsim--cf">
+<tt class="descname">--cf</tt><tt class="descclassname"> file.yaml</tt><a class="headerlink" href="#cmdoption-SEDMsim--cf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the name of the configuration file to use. By default, the configuation file is called <cite>SED.main.config.yaml</cite>. This will be the filename used for dumping configurations with the <a class="reference internal" href="#cmdoption-SEDMsim--dump"><em class="xref std std-option">--dump</em></a> command (Dump will append the extension <tt class="docutils literal"><span class="pre">-dump.yaml</span></tt> onto the filename to prevent overwriting exisitng configurations)</p>
+</dd></dl>
+
+<dl class="option">
+<dt id="cmdoption-SEDMsim--dry-run">
+<tt class="descname">--dry-run</tt><tt class="descclassname"></tt><a class="headerlink" href="#cmdoption-SEDMsim--dry-run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Traverse all of the stages to be run, printing them as the program goes, but do not run any stages.</p>
+</dd></dl>
+
+<dl class="option">
+<dt id="cmdoption-SEDMsim--stages">
+<tt class="descname">--stages</tt><tt class="descclassname"></tt><a class="headerlink" href="#cmdoption-SEDMsim--stages" title="Permalink to this definition">¶</a></dt>
+<dd><p>Print all stages registered in the simulator. Any stage listed in the output of this function can be run.</p>
+</dd></dl>
+
+<dl class="option">
+<dt id="cmdoption-SEDMsim--dump">
+<tt class="descname">--dump</tt><tt class="descclassname"></tt><a class="headerlink" href="#cmdoption-SEDMsim--dump" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dump the configuration to a file. Filenames are the configuration file name with <tt class="docutils literal"><span class="pre">-dump.yaml</span></tt> appended.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="sedmsim-configuration-files">
+<span id="configuration"></span><h1>4. <strong class="program">SEDMsim</strong> Configuration Files<a class="headerlink" href="#sedmsim-configuration-files" title="Permalink to this headline">¶</a></h1>
+<p><strong class="program">SEDMsim</strong> configuration files are YAML files which contain a dictionary structure. All values in the YAML files are basic yaml, and contain no python-specific directives. To find out what the default or current configuration is, use the <a class="reference internal" href="#cmdoption-SEDMsim--dump"><em class="xref std std-option">--dump</em></a> command. The file produced from this will contain a YAML structure for the configuration in use when the system started up. The various directives in the configuration file are described below.</p>
+<ul>
+<li><dl class="first docutils">
+<dt>Caches:</dt>
+<dd><ul class="first last simple">
+<li>CONV: SED.conv.npy</li>
+<li>PSF: SED.psf.npy</li>
+<li>Telescope: SED.tel.npy</li>
+<li>config: SED.config.yaml</li>
+<li>const: SED.const.yaml</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>Configurations:</dt>
+<dd><ul class="first last simple">
+<li>Main: SED.main.config.yaml</li>
+<li>This: SED.main.config.yaml</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p class="first">Debug: false</p>
+</li>
+<li><dl class="first docutils">
+<dt>Dirs:</dt>
+<dd><ul class="first last simple">
+<li>Caches: Caches</li>
+<li>Images: Images</li>
+<li>Logs: Logs</li>
+<li>Partials: Partials</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>Instrument:</dt>
+<dd><ul class="first last">
+<li><dl class="first docutils">
+<dt>Thpt:</dt>
+<dd><ul class="first last simple">
+<li>File: SEDSpec2/Data/thpt.npy</li>
+<li>Type: prism_pi</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p class="first">bias: 20</p>
+</li>
+<li><p class="first">camera: PI</p>
+</li>
+<li><dl class="first docutils">
+<dt>ccd_size:</dt>
+<dd><ul class="first last simple">
+<li>px: 2048</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>convert:</dt>
+<dd><ul class="first last simple">
+<li>pxtomm: 0.0135</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p class="first">density: 5</p>
+</li>
+<li><p class="first">dispfitorder: 2</p>
+</li>
+<li><p class="first">eADU: 0.03802</p>
+</li>
+<li><dl class="first docutils">
+<dt>files:</dt>
+<dd><ul class="first last simple">
+<li>dispersion: Data/dispersion_12-10-2011.txt</li>
+<li>encircledenergy: Data/encircled_energy_4nov11.TXT</li>
+<li>lenslets: Data/xy_17nov2011_v57.TXT</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p class="first">gain: 5</p>
+</li>
+<li><dl class="first docutils">
+<dt>image_pad:</dt>
+<dd><ul class="first last simple">
+<li>mm: 0.1</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>image_size:</dt>
+<dd><ul class="first last simple">
+<li>mm: 40.0</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>lenslets:</dt>
+<dd><ul class="first last simple">
+<li>radius: 0.00245</li>
+<li>rotation: 27.0</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p class="first">padding: 5</p>
+</li>
+<li><p class="first">plot: false</p>
+</li>
+<li><dl class="first docutils">
+<dt>psf_size:</dt>
+<dd><ul class="first last simple">
+<li>px: 2.4</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>psf_stdev:</dt>
+<dd><ul class="first last simple">
+<li>px: 1.0</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>scatter:</dt>
+<dd><ul class="first last simple">
+<li>radius: 800</li>
+<li>wavelength: 4.5e-07</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p class="first">tel_area: 16417.8</p>
+</li>
+<li><dl class="first docutils">
+<dt>tel_obsc:</dt>
+<dd><ul class="first last simple">
+<li>px: 0.2</li>
+<li>ratio: 0.1</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>tel_radii:</dt>
+<dd><ul class="first last simple">
+<li>px: 1.2</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>wavelengths:</dt>
+<dd><ul class="first last simple">
+<li>max: 9.3e-07</li>
+<li>min: 3.7e-07</li>
+<li>resolution: 100</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p class="first">Lenslets: {}</p>
+</li>
+<li><dl class="first docutils">
+<dt>Observation:</dt>
+<dd><ul class="first last">
+<li><dl class="first docutils">
+<dt>Moon:</dt>
+<dd><ul class="first last simple">
+<li>Phase: 6</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>Sky:</dt>
+<dd><ul class="first last">
+<li><p class="first">Atmosphere: Atmosph</p>
+</li>
+<li><dl class="first docutils">
+<dt>Files:</dt>
+<dd><ul class="first last simple">
+<li>HansuchikUVES: SEDSpec2/HansuchikUVES.fits</li>
+<li>Massey: SEDSpec2/MasseySky.fits</li>
+<li>PALext: SEDSpec2/atmosphere.fits</li>
+<li>Quimby: SEDSpec2/Quimby.fits</li>
+<li>TurnroseSKY: SEDSpec2/TurnroseSKY.fits</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p class="first">Use: TurnroseSKY</p>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p class="first">airmass: 1</p>
+</li>
+<li><p class="first">exposure: 1200</p>
+</li>
+<li><p class="first">number: 3</p>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>Output:</dt>
+<dd><ul class="first last simple">
+<li>Format: fits</li>
+<li>Label: Generated</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>Plots:</dt>
+<dd><ul class="first last simple">
+<li>format: .pdf</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>Source:</dt>
+<dd><ul class="first last">
+<li><p class="first">CubeName: Data/CUBE.fits</p>
+</li>
+<li><p class="first">Filename: Data/SNIa.R1000.dat</p>
+</li>
+<li><dl class="first docutils">
+<dt>Flat:</dt>
+<dd><ul class="first last simple">
+<li>value: 1.0e-06</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p class="first">LineList: null</p>
+</li>
+<li><dl class="first docutils">
+<dt>PXSize:</dt>
+<dd><ul class="first last simple">
+<li>mm: 0.005</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p class="first">PreAmp: 0.001</p>
+</li>
+<li><p class="first">Rotation: 0.7853981633974483</p>
+</li>
+<li><p class="first">Sample_Lenslet: 2000</p>
+</li>
+<li><dl class="first docutils">
+<dt>WLCal:</dt>
+<dd><blockquote class="first">
+<div><ul class="simple">
+<li>List: Data/Lines.dat</li>
+</ul>
+</div></blockquote>
+<ul class="last simple">
+<li>sigma: 1.0e-09</li>
+<li>value: 100000000.0</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>logging:</dt>
+<dd><ul class="first last">
+<li><dl class="first docutils">
+<dt>console:</dt>
+<dd><blockquote class="first">
+<div><ul class="simple">
+<li>enable: true</li>
+</ul>
+</div></blockquote>
+<ul class="last simple">
+<li>format: &#8216;%(levelname)-8s... %(message)s&#8217;</li>
+<li>level: 20</li>
+<li>message: &#8216;...%(message)s&#8217;</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>file:</dt>
+<dd><ul class="first last simple">
+<li>dateformat: &#8216;%Y-%m-%d-%H:%M:%S&#8217;</li>
+<li>enable: true</li>
+<li>filename: SEDMachine</li>
+<li>format: &#8216;%(asctime)s : %(levelname)-8s : %(funcName)-20s : %(message)s&#8217;</li>
+<li>level: null</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>growl:</dt>
+<dd><ul class="first last simple">
+<li>enable: false</li>
+<li>level: null</li>
+<li>name: SED Machine Simulator</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">3. <strong class="program">SEDMsim</strong> Program for running simulations</a></li>
+<li><a class="reference internal" href="#sedmsim-configuration-files">4. <strong class="program">SEDMsim</strong> Configuration Files</a></li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="tutorial.html"
+                        title="previous chapter">2. Basic Tutorial</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="AstroSimulator.html"
+                        title="next chapter">5. Simulator <tt class="docutils literal docutils literal"><span class="pre">AstroSimulator</span></tt></a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/SEDMsim.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="AstroSimulator.html" title="5. Simulator AstroSimulator"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="tutorial.html" title="2. Basic Tutorial"
+             >previous</a> |</li>
+        <li><a href="index.html">SEDMsim 0.3.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012, Alexander Rudy.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

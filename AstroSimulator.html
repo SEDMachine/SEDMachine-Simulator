@@ -1,0 +1,491 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>5. Simulator AstroSimulator &mdash; SEDMsim 0.3.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="SEDMsim 0.3.0 documentation" href="index.html" />
+    <link rel="next" title="6. Simulator Operational Algorithms" href="Simulator.html" />
+    <link rel="prev" title="3. SEDMsim Program for running simulations" href="SEDMsim.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="Simulator.html" title="6. Simulator Operational Algorithms"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="SEDMsim.html" title="3. SEDMsim Program for running simulations"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">SEDMsim 0.3.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="module-AstroObject.AstroSimulator">
+<span id="simulator-astrosimulator"></span><h1>5. Simulator <tt class="xref py py-mod docutils literal"><span class="pre">AstroSimulator</span></tt><a class="headerlink" href="#module-AstroObject.AstroSimulator" title="Permalink to this headline">¶</a></h1>
+<p>The Simulator is designed to provide a high level, command-line useful interface to large computational tasks. As the name suggests, Simulators often do a lot of programming work, and do so across many distinct &#8220;stages&#8221;, whcih can be configured in any way the user desires. All of the abilities in this program are simply object abstraction techniques to provide a complex program with a command line interface and better control and reporting on the activities carreid out to successfully complete the program. It allows for the configuration of simple test cases and &#8220;macros&#8221; from within the program, eliminating the need to provide small wrapper scripts and test handlers.</p>
+<p>An example (simple) program using the simulator can be found in <a class="reference internal" href="SimulatorExample.html#simulatorexample"><em>An Example Simulator</em></a></p>
+<div class="section" id="simulator-command-line-interface">
+<span id="simulator-cli"></span><h2>5.1. <strong class="program">Simulator</strong> Command Line Interface<a class="headerlink" href="#simulator-command-line-interface" title="Permalink to this headline">¶</a></h2>
+<p>The master simulator program is a command-line interface to the <a class="reference internal" href="#AstroObject.AstroSimulator.Simulator.run" title="AstroObject.AstroSimulator.Simulator.run"><tt class="xref py py-meth docutils literal"><span class="pre">AstroObject.AstroSimulator.Simulator.run()</span></tt></a> method. Below are the major command line components.</p>
+<p>Usage Statement</p>
+<div class="highlight-python"><pre>Simulator [ options ][ configuration ] {stages}</pre>
+</div>
+<p>The program is actually agnostic to the order of arguments. Any argument may come in any position. As such, all arguments must be unique.</p>
+<dl class="option">
+<dt>
+<tt class="descname">{stages}</tt></dt>
+<dd><p>The stages option specifies individual stages for the program to run. You must specify at least one stage to run in the simulator. By default, two basic stages are provided, <tt class="docutils literal"><span class="pre">*all</span></tt> and <tt class="docutils literal"><span class="pre">*none</span></tt>. The default simulation is performed by <tt class="docutils literal"><span class="pre">*all</span></tt>. To test the simulator without running any stages (for example, to test <a class="reference internal" href="#AstroObject.AstroSimulator.Simulator.registerFunction" title="AstroObject.AstroSimulator.Simulator.registerFunction"><tt class="xref py py-meth docutils literal"><span class="pre">AstroObject.AstroSimulator.Simulator.registerFunction()</span></tt></a> functionality), use the <tt class="docutils literal"><span class="pre">*none</span></tt> stage to opertate without using any stages.</p>
+<p>Stages are called with either a <tt class="docutils literal"><span class="pre">*</span></tt>, <tt class="docutils literal"><span class="pre">+</span></tt> or <tt class="docutils literal"><span class="pre">-</span></tt> character at the beginning. Their resepctive actions are shown below. All commands must include at least one macro. If you don&#8217;t want any particular macro, use the <tt class="docutils literal"><span class="pre">*none</span></tt> macro.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="8%" />
+<col width="11%" />
+<col width="80%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Character</th>
+<th class="head">Action</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><tt class="docutils literal"><span class="pre">*</span></tt></td>
+<td>Include</td>
+<td>To include a stage, use <tt class="docutils literal"><span class="pre">*stage</span></tt>. This will also run the dependents for that stage.</td>
+</tr>
+<tr class="row-odd"><td><tt class="docutils literal"><span class="pre">-</span></tt></td>
+<td>Exclude</td>
+<td>To exclude a stage, use <tt class="docutils literal"><span class="pre">-stage</span></tt>. This stage (and it&#8217;s dependents) will be skipped.</td>
+</tr>
+<tr class="row-even"><td><tt class="docutils literal"><span class="pre">+</span></tt></td>
+<td>Include-only</td>
+<td>To include a stage, but not the dependents of that stage, use <tt class="docutils literal"><span class="pre">+stage</span></tt>.</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p>Including an argument and excluding it simultaneously will have the effect of including it overall. So the following three commands are equivalent:</p>
+<div class="highlight-python"><pre>$ Simulator +stage -stage *none
+$ Simulator -stage +stage *none
+$ Simulator +stage *none</pre>
+</div>
+<p>Also, excluding a stage that is included as a macro will exclude that stage and not call it&#8217;s dependents, so the following calls are equivalent</p>
+<div class="last highlight-python"><pre>$ Simulator -stage *stage
+$ Simulator *none</pre>
+</div>
+</div>
+<p>The commonly used stages in <strong class="program">Simulator</strong> are</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="34%" />
+<col width="66%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Stage</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><tt class="docutils literal"><span class="pre">*all</span></tt></td>
+<td>Run all default stages</td>
+</tr>
+<tr class="row-odd"><td><tt class="docutils literal"><span class="pre">*none</span></tt></td>
+<td>Run no stages</td>
+</tr>
+</tbody>
+</table>
+<p>Stages are registered by the <a class="reference internal" href="#AstroObject.AstroSimulator.Simulator.registerStage" title="AstroObject.AstroSimulator.Simulator.registerStage"><tt class="xref py py-meth docutils literal"><span class="pre">AstroObject.AstroSimulator.Simulator.registerStage()</span></tt></a> method.</p>
+</dd></dl>
+
+<dl class="option">
+<dt>
+<tt class="descname">[configurations]</tt></dt>
+<dd><p>Configuration options override defaults set up in <a class="reference internal" href="#AstroObject.AstroSimulator.Simulator" title="AstroObject.AstroSimulator.Simulator"><tt class="xref py py-class docutils literal"><span class="pre">AstroObject.AstroSimulator.Simulator</span></tt></a>. As such, they are useful quick changes to a configuration.</p>
+<blockquote>
+<div><table border="1" class="docutils">
+<colgroup>
+<col width="32%" />
+<col width="68%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Options</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><tt class="docutils literal"><span class="pre">-d</span></tt></td>
+<td>enable debugging messages and plots</td>
+</tr>
+</tbody>
+</table>
+</div></blockquote>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">This means if you dump the configuration file (see <a class="reference internal" href="#cmdoption-Simulator--dump"><em class="xref std std-option">--dump</em></a>) and use that directly as your new configuration file, these options will have no effect. Therefore, it is advisable that your configuration file contain the minimum amount of detail to override the default values set in the program. However, if you wish to use these options, but always disable debug, for example, you could disable debug in your configuration file. This will make none of these flags enable debugging.</p>
+</div>
+</dd></dl>
+
+<dl class="option">
+<dt id="cmdoption-Simulator-h">
+<tt class="descname">-h</tt><tt class="descclassname"></tt><tt class="descclassname">, </tt><tt class="descname">--help</tt><tt class="descclassname"></tt><a class="headerlink" href="#cmdoption-Simulator-h" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get help about the <strong class="program">Simulator</strong> command. Help will list commonly used stages, optional arguments, and configuration items.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">To get a full list of stages available, use <a class="reference internal" href="#cmdoption-Simulator--stages"><em class="xref std std-option">--stages</em></a></p>
+</div>
+</dd></dl>
+
+<dl class="option">
+<dt id="cmdoption-Simulator--version">
+<tt class="descname">--version</tt><tt class="descclassname"></tt><a class="headerlink" href="#cmdoption-Simulator--version" title="Permalink to this definition">¶</a></dt>
+<dd><p>Print the program version.</p>
+</dd></dl>
+
+<dl class="option">
+<dt id="cmdoption-Simulator--cf">
+<tt class="descname">--cf</tt><tt class="descclassname"> file.yaml</tt><a class="headerlink" href="#cmdoption-Simulator--cf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the name of the configuration file to use. By default, the configuation file is called <cite>SED.main.config.yaml</cite>. This will be the filename used for dumping configurations with the <a class="reference internal" href="#cmdoption-Simulator--dump"><em class="xref std std-option">--dump</em></a> command (Dump will append the extension <tt class="docutils literal"><span class="pre">-dump.yaml</span></tt> onto the filename to prevent overwriting exisitng configurations)</p>
+</dd></dl>
+
+<dl class="option">
+<dt id="cmdoption-Simulator--dry-run">
+<tt class="descname">--dry-run</tt><tt class="descclassname"></tt><a class="headerlink" href="#cmdoption-Simulator--dry-run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Traverse all of the stages to be run, printing them as the program goes, but do not run any stages.</p>
+</dd></dl>
+
+<dl class="option">
+<dt id="cmdoption-Simulator--stages">
+<tt class="descname">--stages</tt><tt class="descclassname"></tt><a class="headerlink" href="#cmdoption-Simulator--stages" title="Permalink to this definition">¶</a></dt>
+<dd><p>Print all stages registered in the simulator. Any stage listed in the output of this function can be run.</p>
+</dd></dl>
+
+<dl class="option">
+<dt id="cmdoption-Simulator--dump">
+<tt class="descname">--dump</tt><tt class="descclassname"></tt><a class="headerlink" href="#cmdoption-Simulator--dump" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dump the configuration to a file. Filenames are the configuration file name with <tt class="docutils literal"><span class="pre">-dump.yaml</span></tt> appended.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="simulator-configuration-files">
+<span id="configuration"></span><h2>5.2. <strong class="program">Simulator</strong> Configuration Files<a class="headerlink" href="#simulator-configuration-files" title="Permalink to this headline">¶</a></h2>
+<p><strong class="program">Simulator</strong> configuration files are YAML files which contain a dictionary structure. All values in the YAML files are basic yaml, and contain no python-specific directives. To find out what the default or current configuration is, use the <a class="reference internal" href="#cmdoption-Simulator--dump"><em class="xref std std-option">--dump</em></a> command. The file produced from this will contain a YAML structure for the configuration in use when the system started up. The various directives in the configuration file are described below.</p>
+<ul>
+<li><dl class="first docutils">
+<dt><tt class="docutils literal"><span class="pre">Configurations</span></tt>: contains a list of potential configuration files.</dt>
+<dd><ul class="first last simple">
+<li><tt class="docutils literal"><span class="pre">Main</span></tt>: The name of the primary configuration file. This default is produced by the program. Overriding it in the configuration file has essentially no effect.</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt><tt class="docutils literal"><span class="pre">Dirs</span></tt>: Directories that this simulator will use for output.</dt>
+<dd><ul class="first last">
+<li><dl class="first docutils">
+<dt><tt class="docutils literal"><span class="pre">Caches</span></tt>: Location of cache files.</dt>
+<dd><div class="first last admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">This function has almost no effect, but can be used internally by the simulator. See <a class="reference internal" href="SimulatorExample.html#simulatorexample"><em>An Example Simulator</em></a></p>
+</div>
+</dd>
+</dl>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">Logs</span></tt>: Location of log files</p>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">Partials</span></tt>: Location of partial output, including a dump of the configuration.</p>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">Logging</span></tt>: Configuration of the <tt class="xref py py-mod docutils literal"><span class="pre">AstroObject.AstroObjectLogging</span></tt> module</p>
+</li>
+</ul>
+<p>A simple configuration file can be found in the <a class="reference internal" href="SimulatorExample.html#simulatorexample"><em>An Example Simulator</em></a>.</p>
+</div>
+<div class="section" id="api-methods">
+<span id="simulator-api"></span><h2>5.3. API Methods<a class="headerlink" href="#api-methods" title="Permalink to this headline">¶</a></h2>
+<p>The following methods handle the external-API for the simulator.</p>
+<dl class="class">
+<dt id="AstroObject.AstroSimulator.Simulator">
+<em class="property">class </em><tt class="descclassname">AstroObject.AstroSimulator.</tt><tt class="descname">Simulator</tt><big>(</big><em>name='__class__.__name__'</em>, <em>commandLine=True</em><big>)</big><a class="reference internal" href="_modules/AstroObject/AstroSimulator.html#Simulator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#AstroObject.AstroSimulator.Simulator" title="Permalink to this definition">¶</a></dt>
+<dd><p>A Simulator, used for running large segements of code with detailed logging and progress checking. Simulators have a name, the <cite>name</cite> parameter can be left as is to use the name of the simulator&#8217;s class (mostly useful if you subclassed it!). The <cite>commandLine</cite> parameter can be set to False to prevent the simulator collecting arguments from <cite>sys.argv</cite> for use. This allows you to programatically call the simulator with the <a class="reference internal" href="#AstroObject.AstroSimulator.Simulator.do" title="AstroObject.AstroSimulator.Simulator.do"><tt class="xref py py-meth docutils literal"><span class="pre">do()</span></tt></a> method.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>name</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#string" title="(in Python v2.7)"><em>string</em></a>) &#8211; Simulator name</li>
+<li><strong>commandLine</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Whether the simulator is run from the command line, or programatically.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>By default simulators are named for their class.</p>
+<blockquote>
+<div><dl class="method">
+<dt id="AstroObject.AstroSimulator.Simulator.registerStage">
+<tt class="descname">registerStage</tt><big>(</big><em>stage</em>, <em>name</em>, <em>description=None</em>, <em>exceptions=None</em>, <em>include=False</em>, <em>help=False</em>, <em>dependencies=None</em>, <em>replaces=None</em>, <em>optional=False</em><big>)</big><a class="reference internal" href="_modules/AstroObject/AstroSimulator.html#Simulator.registerStage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#AstroObject.AstroSimulator.Simulator.registerStage" title="Permalink to this definition">¶</a></dt>
+<dd><p>Register a stage for operation with the simulator. The stage will then be available as a command line option, and will be operated with the simulator. Stages should be registered early in the operation of the simulator (preferably in the initialization, after the simulator class itself has initialized) so that the program is aware of the stages for running.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>stage</strong> (<em>function</em>) &#8211; The function to run for this stage. Should not take any arguments</li>
+<li><strong>name</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#string" title="(in Python v2.7)"><em>string</em></a>) &#8211; The command-line name of this stage (no spaces, <cite>+</cite>, <cite>-</cite>, or <cite>*</cite>)</li>
+<li><strong>description</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#string" title="(in Python v2.7)"><em>string</em></a>) &#8211; A short description, which will be used by the logger when displaying information about the stage</li>
+<li><strong>exceptions</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#tuple" title="(in Python v2.7)"><em>tuple</em></a>) &#8211; A tuple of exceptions which are acceptable results for this stage. These exceptions will be caught and logged, but will allow the simulator to continue. These exceptions will still raise errors in Debug mode.</li>
+<li><strong>include</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; A boolean, Whether to include this stage in the <cite>*all</cite> macro or not.</li>
+<li><strong>help</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#string" title="(in Python v2.7)"><em>string</em></a>) &#8211; Help text for the command line argument. A value of False excludes the help, None includes generic help.</li>
+<li><strong>dependencies</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#list" title="(in Python v2.7)"><em>list</em></a>) &#8211; An ordered list of the stages which must run before this stage can run. Dependencies will be deep-searched.</li>
+<li><strong>replaces</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#list" title="(in Python v2.7)"><em>list</em></a>) &#8211; A list of stages which can be replaced by this stage. This stage will now satisfy those dependencies.</li>
+<li><strong>optional</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; A boolean about wheather this stage can be skipped. If so, warnings will not be raised when this stage is explicitly skipped (like <tt class="docutils literal"><span class="pre">-stage</span></tt> would do)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Stages are called with either a <tt class="docutils literal"><span class="pre">*</span></tt>, <tt class="docutils literal"><span class="pre">+</span></tt> or <tt class="docutils literal"><span class="pre">-</span></tt> character at the beginning. Their resepctive actions are shown below.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="8%" />
+<col width="11%" />
+<col width="80%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Character</th>
+<th class="head">Action</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><tt class="docutils literal"><span class="pre">*</span></tt></td>
+<td>Include</td>
+<td>To include a stage, use <tt class="docutils literal"><span class="pre">*stage</span></tt>. This will also run the dependents for that stage.</td>
+</tr>
+<tr class="row-odd"><td><tt class="docutils literal"><span class="pre">-</span></tt></td>
+<td>Exclude</td>
+<td>To exclude a stage, use <tt class="docutils literal"><span class="pre">-stage</span></tt>. This stage (and it&#8217;s dependents) will be skipped.</td>
+</tr>
+<tr class="row-even"><td><tt class="docutils literal"><span class="pre">+</span></tt></td>
+<td>Include-only</td>
+<td>To include a stage, but not the dependents of that stage, use <tt class="docutils literal"><span class="pre">+stage</span></tt>.</td>
+</tr>
+</tbody>
+</table>
+<p>To use a registered stage, and call all of its dependents, call</p>
+<div class="highlight-python"><pre>$ Simulator *stage</pre>
+</div>
+<p>Registered stages can be explicity run from the command line by including:</p>
+<div class="highlight-python"><pre>$ Simulator +stage</pre>
+</div>
+<p>And can be explicity excluded from the command line:</p>
+<div class="highlight-python"><pre>$ Simulator -stage</pre>
+</div>
+<p>Where <cite>+stage</cite> will override <cite>-stage</cite> so:</p>
+<div class="highlight-python"><pre>$ Simulator +test -test
+$ Simulator -test +test</pre>
+</div>
+<p>will both run the <cite>test</cite> stage.</p>
+<p>Stages cannot be added dynamically. Once the simulator starts running (i.e. processing stages) the order and settings are fixed. Attempting to adjsut the stages at this point will raise an error.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="AstroObject.AstroSimulator.Simulator.registerConfigOpts">
+<tt class="descname">registerConfigOpts</tt><big>(</big><em>argument</em>, <em>configuration</em>, <em>preconfig=True</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/AstroObject/AstroSimulator.html#Simulator.registerConfigOpts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#AstroObject.AstroSimulator.Simulator.registerConfigOpts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Registers a bulk configuration option which will be provided with the USAGE statement. This configuration option can easily override normal configuration settings. Configuration provided here will override programmatically specified configuration options. It will not override configuration provided by the configuration file. These configuration options are meant to provide alterantive <em>defaults</em>, not alternative configurations.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>argument</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#string" title="(in Python v2.7)"><em>string</em></a>) &#8211; The command line argument (e.g. <tt class="docutils literal"><span class="pre">-D</span></tt>)</li>
+<li><strong>configuration</strong> (<a class="reference external" href="http://docs.python.org/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a>) &#8211; The configuration dictionary to be merged with the master configuration.</li>
+<li><strong>preconfig</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Applies these adjustments before loading the configuration file.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Other keyword arguments are passed to <tt class="xref py py-meth docutils literal"><span class="pre">ArgumentParser.add_argument()</span></tt></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="AstroObject.AstroSimulator.Simulator.registerFunction">
+<tt class="descname">registerFunction</tt><big>(</big><em>argument</em>, <em>function</em>, <em>post=True</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/AstroObject/AstroSimulator.html#Simulator.registerFunction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#AstroObject.AstroSimulator.Simulator.registerFunction" title="Permalink to this definition">¶</a></dt>
+<dd><p>Register a function to run using a flag.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>argument</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#string" title="(in Python v2.7)"><em>string</em></a>) &#8211; The calling argument, e.g. <tt class="docutils literal"><span class="pre">--hello-world</span></tt></li>
+<li><strong>function</strong> (<em>function</em>) &#8211; The function to be run.</li>
+<li><strong>post</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Whether to run the function before or after configuration of the simulator.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Functions registered with <tt class="docutils literal"><span class="pre">post=False</span></tt> will be run before the simulator is configured from a file. As such, changes they make can be easily re-adjusted by the user. Functions registered with <tt class="docutils literal"><span class="pre">post=True</span></tt> (the default) will run after configuration, but before any stages run. They can be used to inspect or adjust configuration variables or other globals.</p>
+<p>Other keyword arguments are passed to <tt class="xref py py-meth docutils literal"><span class="pre">ArgumentParser.add_argument()</span></tt></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="AstroObject.AstroSimulator.Simulator.run">
+<tt class="descname">run</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/AstroObject/AstroSimulator.html#Simulator.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#AstroObject.AstroSimulator.Simulator.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run the actual simulator. This command handles simulators which can be run from the command line. Calling <a class="reference internal" href="#AstroObject.AstroSimulator.Simulator.run" title="AstroObject.AstroSimulator.Simulator.run"><tt class="xref py py-meth docutils literal"><span class="pre">run()</span></tt></a> will run all of the stages specified on the command line. If you do not want this effect, use <a class="reference internal" href="#AstroObject.AstroSimulator.Simulator.startup" title="AstroObject.AstroSimulator.Simulator.startup"><tt class="xref py py-meth docutils literal"><span class="pre">startup()</span></tt></a> to prepare the simulator, and <a class="reference internal" href="#AstroObject.AstroSimulator.Simulator.do" title="AstroObject.AstroSimulator.Simulator.do"><tt class="xref py py-meth docutils literal"><span class="pre">do()</span></tt></a> to run the actual simulator. Calling <a class="reference internal" href="#AstroObject.AstroSimulator.Simulator.exit" title="AstroObject.AstroSimulator.Simulator.exit"><tt class="xref py py-meth docutils literal"><span class="pre">exit()</span></tt></a> at the end will allow the simulator to close out and perform any output tasks, but will also end the current python session.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="AstroObject.AstroSimulator.Simulator.startup">
+<tt class="descname">startup</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/AstroObject/AstroSimulator.html#Simulator.startup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#AstroObject.AstroSimulator.Simulator.startup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Start up the simulation. This function handles the configuration of the system, and prepares for any calls made to <a class="reference internal" href="#AstroObject.AstroSimulator.Simulator.do" title="AstroObject.AstroSimulator.Simulator.do"><tt class="xref py py-meth docutils literal"><span class="pre">do()</span></tt></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="AstroObject.AstroSimulator.Simulator.do">
+<tt class="descname">do</tt><big>(</big><em>*stages</em><big>)</big><a class="reference internal" href="_modules/AstroObject/AstroSimulator.html#Simulator.do"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#AstroObject.AstroSimulator.Simulator.do" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run the simulator.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Arguments stages:</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body">Stages to be run as macros.</td>
+</tr>
+</tbody>
+</table>
+<p>This command can be used to run specific stages and their dependents. The control is far less flow control than the command-line interface (there is currently no argument interface to inclusion and exclusion lists, <tt class="docutils literal"><span class="pre">+</span></tt> and <tt class="docutils literal"><span class="pre">-</span></tt>.), but can be used to call single macros in simulators froms scripts. In these cases, it is often beneficial to set up your own macro (calling <a class="reference internal" href="#AstroObject.AstroSimulator.Simulator.registerStage" title="AstroObject.AstroSimulator.Simulator.registerStage"><tt class="xref py py-func docutils literal"><span class="pre">registerStage()</span></tt></a> with <tt class="docutils literal"><span class="pre">None</span></tt> as the stage action) to wrap the actions you want taken in each phase.</p>
+<p>It is possible to stop execution in the middle of this function. Simply set the simulator&#8217;s <tt class="docutils literal"><span class="pre">paused</span></tt> variable to <tt class="docutils literal"><span class="pre">True</span></tt> and the simulator will remain in a state where you are free to call <a class="reference internal" href="#AstroObject.AstroSimulator.Simulator.do" title="AstroObject.AstroSimulator.Simulator.do"><tt class="xref py py-meth docutils literal"><span class="pre">do()</span></tt></a> again.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="AstroObject.AstroSimulator.Simulator.exit">
+<tt class="descname">exit</tt><big>(</big><em>code=0</em>, <em>msg=None</em><big>)</big><a class="reference internal" href="_modules/AstroObject/AstroSimulator.html#Simulator.exit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#AstroObject.AstroSimulator.Simulator.exit" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function exist the current python instance with the requested code. Before exiting, a message is printed.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>code</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; exit code</li>
+<li><strong>msg</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#string" title="(in Python v2.7)"><em>string</em></a>) &#8211; exit message</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div></blockquote>
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">5. Simulator <tt class="docutils literal"><span class="pre">AstroSimulator</span></tt></a><ul>
+<li><a class="reference internal" href="#simulator-command-line-interface">5.1. <strong class="program">Simulator</strong> Command Line Interface</a></li>
+<li><a class="reference internal" href="#simulator-configuration-files">5.2. <strong class="program">Simulator</strong> Configuration Files</a></li>
+<li><a class="reference internal" href="#api-methods">5.3. API Methods</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="SEDMsim.html"
+                        title="previous chapter">3. <strong class="program">SEDMsim</strong> Program for running simulations</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="Simulator.html"
+                        title="next chapter">6. <tt class="docutils literal"><span class="pre">Simulator</span></tt> Operational Algorithms</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/AstroSimulator.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="Simulator.html" title="6. Simulator Operational Algorithms"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="SEDMsim.html" title="3. SEDMsim Program for running simulations"
+             >previous</a> |</li>
+        <li><a href="index.html">SEDMsim 0.3.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012, Alexander Rudy.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>
