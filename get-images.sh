@@ -8,9 +8,9 @@
 # 
 CMD=$0
 DEST=$1
-REMOTE="~/SEDM"
+REMOTE="~/SEDM-Run"
 SERVER="sedmachine"
-LOCAL="$HOME/Dropbox/SEDM/SEDM-Dev"
+LOCAL="$HOME/Dropbox/SEDM/SEDM-Products"
 RSYNC='rsync'
 RSYNCV=`rsync --version | head -n1`
 EXE=${CMD##*/}
@@ -84,7 +84,7 @@ then
     echo "Cancelling backup from $SERVER:$MASTER to $DESTINATION"
 	exit
 fi
-$RSYNC -av "$SERVER:$MASTER" "$DESTINATION"
+$RSYNC -av --progress "$SERVER:$MASTER" "$DESTINATION"
 echo ""
-echo "Backed Up from $SERVER:$MASTER to $DESTINATION"
-echo "Thanks for backing up your $NAME!"
+echo "Retrieved from $SERVER:$MASTER to $DESTINATION"
+echo "Thanks for grabbing $NAME!"

@@ -21,7 +21,7 @@ Partials/*
 *.cache
 
 # Documentation
-Docs/_build/*
+Docs/build/*
 
 # Nick's Cruft
 SEDSpec/*.pdf
@@ -57,3 +57,4 @@ TODO/*
 experiment.py
 
 
+pyfits_memtest.py
