@@ -8,6 +8,8 @@ PAPER         =
 BUILDDIR      = build
 COPYCMD       = rsync -rv --progress
 DESTINATION   = sedmachine:/var/www/SEDM/Simulator
+OTHERREPO     = ../../SEDM-Doc
+
 
 # Internal variables.
 PAPEROPT_a4     = -D latex_paper_size=a4
@@ -42,6 +44,17 @@ help:
 
 clean:
 	-rm -rf $(BUILDDIR)/*
+
+gh-pages: html
+	@echo
+	cp -r $(BUILDDIR)/html/ $(OTHERREPO)
+	@cd $(OTHERREPO) && git add -A
+	@cd $(OTHERREPO) && git commit
+	@cd $(OTHERREPO) && git push origin gh-pages
+	@echo
+	@echo "Build finished. The HTML pages have been stored in the gh-pages branch of this repo."
+	@echo "  Note that switching to gh-pages could be bad, as that branch does not contain any of the non-tracked files."
+
 
 html:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
