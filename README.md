@@ -9,6 +9,8 @@ Author: Alexander Rudy
 # Introduction
 This Program contains SEDMachine Simulation and plotting scripts. They are written in Python. These scripts rely on the AstroObject modules that I wrote, which are bundled here. As well, they rely on matplotlib, numpy, scipy and pyfits. There is documentation for this program in the Docs folder.
 
+Documentation is avaliable on GitHub Pages: <http://alexrudy.github.com/SEDMachine-Simulator/>
+
 # Release Notes
 
 * 0.1.1
