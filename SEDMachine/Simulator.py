@@ -6,7 +6,7 @@
 #  
 #  Created by Alexander Rudy on 2012-02-08.
 #  Copyright 2012 Alexander Rudy. All rights reserved.
-#  Version 0.3.1
+#  Version 0.3.2
 # 
 
 import numpy as np
@@ -30,6 +30,8 @@ import time
 import copy
 import collections
 import gc
+
+from pkg_resources import resource_filename
 
 import AstroObject
 from AstroObject.AstroSimulator import Simulator
@@ -61,196 +63,9 @@ class SEDSimulator(Simulator,ImageObject):
         self.sky =  SpectraObject(dataClasses=[AnalyticSpectrum])
         self.sky.save(FlatSpectrum(0.0))
         self.astrologger = logging.getLogger("AstroObject")
-        self.config.merge(self.basics)
-        self.config.merge({"Instrument":self.instrument,"Caches":self.caches,"Source":self.source,"Observation":self.observation})
+        self.config.load(resource_filename(__name__,"SED.main.config.default.yaml"))
         self.config.setFile("Main")
         self.setup_stages()
-
-    
-    basics = {
-        "Debug": False,
-        "Plots" : {
-            'format': '.pdf',
-        },
-        "Output": {
-            "Label": "Generated",
-            "Format": "fits",
-        },
-        "Configurations": {
-            "Main" : "SED.main.config.yaml",
-        },
-        "Dirs": {
-            "Logs": "Logs",
-            "Partials" : "Partials",
-            "Caches" : "Caches",
-            "Images" : "Images",
-        },
-        "Lenslets" : {},
-        'logging': {
-            'console': {
-                'level': logging.INFO, 
-                'enable': True, 
-                'format': '%(levelname)-8s... %(message)s'
-            },
-            'growl' : {
-                'enable' : False,
-                'name' : "SED Machine Simulator",
-            },
-            'file': {
-                'format': '%(asctime)s : %(levelname)-8s : %(funcName)-20s : %(message)s',
-                'enable': True, 
-                'filename': 'SEDMachine'
-            },
-        },
-    }
-    
-    caches = {
-        'Telescope' : "SED.tel.npy",
-        'PSF' : "SED.psf.npy",
-        'CONV' : "SED.conv.npy",
-        'const' : "SED.const.yaml"
-    }
-    
-    observation = {
-        'exposure' : 1200,
-        'number' : 3,
-        'airmass' : 1,
-        'Background' : {
-            'Sky' : "PalSky",
-            'Atmosphere' : "Atmosph",
-            'Files' : {
-                'PalSky' : {
-                    "Filename" : "Data/PalSky.fits",
-                    "Amplifier" : 1,
-                },
-                'Massey' : {
-                    "Filename" : "Data/MasseySky.fits",
-                    "Amplifier" : 1,
-                },
-                'QuimbySky' : {
-                    "Filename" : "Data/QuimbySky.fits",
-                    "Amplifier" : 1,
-                },
-                'UVESSky' : {
-                    "Filename" : "Data/UVESSky.fits",
-                    "Amplifier" : 1,
-                },
-                'TurnroseSKY' : {
-                    "Filename" : "Data/TurnroseSKY.fits",
-                    "Amplifier" : 1.0e-18 * 3,
-                },
-                'Atmosph' : {
-                    "Filename" : "Data/atmosphere.fits",
-                    "Amplifier" : 1,
-                },
-            },
-        },
-        'Moon' : {
-            'Phase' : 0,
-        },
-        
-        
-    }
-    
-    
-    instrument = {
-        "Cameras" : {
-            "Selected" : "PI",
-          	"PI": {
-              	"RN" : 5.,
-              	"DC":  0.006,
-              	"readtime": 37,
-            },
-          	"Andor": {
-              	"RN": 4,
-              	"DC": 0.0004,
-              	"readtime":  82
-            },
-          	"E2V": {
-              	"RN": 3.3,
-              	"DC": 0.006,
-              	"readtime": 37
-            },
-              
-        },
-        'files': {
-            'dispersion': 'Filename.txt',
-            'encircledenergy': 'Filename.txt',
-            'lenslets': 'Filename.txt',
-        },
-        'convert': {
-            'pxtomm': 0.0135 }, 
-        'density': 5,
-        'dispfitorder' : 2, 
-        'ccd': {
-            'size' : {'px': 2048},
-        },
-        'padding': 5, 
-        'PSF' : {
-            'stdev': {'px': 1.0}, 
-            'size': { 'px': 2.4},
-        },
-        'bias': 20, 
-        'image': { 
-            'size':{ 'mm': 40.0},
-            'pad' :{ 'mm' : 0.1},
-        },
-        'Tel' : {
-            'obsc' : {'px': 0.2 , 'ratio': 0.1},
-            'area' : 18242. * 0.9,
-            'radius': { 'px': 1.2},
-            'ellipse': True,
-            'dispfitorder': 5,
-        },
-        'eADU' : 3.802e-2,
-        'Lenslets' : {
-              'radius' : 0.245e-2,
-              'rotation' : 27.0,
-              'strict' : True,
-        },
-        'wavelengths' : {
-            'max' : 9300e-10,
-            'min' : 3700e-10,
-            'resolution' : 100,
-        },
-        'Scatter' : {
-            "FFT" : True,
-            "Amplifier" : 1.0,
-            "Kernels" : {
-                "A" : {
-                    "type" : "Gaussian",
-                    "stdev" : 2*83,
-                    "mag" : 0.0008,
-                },
-                "B" : {
-                    "type" : "Gaussian",
-                    "stdev" : 2*11100,
-                    "mag" : 6.6e-6,
-                },
-            },
-        },
-        'Thpt' : {
-            'File' : "Data/thpt.npy",
-            'Type' : "prism_pi",
-        },
-
-        
-    }
-    
-    source = {
-        'Filename' : "Data/SNIa.R1000.dat",
-        'CubeName' : "Data/CUBE.fits",
-        'Flat' : {
-            'value' : 1e-6,
-        },
-        'Lines' : {
-            'List' : "Data/Lines.dat",
-            'sigma' : 1e-9,
-            'value' : 1e8,
-        },
-        'PXSize' : { 'mm' : 0.005 },
-        'Rotation' : np.pi/4.0,
-    }
     
     def setup_stages(self):
         """Registers all of the availalbe simulator stages. For basic command help on the options registered here, use::
