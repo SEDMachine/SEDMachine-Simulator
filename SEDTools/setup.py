@@ -11,6 +11,7 @@
 import shutil,os
 
 import numpy as np
+
 from pkg_resources import resource_filename
 
 from AstroObject.AstroSimulator import Simulator
@@ -45,7 +46,7 @@ class SetupAgent(Simulator):
         self.registerStage(self.MakeQuimby,"make-quimby",dependencies=["setup-dirs"])
         self.registerStage(self.MakeAtmosphere,"make-atmosphere",dependencies=["setup-dirs"])
         self.registerStage(self.MakePalSky,"make-palsky",dependencies=["setup-dirs","get-data"])
-        self.registerStage(None,"make-specs",dependencies=["make-massey","make-hansuchik","make-turnrose","make-quimby","make-atmosphere","make-palsky"],include=True)
+        self.registerStage(None,"make-specs",dependencies=["make-massey","make-hansuchik","make-turnrose","make-quimby","make-atmosphere","make-palsky"],include=True,help="Setup spectral FITS files")
         
     def EnsureDirectories(self):
         """Ensure that the required directories exist."""
