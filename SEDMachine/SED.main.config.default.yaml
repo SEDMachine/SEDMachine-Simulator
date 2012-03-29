@@ -14,6 +14,7 @@ Dirs:
   Images: Images
   Logs: Logs
   Partials: Partials
+  Data: Data
 Instrument:
   Cameras:
     Andor:
