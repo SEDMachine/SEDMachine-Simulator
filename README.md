@@ -11,31 +11,45 @@ This Program contains SEDMachine Simulation and plotting scripts. They are writt
 
 Documentation is avaliable on GitHub Pages: <http://alexrudy.github.com/SEDMachine-Simulator/>
 
-# Release Notes
+# Installation
 
-* 0.1.1
-	- Initial Basic Release
-* 0.1.2
-	- Documentation of Command Line Interface
-	- Update to SED.py script
-	- Separation of Instrument functions into SEDInstrument.py
-	- Creation of SEDSource module to handle source manipulation
-	- Cleanup of Nick's spectrum simulations in SEDSpec
-	- Basic Utlity additions
-* 0.1.3
-	- Use of setup.py for deployment and setup managment.
-* 0.1.3p1,p2
-	- Patch setup.py for AstroObject 0.2.8 rather than 0.2.6
-	- Patch setup.py for Matplotlib 1.0 rather than 1.1
-* 0.2.0a1
-	- This alpha is simply a port to the new simulator framework. Only the main simulator has been ported at this point.
-	- All modules will now use the framework-based logging system. This still produces slightly odd results.
-* 0.3.0
-	- Simulator works for a variety of sources. Runs on the latest edition of the AstroObject module.
-	- Documentation available from Sphinx Autodoc
-	- Dependencies updated and run properly.
-	- Simulator includes Calibration Source, Sky-only, flat, and simple-source modes.
-* 0.3.1
-	- Rename SEDSpec2 to SEDTools
-	- Remove and re-include data files
-	- Make SEDMsetup command
+The program has a distribute-compatible setuputils script. To install the program, use:
+	
+	$ sudo python setup.py install
+	
+This will install two executable programs:
+
+* `SEDMsetup` - A setup and data-file creation program
+* `SEDMsim` - The simulator program
+
+# Running the Program
+
+Navigate your desired working directory, then run
+	
+	$ SEDMsetup
+	
+This will make working directories for your simulation.
+
+To get an example configuration file which uses the included data, run
+	
+	$ SEDMsetup *config-file
+		
+
+Next run
+	
+	$ SEDMsim *all
+	
+to run the simulator.
+
+For more information, see the documentation.
+
+# Building Documentation
+
+If you can't find the documentation online (or it has moved), then:
+
+1. Ensure you have Sphinx installed.
+2. Navigate to the `Docs/` directory in the source tree you downloaded
+3. Run `make html`
+4. Open `Docs/build/html/index.html`
+
+You should then have a complete usable HTML copy of the documentation.
