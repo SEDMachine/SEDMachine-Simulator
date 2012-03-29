@@ -446,7 +446,8 @@ class SEDSimulator(Simulator,ImageObject):
         # Each sky spectrum is saved in a FITS file for easy recall as a spectrum object.
         self.SKYData = SpectraObject()
         for label,d in self.config["Observation"]["Background"]["Files"].iteritems():
-            self.SKYData.read(d["Filename"],statename=label)
+            self.SKYData.load(d["Filename"],statename=label)
+                
         
         # Moon phase adjustments. These moon phase attenuation values are for different filter bands.
         # The intermediate wavelengths are accounted for using a polyfit
