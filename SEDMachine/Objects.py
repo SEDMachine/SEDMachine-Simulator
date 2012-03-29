@@ -1,5 +1,5 @@
 # 
-#  Lenslet.py
+#  Objects.py
 #  An object model of SED Machine Lenslets, containing most of the lenslet action logic.
 #  SED
 #  
