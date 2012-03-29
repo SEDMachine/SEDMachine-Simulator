@@ -1,0 +1,109 @@
+# Configuration from SEDMachine
+Configurations:
+  Main: SED.main.config.yaml
+  This: SED.main.config.yaml
+Lenslets:
+  position:
+    x: 0.0
+    y: 0.0
+  radius: 0.01
+Instrument:
+  Thpt:
+    File: Data/thpt.npy
+    Type: prism_pi
+  bias: 20
+  camera: PI
+  ccd:
+    size:
+      px: 2048
+  image:
+    pad:
+      mm: 0.1
+    size:
+      mm: 40.0
+  convert:
+    pxtomm: 0.0135
+  density: 5
+  eADU: 0.03802
+  files:
+    dispersion: Data/dispersion_12-10-2011.txt
+    encircledenergy: Data/encircled_energy_4nov11.TXT
+    lenslets: Data/rays_run61e_temp_0degC.TXT
+  Lenslets:
+    radius: 0.00245
+    rotation: 27.0
+    strict: false
+  padding: 5
+  PSF:
+    size:
+      px: 2.4
+    stdev:
+      px: 1.0
+    ellipse: true
+  Scatter:
+    Amplifier: 0.1  
+    FFT: true
+    Kernels:
+      A:
+        type: Gaussian
+        mag: 0.0008
+        stdev: 16.7
+      B:
+        type: Gaussian
+        mag: 0.00007
+        stdev: 55.5
+      C:
+        type: Gaussian
+        mag: 7.0e-06
+        stdev: 222
+  Tel:
+    area: 16417.8
+    obsc:
+      px: 0.2
+      ratio: 0.2
+    radius:
+      px: 1.2
+  wavelengths:
+    max: 9.2e-07
+    min: 3.7e-07
+    resolution: 100
+Observation:
+  airmass: 1
+  exposure: 1200
+  number: 3
+  Moon:
+    Phase: 0.45
+  Background:
+    Atmosphere: Atmosph
+    Sky: PalSky
+    Files:
+      PalSky:
+        Filename: Data/palsky_100318.dat
+        Amplifier: 0.1    
+Output:
+  Format: fits
+Source:
+  CubeName: Data/CUBE.fits
+  Filename: Data/SNIa.R1000.dat
+  Lines:
+    List: Data/Lines.dat
+    sigma: 100.0e-10
+    value: 100000000.0
+    peaks: false
+  PXSize:
+    mm: 0.005
+  Rotation: 0.7853981633974483
+logging:
+  console:
+    enable: true
+    format: '%(levelname)-8s... %(message)s'
+    level: 20
+    message: '...%(message)s'
+  file:
+    dateformat: '%Y-%m-%d-%H:%M:%S'
+    enable: true
+    filename: SEDMachine
+    format: '%(asctime)s : %(levelname)-8s : %(funcName)-20s : %(message)s'
+  growl:
+    enable: false
+    name: SED Machine Simulator
