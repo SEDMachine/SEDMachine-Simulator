@@ -41,15 +41,19 @@ VERSION=`cat $VSPECFILE`
 echo "New Version $VERSION"
 
 echo "Manipulating Python (.py) files"
-files=`find $DIR/*.py`
+files=`find . -name '*.py'`
 
 for file in $files
 do
 	sed -i '' -Ee "s/# +Version $SELECTREGEX/#  Version $VERSION/" $file
+	sed -i '' -Ee "s/__version__ += +\'$SELECTREGEX\'/__version__ = \'$VERSION\'/" $file
+	sed -i '' -Ee "s/version += +\'$SELECTREGEX\'/version = \'$VERSION\'/" $file
+	sed -i '' -Ee "s/release += +\'$SELECTREGEX\'/version = \'$VERSION\'/" $file
+	
 	echo "  Changed Version to $VERSION in $file"
 done
 
-files=`find *.md`
+files=`find . -name '*.md'`
 
 echo "Manipulating Markdown (.md) files"
 for file in $files
@@ -57,15 +61,5 @@ do
 	sed -i '' -Ee "s/ +Version $SELECTREGEX/  Version $VERSION/" $file
 	echo "  Changed Version to $VERSION in $file"
 done
-
-echo "Manipulating Special Files:"
-sed -i '' -Ee "s/__version__ += +\'$SELECTREGEX\'/__version__ = \'$VERSION\'/" "$DIR/__init__.py"
-echo "  Changed AstroObject/__init__.py version variable to $VERSION"
-sed -i '' -Ee "s/    version = \"$SELECTREGEX\",/    version = \"$VERSION\",/" 'setup.py'
-echo "  Changed setup.py version variable to $VERSION"
-sed -i '' -Ee "s/version += +\'$SELECTREGEX\'/version = \'$VERSION\'/" 'Docs/source/conf.py'
-echo "  Changed Sphinyx conf.py version variable to $VERSION"
-sed -i '' -Ee "s/release += +\'$SELECTREGEX\'/release = \'$VERSION\'/" 'Docs/source/conf.py'
-echo "  Changed Sphinyx conf.py release variable to $VERSION"
 
 echo "Done."
