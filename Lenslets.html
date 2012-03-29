@@ -8,7 +8,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>7. Lenslets Suppporting Classes &mdash; SEDMsim 0.3.1 documentation</title>
+    <title>7. Lenslets Suppporting Classes &mdash; SEDMsim  documentation</title>
     
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -16,7 +16,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.3.1',
+        VERSION:     '',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -25,7 +25,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="SEDMsim 0.3.1 documentation" href="index.html" />
+    <link rel="top" title="SEDMsim  documentation" href="index.html" />
     <link rel="next" title="An Example Simulator" href="SimulatorExample.html" />
     <link rel="prev" title="6. Simulator Operational Algorithms" href="Simulator.html" /> 
   </head>
@@ -45,7 +45,7 @@
         <li class="right" >
           <a href="Simulator.html" title="6. Simulator Operational Algorithms"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">SEDMsim 0.3.1 documentation</a> &raquo;</li> 
+        <li><a href="index.html">SEDMsim  documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -58,7 +58,7 @@
 <h1>7. <tt class="xref py py-mod docutils literal"><span class="pre">Lenslets</span></tt> Suppporting Classes<a class="headerlink" href="#lenslets-suppporting-classes" title="Permalink to this headline">¶</a></h1>
 <dl class="class">
 <dt id="SEDMachine.Lenslet.Lenslet">
-<em class="property">class </em><tt class="descclassname">SEDMachine.Lenslet.</tt><tt class="descname">Lenslet</tt><big>(</big><em>p1s</em>, <em>p2s</em>, <em>ls</em>, <em>ix</em>, <em>xcs</em>, <em>ycs</em>, <em>xls</em>, <em>yls</em>, <em>xas</em>, <em>yas</em>, <em>xbs</em>, <em>ybs</em>, <em>rs</em>, <em>config</em>, <em>caches</em><big>)</big><a class="reference internal" href="_modules/SEDMachine/Lenslet.html#Lenslet"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">SEDMachine.Lenslet.</tt><tt class="descname">Lenslet</tt><big>(</big><em>p1s</em>, <em>p2s</em>, <em>ls</em>, <em>ix</em>, <em>xcs</em>, <em>ycs</em>, <em>xls</em>, <em>yls</em>, <em>xas</em>, <em>yas</em>, <em>xbs</em>, <em>ybs</em>, <em>rs</em>, <em>config</em>, <em>caches</em><big>)</big><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet" title="Permalink to this definition">¶</a></dt>
 <dd><p>An object-representation of a lenslet. Takes approximately all of the data we know about each lenslet.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -79,69 +79,50 @@
 </tbody>
 </table>
 <dl class="method">
-<dt id="SEDMachine.Lenslet.Lenslet.reset">
-<tt class="descname">reset</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Lenslet.html#Lenslet.reset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.reset" title="Permalink to this definition">¶</a></dt>
-<dd><p>Reset Flag Variables for this lenslet. Deletes any calculated varaibles.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="SEDMachine.Lenslet.Lenslet.introspect">
-<tt class="descname">introspect</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Lenslet.html#Lenslet.introspect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.introspect" title="Permalink to this definition">¶</a></dt>
-<dd><p>Show all sorts of fun data about this lenslet.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">lenslet</span><span class="o">.</span><span class="n">introspect</span><span class="p">()</span>
-<span class="go">--Lenslet 0023 is valid</span>
-<span class="go">|    x    |    y    |    xp    |    yp    |    p1    |    p2    |    wl    |</span>
-<span class="go">|  37.5052|  39.0077|      2778|      2889|   -0.0692|   -0.1593|   3.7e-07|</span>
-<span class="go">|  37.8836|  40.6228|      2806|      3009|   -0.0692|   -0.1593|  6.45e-07|</span>
-<span class="go">|  37.9199|  41.4872|      2809|      3073|   -0.0692|   -0.1593|   9.2e-07|</span>
-</pre></div>
-</div>
-</dd></dl>
-
-<dl class="method">
-<dt id="SEDMachine.Lenslet.Lenslet.valid">
-<tt class="descname">valid</tt><big>(</big><em>strict=True</em><big>)</big><a class="reference internal" href="_modules/SEDMachine/Lenslet.html#Lenslet.valid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.valid" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns true if this is a valid lenslet, false if it fails any of the tests.</p>
+<dt id="SEDMachine.Lenslet.Lenslet.bin">
+<tt class="descname">bin</tt><big>(</big><em>array</em>, <em>factor</em><big>)</big><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.bin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bins an array by the given factor in both directions.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>strict</strong> &#8211; In not strict mode, validator will let many lenslets which are not well-formed through the system.</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">bool</td>
-</tr>
-</tbody>
-</table>
-<p>Checks performed:</p>
-<ul class="simple">
-<li>Wavelengths and Points all have the same number of entries.</li>
-<li>We have at least three entries.</li>
-<li>No entry&#8217;s pixel position is exactly 0.</li>
-<li>The dispersion distance along the x-axis is less than 30 pixels.</li>
-<li>The distance between the start and end of the spectrum is non-zero.</li>
-<li>The lenslet positions are not within some configured tolerance of the edge of the spectrum.</li>
-<li>Warning about the units for wavelengths.</li>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>array</strong> &#8211; array to be binned</li>
+<li><strong>factor</strong> &#8211; binning factor</li>
 </ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">array binned</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
-<dt id="SEDMachine.Lenslet.Lenslet.return_dispersion">
-<tt class="descname">return_dispersion</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Lenslet.html#Lenslet.return_dispersion"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.return_dispersion" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return the dispersion values.</p>
+<dt id="SEDMachine.Lenslet.Lenslet.bin_subimage">
+<tt class="descname">bin_subimage</tt><big>(</big><big>)</big><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.bin_subimage" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bin the selected subimage using the <a class="reference internal" href="#SEDMachine.Lenslet.Lenslet.bin" title="SEDMachine.Lenslet.Lenslet.bin"><tt class="xref py py-meth docutils literal"><span class="pre">bin()</span></tt></a> function, and binning based on the configured density. This function also sets the final data type as <tt class="docutils literal"><span class="pre">np.int16</span></tt>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Lenslet.Lenslet.find_crosstalk">
+<tt class="descname">find_crosstalk</tt><big>(</big><em>pixel</em><big>)</big><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.find_crosstalk" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find the crosstalk overlap with a given pixel. The crosstalk is defined as the fraction of that pixels light which will end up in this lenslet.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Array of [xcs,ycs,wl,distance]</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>pixel</strong> &#8211; The pixel for calculation. <a class="reference internal" href="#SEDMachine.Lenslet.SourcePixel" title="SEDMachine.Lenslet.SourcePixel"><tt class="xref py py-class docutils literal"><span class="pre">SourcePixel</span></tt></a></td>
 </tr>
 </tbody>
 </table>
-<p>See <a class="reference internal" href="#SEDMachine.Lenslet.Lenslet.find_dispersion" title="SEDMachine.Lenslet.Lenslet.find_dispersion"><tt class="xref py py-meth docutils literal"><span class="pre">find_dispersion()</span></tt></a> for the calculation performed.</p>
+<p>If the two shapes are disjoint, nothing is done. If they are not, we calculate the percentage of the pixel which ends up in this hexagon. This overlap factor is then saved in the crosstalk matrix for both the pixel and the lenslet. Finally, the pixel is scaled by the overlap and added to this lenslet&#8217;s spectrum.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="SEDMachine.Lenslet.Lenslet.find_dispersion">
-<tt class="descname">find_dispersion</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Lenslet.html#Lenslet.find_dispersion"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.find_dispersion" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">find_dispersion</tt><big>(</big><big>)</big><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.find_dispersion" title="Permalink to this definition">¶</a></dt>
 <dd><p>Find the dispersion (dense, pixel aligned wavelength values) for this lenslet.</p>
 <p>To calculate dispersion, we first create an interpolation from (wavelength) -&gt; (xpix) and (wavelength) -&gt; (ypix). Then, using a large array of possible wavelengths (100x the number of oversampled pixel positions) we create arrays of possible overdense x and y pixel positions. These arrays are then truncated to contain only integer (overdense) pixel positions. We then calculate the arc-distance to each of these pixel positions from the start (lowest wavelength) of the spectrum. Taking only unique points along the arc-distance, we find a list of all of the unique x and y pixel positions which are illuminated by the spectrum in the over-dense sample space. This array, along with thier corresponding wavelengths and arc-distances, are stored for later use.</p>
 <p><strong>Variables which are used</strong>:</p>
@@ -180,8 +161,14 @@
 </dd></dl>
 
 <dl class="method">
+<dt id="SEDMachine.Lenslet.Lenslet.find_normalized_overlap">
+<tt class="descname">find_normalized_overlap</tt><big>(</big><big>)</big><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.find_normalized_overlap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Saves a normalized overlap matrix. The normalized overlap matrix is required for requesting colors from the color-map for matrix plotting.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="SEDMachine.Lenslet.Lenslet.get_trace">
-<tt class="descname">get_trace</tt><big>(</big><em>spectrum</em><big>)</big><a class="reference internal" href="_modules/SEDMachine/Lenslet.html#Lenslet.get_trace"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.get_trace" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">get_trace</tt><big>(</big><em>spectrum</em><big>)</big><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.get_trace" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a trace of this spectrum. The trace will contain x and y over-dense pixel positions, flux values for each of those illuminated pixels, instantaneous resolution at each pixel, and wavelength of each pixel. The trace also determines the corners of the spectrum, and saves those corner positions with ample padding in the image.</p>
 <p>To perform the trace, we first get the oversampled point positions in o-px from the <tt class="docutils literal"><span class="pre">dxs</span></tt> and <tt class="docutils literal"><span class="pre">dys</span></tt> variables. These points are saved as both <tt class="docutils literal"><span class="pre">x,y</span></tt> and <tt class="docutils literal"><span class="pre">xorig,yorig</span></tt>, for later use. <tt class="docutils literal"><span class="pre">xorig,yorig</span></tt> are stored to save an unmodified copy of the points. The <tt class="docutils literal"><span class="pre">xint,yint</span></tt> variables are used to store the integer (in px) positions of each <tt class="docutils literal"><span class="pre">x,y</span></tt> pair, essentially, thier containing camera pixel. <tt class="docutils literal"><span class="pre">x,y</span></tt> are then zeroed, such that (0,0) is the upper-right corner of the spectrum to be inserted. We then calculate the size of the subimage (in <tt class="docutils literal"><span class="pre">xdist,ydist</span></tt>) and adjust this size so that it is an integer number of camera pixels (px) across. This makes the binning much easier later. The pixels <tt class="docutils literal"><span class="pre">x,y</span></tt> are then padded to provide space for the PSF to be applied on all sides of the single-pixel spectrum.</p>
 <p>We then find the corner of the of the subimage. First, the corner will generally be extracted as the position with a minimum in the <tt class="docutils literal"><span class="pre">y</span></tt> direction and a maximum in the <tt class="docutils literal"><span class="pre">x</span></tt> direction. We first find the corner&#8217;s position in integer camrea-px space (i.e. from <tt class="docutils literal"><span class="pre">xint,yint</span></tt>, stored as <tt class="docutils literal"><span class="pre">corner</span></tt>), and the corner&#8217;s position in integer o-px space (i.e. from <tt class="docutils literal"><span class="pre">xorig,yorig</span></tt>, stored as <tt class="docutils literal"><span class="pre">realcorner</span></tt>). Converting the camera&#8217;s position in integer camera-px space, we take the difference between the two corners as the <tt class="docutils literal"><span class="pre">offset</span></tt>. This is the shift we must insert into <tt class="docutils literal"><span class="pre">x,y</span></tt> in order to ensure that the corner of our subimage will line up with the corner of a binned pixel. Next we add padding distances into the <tt class="docutils literal"><span class="pre">corner</span></tt> position. Finally, we use the offset to move the <tt class="docutils literal"><span class="pre">x,y</span></tt> positions to account for aligning the corner of the subimage with the corner of a full camera pixel. I will make a diagram to explain all of this shortly. Next, we add the padding values into <tt class="docutils literal"><span class="pre">xdist,ydist</span></tt> to get the full size of the subimage in o-px.</p>
@@ -225,8 +212,37 @@
 </dd></dl>
 
 <dl class="method">
+<dt id="SEDMachine.Lenslet.Lenslet.introspect">
+<tt class="descname">introspect</tt><big>(</big><big>)</big><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.introspect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Show all sorts of fun data about this lenslet.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">lenslet</span><span class="o">.</span><span class="n">introspect</span><span class="p">()</span>
+<span class="go">--Lenslet 0023 is valid</span>
+<span class="go">|    x    |    y    |    xp    |    yp    |    p1    |    p2    |    wl    |</span>
+<span class="go">|  37.5052|  39.0077|      2778|      2889|   -0.0692|   -0.1593|   3.7e-07|</span>
+<span class="go">|  37.8836|  40.6228|      2806|      3009|   -0.0692|   -0.1593|  6.45e-07|</span>
+<span class="go">|  37.9199|  41.4872|      2809|      3073|   -0.0692|   -0.1593|   9.2e-07|</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Lenslet.Lenslet.make_hexagon">
+<tt class="descname">make_hexagon</tt><big>(</big><big>)</big><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.make_hexagon" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates a hexagonal polygon for this lenslet, to be used for area calculations.</p>
+<p>Generates a single point at the appropriate radius from the center. This point is then rotated by the hexagon rotation value. Next, five more points are generated by rotating the original point successive times by pi/3.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Variables:</th><td class="field-body"><strong>shape</strong> &#8211; shapely polygon representing this hexagon.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
 <dt id="SEDMachine.Lenslet.Lenslet.place_trace">
-<tt class="descname">place_trace</tt><big>(</big><em>get_conv</em><big>)</big><a class="reference internal" href="_modules/SEDMachine/Lenslet.html#Lenslet.place_trace"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.place_trace" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">place_trace</tt><big>(</big><em>get_conv</em><big>)</big><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.place_trace" title="Permalink to this definition">¶</a></dt>
 <dd><p>Place the trace on the subimage.</p>
 <p>First a blank image is created using the <tt class="docutils literal"><span class="pre">subshape</span></tt> variable as a template. Then, iterating through each point, we get the convolved PSF and telescope image for that point (called the &#8220;convolution&#8221;). The convolution can vary by wavelenght, and can have other variables which are sytem dependent. The convolution is multiplied by the flux value for that point. The corner of the convolution is then calculated (the top-left and bottom right corners are actually calculated) so that the image can be insterted as a &#8216;flattened&#8217; array. Each image is inserted by addition, adding on to the image already in place.</p>
 <p><strong>Variables which are used</strong>:</p>
@@ -258,59 +274,8 @@
 </dd></dl>
 
 <dl class="method">
-<dt id="SEDMachine.Lenslet.Lenslet.write_subimage">
-<tt class="descname">write_subimage</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Lenslet.html#Lenslet.write_subimage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.write_subimage" title="Permalink to this definition">¶</a></dt>
-<dd><p>Writes a subimage to file and then clears the subimage from this lenslet&#8217;s memory. The subimage is written to a file with a name formatted as <tt class="docutils literal"><span class="pre">%(Caches)s/Subimage-%(num)4d.fits</span></tt> where the fields to the format string are relatively self explanatory.</p>
-<p>Subimage writes will clobber old images.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="SEDMachine.Lenslet.Lenslet.read_subimage">
-<tt class="descname">read_subimage</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Lenslet.html#Lenslet.read_subimage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.read_subimage" title="Permalink to this definition">¶</a></dt>
-<dd><p>Read a subimage from file and set the lenslet number and corner from data contained in the file. The filenames for subimages conform to the format <tt class="docutils literal"><span class="pre">%(Caches)s/Subimage-%(num)4d.fits</span></tt>, similar to <a class="reference internal" href="#SEDMachine.Lenslet.Lenslet.write_subimage" title="SEDMachine.Lenslet.Lenslet.write_subimage"><tt class="xref py py-meth docutils literal"><span class="pre">write_subimage()</span></tt></a>. Frames are <a class="reference internal" href="#SEDMachine.Lenslet.SubImage" title="SEDMachine.Lenslet.SubImage"><tt class="xref py py-class docutils literal"><span class="pre">SubImage</span></tt></a> classes so that they can safely store and retrieve their lenslet numbers and corner positions.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="SEDMachine.Lenslet.Lenslet.bin_subimage">
-<tt class="descname">bin_subimage</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Lenslet.html#Lenslet.bin_subimage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.bin_subimage" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bin the selected subimage using the <a class="reference internal" href="#SEDMachine.Lenslet.Lenslet.bin" title="SEDMachine.Lenslet.Lenslet.bin"><tt class="xref py py-meth docutils literal"><span class="pre">bin()</span></tt></a> function, and binning based on the configured density. This function also sets the final data type as <tt class="docutils literal"><span class="pre">np.int16</span></tt>.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="SEDMachine.Lenslet.Lenslet.plot_raw_data">
-<tt class="descname">plot_raw_data</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Lenslet.html#Lenslet.plot_raw_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.plot_raw_data" title="Permalink to this definition">¶</a></dt>
-<dd><p>Save a plot figure for raw-data from the lenslet.</p>
-<p>Creates 1 plot of y-position vs. wavelegnth for the given data points for each lenslet. Plot is saved as <tt class="docutils literal"><span class="pre">%(Partials)s/Lenslet-%(num)04d-WL%(ext)s</span></tt>.</p>
-<p><strong>Variables which are used</strong>:</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Variables:</th><td class="field-body"><ul class="first last simple">
-<li><strong>ls</strong> &#8211; Wavelengths in meters</li>
-<li><strong>ycs</strong> &#8211; y-camera positions (center of image) in mm</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="SEDMachine.Lenslet.Lenslet.plot_ellipses">
-<tt class="descname">plot_ellipses</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Lenslet.html#Lenslet.plot_ellipses"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.plot_ellipses" title="Permalink to this definition">¶</a></dt>
-<dd><p>docstring for plot_ellipses</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="SEDMachine.Lenslet.Lenslet.plot_rotation">
-<tt class="descname">plot_rotation</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Lenslet.html#Lenslet.plot_rotation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.plot_rotation" title="Permalink to this definition">¶</a></dt>
-<dd><p>docstring for plot_ellipses</p>
-</dd></dl>
-
-<dl class="method">
 <dt id="SEDMachine.Lenslet.Lenslet.plot_dispersion">
-<tt class="descname">plot_dispersion</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Lenslet.html#Lenslet.plot_dispersion"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.plot_dispersion" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">plot_dispersion</tt><big>(</big><big>)</big><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.plot_dispersion" title="Permalink to this definition">¶</a></dt>
 <dd><p>Two plots which show results from dispersion calculations.</p>
 <ol class="arabic simple">
 <li>Plot of arc-distance (delta) in px vs. x in pixels. <tt class="docutils literal"><span class="pre">%(Partials)s/Instrument-%(num)04d-Delta-Distances%(ext)s</span></tt></li>
@@ -333,8 +298,40 @@
 </dd></dl>
 
 <dl class="method">
+<dt id="SEDMachine.Lenslet.Lenslet.plot_ellipses">
+<tt class="descname">plot_ellipses</tt><big>(</big><big>)</big><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.plot_ellipses" title="Permalink to this definition">¶</a></dt>
+<dd><p>docstring for plot_ellipses</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Lenslet.Lenslet.plot_raw_data">
+<tt class="descname">plot_raw_data</tt><big>(</big><big>)</big><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.plot_raw_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Save a plot figure for raw-data from the lenslet.</p>
+<p>Creates 1 plot of y-position vs. wavelegnth for the given data points for each lenslet. Plot is saved as <tt class="docutils literal"><span class="pre">%(Partials)s/Lenslet-%(num)04d-WL%(ext)s</span></tt>.</p>
+<p><strong>Variables which are used</strong>:</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Variables:</th><td class="field-body"><ul class="first last simple">
+<li><strong>ls</strong> &#8211; Wavelengths in meters</li>
+<li><strong>ycs</strong> &#8211; y-camera positions (center of image) in mm</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Lenslet.Lenslet.plot_rotation">
+<tt class="descname">plot_rotation</tt><big>(</big><big>)</big><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.plot_rotation" title="Permalink to this definition">¶</a></dt>
+<dd><p>docstring for plot_ellipses</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="SEDMachine.Lenslet.Lenslet.plot_spectrum">
-<tt class="descname">plot_spectrum</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Lenslet.html#Lenslet.plot_spectrum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.plot_spectrum" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">plot_spectrum</tt><big>(</big><big>)</big><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.plot_spectrum" title="Permalink to this definition">¶</a></dt>
 <dd><p>One plot showing the flux of the spectrum for this lenslet.</p>
 <p>Plot shows Flux (in counts) vs. Wavelength. <tt class="docutils literal"><span class="pre">%(Partials)s/Instrument-%(num)04d-Flux%(ext)s</span></tt></p>
 <p><strong>Variables which are used</strong>:</p>
@@ -354,7 +351,7 @@
 
 <dl class="method">
 <dt id="SEDMachine.Lenslet.Lenslet.plot_trace">
-<tt class="descname">plot_trace</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Lenslet.html#Lenslet.plot_trace"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.plot_trace" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">plot_trace</tt><big>(</big><big>)</big><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.plot_trace" title="Permalink to this definition">¶</a></dt>
 <dd><p>Two plots showing the trace data for this lenslet.</p>
 <ol class="arabic simple">
 <li>Delta Lambda per Pixel vs. Wavelenth <tt class="docutils literal"><span class="pre">%(Partials)s/Instrument-%(num)04d-DeltaWL%(ext)s</span></tt></li>
@@ -378,29 +375,35 @@
 </dd></dl>
 
 <dl class="method">
-<dt id="SEDMachine.Lenslet.Lenslet.bin">
-<tt class="descname">bin</tt><big>(</big><em>array</em>, <em>factor</em><big>)</big><a class="reference internal" href="_modules/SEDMachine/Lenslet.html#Lenslet.bin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.bin" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bins an array by the given factor in both directions.</p>
+<dt id="SEDMachine.Lenslet.Lenslet.read_subimage">
+<tt class="descname">read_subimage</tt><big>(</big><big>)</big><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.read_subimage" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read a subimage from file and set the lenslet number and corner from data contained in the file. The filenames for subimages conform to the format <tt class="docutils literal"><span class="pre">%(Caches)s/Subimage-%(num)4d.fits</span></tt>, similar to <a class="reference internal" href="#SEDMachine.Lenslet.Lenslet.write_subimage" title="SEDMachine.Lenslet.Lenslet.write_subimage"><tt class="xref py py-meth docutils literal"><span class="pre">write_subimage()</span></tt></a>. Frames are <a class="reference internal" href="#SEDMachine.Lenslet.SubImage" title="SEDMachine.Lenslet.SubImage"><tt class="xref py py-class docutils literal"><span class="pre">SubImage</span></tt></a> classes so that they can safely store and retrieve their lenslet numbers and corner positions.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Lenslet.Lenslet.reset">
+<tt class="descname">reset</tt><big>(</big><big>)</big><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.reset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reset Flag Variables for this lenslet. Deletes any calculated varaibles.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Lenslet.Lenslet.return_dispersion">
+<tt class="descname">return_dispersion</tt><big>(</big><big>)</big><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.return_dispersion" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the dispersion values.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>array</strong> &#8211; array to be binned</li>
-<li><strong>factor</strong> &#8211; binning factor</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">array binned</p>
-</td>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Array of [xcs,ycs,wl,distance]</td>
 </tr>
 </tbody>
 </table>
+<p>See <a class="reference internal" href="#SEDMachine.Lenslet.Lenslet.find_dispersion" title="SEDMachine.Lenslet.Lenslet.find_dispersion"><tt class="xref py py-meth docutils literal"><span class="pre">find_dispersion()</span></tt></a> for the calculation performed.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="SEDMachine.Lenslet.Lenslet.rotate">
-<tt class="descname">rotate</tt><big>(</big><em>point</em>, <em>angle</em>, <em>origin=None</em><big>)</big><a class="reference internal" href="_modules/SEDMachine/Lenslet.html#Lenslet.rotate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.rotate" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">rotate</tt><big>(</big><em>point</em>, <em>angle</em>, <em>origin=None</em><big>)</big><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.rotate" title="Permalink to this definition">¶</a></dt>
 <dd><p>Rotate a given point by the provided angle around the origin given.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -421,29 +424,8 @@
 </dd></dl>
 
 <dl class="method">
-<dt id="SEDMachine.Lenslet.Lenslet.make_hexagon">
-<tt class="descname">make_hexagon</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Lenslet.html#Lenslet.make_hexagon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.make_hexagon" title="Permalink to this definition">¶</a></dt>
-<dd><p>Generates a hexagonal polygon for this lenslet, to be used for area calculations.</p>
-<p>Generates a single point at the appropriate radius from the center. This point is then rotated by the hexagon rotation value. Next, five more points are generated by rotating the original point successive times by pi/3.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Variables:</th><td class="field-body"><strong>shape</strong> &#8211; shapely polygon representing this hexagon.</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="SEDMachine.Lenslet.Lenslet.show_geometry">
-<tt class="descname">show_geometry</tt><big>(</big><em>color='#cccc00'</em>, <em>label=False</em><big>)</big><a class="reference internal" href="_modules/SEDMachine/Lenslet.html#Lenslet.show_geometry"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.show_geometry" title="Permalink to this definition">¶</a></dt>
-<dd><p>Show the source geometry on the current plot. Geometry is shown filled with the color provided, and bordered by a grey box.</p>
-</dd></dl>
-
-<dl class="method">
 <dt id="SEDMachine.Lenslet.Lenslet.setup_crosstalk">
-<tt class="descname">setup_crosstalk</tt><big>(</big><em>n</em><big>)</big><a class="reference internal" href="_modules/SEDMachine/Lenslet.html#Lenslet.setup_crosstalk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.setup_crosstalk" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">setup_crosstalk</tt><big>(</big><em>n</em><big>)</big><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.setup_crosstalk" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set up the crosstalk matrix for this lenslet and the flat base spectrum for this lenselt. This setup depends on the intended size of the crosstalk matrix.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -456,71 +438,89 @@
 </dd></dl>
 
 <dl class="method">
-<dt id="SEDMachine.Lenslet.Lenslet.find_crosstalk">
-<tt class="descname">find_crosstalk</tt><big>(</big><em>pixel</em><big>)</big><a class="reference internal" href="_modules/SEDMachine/Lenslet.html#Lenslet.find_crosstalk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.find_crosstalk" title="Permalink to this definition">¶</a></dt>
-<dd><p>Find the crosstalk overlap with a given pixel. The crosstalk is defined as the fraction of that pixels light which will end up in this lenslet.</p>
+<dt id="SEDMachine.Lenslet.Lenslet.show_geometry">
+<tt class="descname">show_geometry</tt><big>(</big><em>color='#cccc00'</em>, <em>label=False</em><big>)</big><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.show_geometry" title="Permalink to this definition">¶</a></dt>
+<dd><p>Show the source geometry on the current plot. Geometry is shown filled with the color provided, and bordered by a grey box.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Lenslet.Lenslet.valid">
+<tt class="descname">valid</tt><big>(</big><em>strict=True</em><big>)</big><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.valid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns true if this is a valid lenslet, false if it fails any of the tests.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>pixel</strong> &#8211; The pixel for calculation. <a class="reference internal" href="#SEDMachine.Lenslet.SourcePixel" title="SEDMachine.Lenslet.SourcePixel"><tt class="xref py py-class docutils literal"><span class="pre">SourcePixel</span></tt></a></td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>strict</strong> &#8211; In not strict mode, validator will let many lenslets which are not well-formed through the system.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">bool</td>
 </tr>
 </tbody>
 </table>
-<p>If the two shapes are disjoint, nothing is done. If they are not, we calculate the percentage of the pixel which ends up in this hexagon. This overlap factor is then saved in the crosstalk matrix for both the pixel and the lenslet. Finally, the pixel is scaled by the overlap and added to this lenslet&#8217;s spectrum.</p>
+<p>Checks performed:</p>
+<ul class="simple">
+<li>Wavelengths and Points all have the same number of entries.</li>
+<li>We have at least three entries.</li>
+<li>No entry&#8217;s pixel position is exactly 0.</li>
+<li>The dispersion distance along the x-axis is less than 30 pixels.</li>
+<li>The distance between the start and end of the spectrum is non-zero.</li>
+<li>The lenslet positions are not within some configured tolerance of the edge of the spectrum.</li>
+<li>Warning about the units for wavelengths.</li>
+</ul>
 </dd></dl>
 
 <dl class="method">
-<dt id="SEDMachine.Lenslet.Lenslet.find_normalized_overlap">
-<tt class="descname">find_normalized_overlap</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Lenslet.html#Lenslet.find_normalized_overlap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.find_normalized_overlap" title="Permalink to this definition">¶</a></dt>
-<dd><p>Saves a normalized overlap matrix. The normalized overlap matrix is required for requesting colors from the color-map for matrix plotting.</p>
+<dt id="SEDMachine.Lenslet.Lenslet.write_subimage">
+<tt class="descname">write_subimage</tt><big>(</big><big>)</big><a class="headerlink" href="#SEDMachine.Lenslet.Lenslet.write_subimage" title="Permalink to this definition">¶</a></dt>
+<dd><p>Writes a subimage to file and then clears the subimage from this lenslet&#8217;s memory. The subimage is written to a file with a name formatted as <tt class="docutils literal"><span class="pre">%(Caches)s/Subimage-%(num)4d.fits</span></tt> where the fields to the format string are relatively self explanatory.</p>
+<p>Subimage writes will clobber old images.</p>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="class">
 <dt id="SEDMachine.Lenslet.SourcePixel">
-<em class="property">class </em><tt class="descclassname">SEDMachine.Lenslet.</tt><tt class="descname">SourcePixel</tt><big>(</big><em>x</em>, <em>y</em>, <em>config</em>, <em>num</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/SEDMachine/Lenslet.html#SourcePixel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Lenslet.SourcePixel" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">SEDMachine.Lenslet.</tt><tt class="descname">SourcePixel</tt><big>(</big><em>x</em>, <em>y</em>, <em>config</em>, <em>num</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#SEDMachine.Lenslet.SourcePixel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Source Pixels are objects which handle the source shape and size for resampling</p>
 <dl class="method">
+<dt id="SEDMachine.Lenslet.SourcePixel.get_color">
+<tt class="descname">get_color</tt><big>(</big><em>idx</em><big>)</big><a class="headerlink" href="#SEDMachine.Lenslet.SourcePixel.get_color" title="Permalink to this definition">¶</a></dt>
+<dd><p>docstring for get_color</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="SEDMachine.Lenslet.SourcePixel.make_pixel_square">
-<tt class="descname">make_pixel_square</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Lenslet.html#SourcePixel.make_pixel_square"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Lenslet.SourcePixel.make_pixel_square" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">make_pixel_square</tt><big>(</big><big>)</big><a class="headerlink" href="#SEDMachine.Lenslet.SourcePixel.make_pixel_square" title="Permalink to this definition">¶</a></dt>
 <dd><p>Make a specific pixel square</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="SEDMachine.Lenslet.SourcePixel.rotate">
-<tt class="descname">rotate</tt><big>(</big><em>point</em>, <em>angle</em>, <em>origin=None</em><big>)</big><a class="reference internal" href="_modules/SEDMachine/Lenslet.html#SourcePixel.rotate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Lenslet.SourcePixel.rotate" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">rotate</tt><big>(</big><em>point</em>, <em>angle</em>, <em>origin=None</em><big>)</big><a class="headerlink" href="#SEDMachine.Lenslet.SourcePixel.rotate" title="Permalink to this definition">¶</a></dt>
 <dd><p>Rotate a given point by the provided angle around the origin given</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="SEDMachine.Lenslet.SourcePixel.show_geometry">
-<tt class="descname">show_geometry</tt><big>(</big><em>color='#cccc00'</em><big>)</big><a class="reference internal" href="_modules/SEDMachine/Lenslet.html#SourcePixel.show_geometry"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Lenslet.SourcePixel.show_geometry" title="Permalink to this definition">¶</a></dt>
-<dd><p>Show the source geometry</p>
-</dd></dl>
-
-<dl class="method">
 <dt id="SEDMachine.Lenslet.SourcePixel.setup_crosstalk">
-<tt class="descname">setup_crosstalk</tt><big>(</big><em>n</em><big>)</big><a class="reference internal" href="_modules/SEDMachine/Lenslet.html#SourcePixel.setup_crosstalk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Lenslet.SourcePixel.setup_crosstalk" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">setup_crosstalk</tt><big>(</big><em>n</em><big>)</big><a class="headerlink" href="#SEDMachine.Lenslet.SourcePixel.setup_crosstalk" title="Permalink to this definition">¶</a></dt>
 <dd><p>docstring for setup_crosstalk</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="SEDMachine.Lenslet.SourcePixel.get_color">
-<tt class="descname">get_color</tt><big>(</big><em>idx</em><big>)</big><a class="reference internal" href="_modules/SEDMachine/Lenslet.html#SourcePixel.get_color"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Lenslet.SourcePixel.get_color" title="Permalink to this definition">¶</a></dt>
-<dd><p>docstring for get_color</p>
+<dt id="SEDMachine.Lenslet.SourcePixel.show_geometry">
+<tt class="descname">show_geometry</tt><big>(</big><em>color='#cccc00'</em><big>)</big><a class="headerlink" href="#SEDMachine.Lenslet.SourcePixel.show_geometry" title="Permalink to this definition">¶</a></dt>
+<dd><p>Show the source geometry</p>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="class">
 <dt id="SEDMachine.Lenslet.SubImage">
-<em class="property">class </em><tt class="descclassname">SEDMachine.Lenslet.</tt><tt class="descname">SubImage</tt><big>(</big><em>array</em>, <em>label</em>, <em>header=None</em>, <em>metadata=None</em><big>)</big><a class="reference internal" href="_modules/SEDMachine/Lenslet.html#SubImage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Lenslet.SubImage" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">SEDMachine.Lenslet.</tt><tt class="descname">SubImage</tt><big>(</big><em>array</em>, <em>label</em>, <em>header=None</em>, <em>metadata=None</em><big>)</big><a class="headerlink" href="#SEDMachine.Lenslet.SubImage" title="Permalink to this definition">¶</a></dt>
 <dd><p>A custom frame type for SEDMachine Sub-Images</p>
 <dl class="method">
 <dt id="SEDMachine.Lenslet.SubImage.sync_header">
-<tt class="descname">sync_header</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Lenslet.html#SubImage.sync_header"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Lenslet.SubImage.sync_header" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">sync_header</tt><big>(</big><big>)</big><a class="headerlink" href="#SEDMachine.Lenslet.SubImage.sync_header" title="Permalink to this definition">¶</a></dt>
 <dd><p>Synchronizes the header dictionary with the HDU header</p>
 </dd></dl>
 
@@ -577,7 +577,7 @@
         <li class="right" >
           <a href="Simulator.html" title="6. Simulator Operational Algorithms"
              >previous</a> |</li>
-        <li><a href="index.html">SEDMsim 0.3.1 documentation</a> &raquo;</li> 
+        <li><a href="index.html">SEDMsim  documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">

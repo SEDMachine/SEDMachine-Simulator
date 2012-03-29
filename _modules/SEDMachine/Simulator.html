@@ -8,7 +8,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>SEDMachine.Simulator &mdash; SEDMsim 0.3.1 documentation</title>
+    <title>SEDMachine.Simulator &mdash; SEDMsim  documentation</title>
     
     <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
@@ -16,7 +16,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../../',
-        VERSION:     '0.3.1',
+        VERSION:     '',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -25,7 +25,7 @@
     <script type="text/javascript" src="../../_static/jquery.js"></script>
     <script type="text/javascript" src="../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../_static/doctools.js"></script>
-    <link rel="top" title="SEDMsim 0.3.1 documentation" href="../../index.html" />
+    <link rel="top" title="SEDMsim  documentation" href="../../index.html" />
     <link rel="up" title="Module code" href="../index.html" /> 
   </head>
   <body>
@@ -38,7 +38,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li><a href="../../index.html">SEDMsim 0.3.1 documentation</a> &raquo;</li>
+        <li><a href="../../index.html">SEDMsim  documentation</a> &raquo;</li>
           <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
       </ul>
     </div>  
@@ -57,7 +57,7 @@
 <span class="c">#  </span>
 <span class="c">#  Created by Alexander Rudy on 2012-02-08.</span>
 <span class="c">#  Copyright 2012 Alexander Rudy. All rights reserved.</span>
-<span class="c">#  Version 0.3.1</span>
+<span class="c">#  Version 0.3.2</span>
 <span class="c"># </span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
@@ -82,6 +82,8 @@
 <span class="kn">import</span> <span class="nn">collections</span>
 <span class="kn">import</span> <span class="nn">gc</span>
 
+<span class="kn">from</span> <span class="nn">pkg_resources</span> <span class="kn">import</span> <span class="n">resource_filename</span>
+
 <span class="kn">import</span> <span class="nn">AstroObject</span>
 <span class="kn">from</span> <span class="nn">AstroObject.AstroSimulator</span> <span class="kn">import</span> <span class="n">Simulator</span>
 <span class="kn">from</span> <span class="nn">AstroObject.AstroCache</span> <span class="kn">import</span> <span class="o">*</span>
@@ -91,7 +93,7 @@
 <span class="kn">from</span> <span class="nn">AstroObject.AnalyticSpectra</span> <span class="kn">import</span> <span class="n">BlackBodySpectrum</span><span class="p">,</span><span class="n">GaussianSpectrum</span><span class="p">,</span> <span class="n">AnalyticSpectrum</span><span class="p">,</span> <span class="n">FlatSpectrum</span><span class="p">,</span> <span class="n">InterpolatedSpectrum</span><span class="p">,</span> <span class="n">UnitarySpectrum</span>
 <span class="kn">from</span> <span class="nn">AstroObject.Utilities</span> <span class="kn">import</span> <span class="o">*</span>
 
-<span class="kn">from</span> <span class="nn">Lenslet</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">Objects</span> <span class="kn">import</span> <span class="o">*</span>
 
 
 <div class="viewcode-block" id="SEDSimulator"><a class="viewcode-back" href="../../Simulator.html#SEDMachine.Simulator.SEDSimulator">[docs]</a><span class="k">class</span> <span class="nc">SEDSimulator</span><span class="p">(</span><span class="n">Simulator</span><span class="p">,</span><span class="n">ImageObject</span><span class="p">):</span>
@@ -112,196 +114,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">sky</span> <span class="o">=</span>  <span class="n">SpectraObject</span><span class="p">(</span><span class="n">dataClasses</span><span class="o">=</span><span class="p">[</span><span class="n">AnalyticSpectrum</span><span class="p">])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sky</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">FlatSpectrum</span><span class="p">(</span><span class="mf">0.0</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">astrologger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s">&quot;AstroObject&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">basics</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">merge</span><span class="p">({</span><span class="s">&quot;Instrument&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">instrument</span><span class="p">,</span><span class="s">&quot;Caches&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">caches</span><span class="p">,</span><span class="s">&quot;Source&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="p">,</span><span class="s">&quot;Observation&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">observation</span><span class="p">})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">resource_filename</span><span class="p">(</span><span class="n">__name__</span><span class="p">,</span><span class="s">&quot;SED.main.config.default.yaml&quot;</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">setFile</span><span class="p">(</span><span class="s">&quot;Main&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">setup_stages</span><span class="p">()</span>
-
-    
-    <span class="n">basics</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s">&quot;Debug&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
-        <span class="s">&quot;Plots&quot;</span> <span class="p">:</span> <span class="p">{</span>
-            <span class="s">&#39;format&#39;</span><span class="p">:</span> <span class="s">&#39;.pdf&#39;</span><span class="p">,</span>
-        <span class="p">},</span>
-        <span class="s">&quot;Output&quot;</span><span class="p">:</span> <span class="p">{</span>
-            <span class="s">&quot;Label&quot;</span><span class="p">:</span> <span class="s">&quot;Generated&quot;</span><span class="p">,</span>
-            <span class="s">&quot;Format&quot;</span><span class="p">:</span> <span class="s">&quot;fits&quot;</span><span class="p">,</span>
-        <span class="p">},</span>
-        <span class="s">&quot;Configurations&quot;</span><span class="p">:</span> <span class="p">{</span>
-            <span class="s">&quot;Main&quot;</span> <span class="p">:</span> <span class="s">&quot;SED.main.config.yaml&quot;</span><span class="p">,</span>
-        <span class="p">},</span>
-        <span class="s">&quot;Dirs&quot;</span><span class="p">:</span> <span class="p">{</span>
-            <span class="s">&quot;Logs&quot;</span><span class="p">:</span> <span class="s">&quot;Logs&quot;</span><span class="p">,</span>
-            <span class="s">&quot;Partials&quot;</span> <span class="p">:</span> <span class="s">&quot;Partials&quot;</span><span class="p">,</span>
-            <span class="s">&quot;Caches&quot;</span> <span class="p">:</span> <span class="s">&quot;Caches&quot;</span><span class="p">,</span>
-            <span class="s">&quot;Images&quot;</span> <span class="p">:</span> <span class="s">&quot;Images&quot;</span><span class="p">,</span>
-        <span class="p">},</span>
-        <span class="s">&quot;Lenslets&quot;</span> <span class="p">:</span> <span class="p">{},</span>
-        <span class="s">&#39;logging&#39;</span><span class="p">:</span> <span class="p">{</span>
-            <span class="s">&#39;console&#39;</span><span class="p">:</span> <span class="p">{</span>
-                <span class="s">&#39;level&#39;</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span> 
-                <span class="s">&#39;enable&#39;</span><span class="p">:</span> <span class="bp">True</span><span class="p">,</span> 
-                <span class="s">&#39;format&#39;</span><span class="p">:</span> <span class="s">&#39;</span><span class="si">%(levelname)-8s</span><span class="s">... </span><span class="si">%(message)s</span><span class="s">&#39;</span>
-            <span class="p">},</span>
-            <span class="s">&#39;growl&#39;</span> <span class="p">:</span> <span class="p">{</span>
-                <span class="s">&#39;enable&#39;</span> <span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
-                <span class="s">&#39;name&#39;</span> <span class="p">:</span> <span class="s">&quot;SED Machine Simulator&quot;</span><span class="p">,</span>
-            <span class="p">},</span>
-            <span class="s">&#39;file&#39;</span><span class="p">:</span> <span class="p">{</span>
-                <span class="s">&#39;format&#39;</span><span class="p">:</span> <span class="s">&#39;</span><span class="si">%(asctime)s</span><span class="s"> : </span><span class="si">%(levelname)-8s</span><span class="s"> : </span><span class="si">%(funcName)-20s</span><span class="s"> : </span><span class="si">%(message)s</span><span class="s">&#39;</span><span class="p">,</span>
-                <span class="s">&#39;enable&#39;</span><span class="p">:</span> <span class="bp">True</span><span class="p">,</span> 
-                <span class="s">&#39;filename&#39;</span><span class="p">:</span> <span class="s">&#39;SEDMachine&#39;</span>
-            <span class="p">},</span>
-        <span class="p">},</span>
-    <span class="p">}</span>
-    
-    <span class="n">caches</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s">&#39;Telescope&#39;</span> <span class="p">:</span> <span class="s">&quot;SED.tel.npy&quot;</span><span class="p">,</span>
-        <span class="s">&#39;PSF&#39;</span> <span class="p">:</span> <span class="s">&quot;SED.psf.npy&quot;</span><span class="p">,</span>
-        <span class="s">&#39;CONV&#39;</span> <span class="p">:</span> <span class="s">&quot;SED.conv.npy&quot;</span><span class="p">,</span>
-        <span class="s">&#39;const&#39;</span> <span class="p">:</span> <span class="s">&quot;SED.const.yaml&quot;</span>
-    <span class="p">}</span>
-    
-    <span class="n">observation</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s">&#39;exposure&#39;</span> <span class="p">:</span> <span class="mi">1200</span><span class="p">,</span>
-        <span class="s">&#39;number&#39;</span> <span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
-        <span class="s">&#39;airmass&#39;</span> <span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
-        <span class="s">&#39;Background&#39;</span> <span class="p">:</span> <span class="p">{</span>
-            <span class="s">&#39;Sky&#39;</span> <span class="p">:</span> <span class="s">&quot;PalSky&quot;</span><span class="p">,</span>
-            <span class="s">&#39;Atmosphere&#39;</span> <span class="p">:</span> <span class="s">&quot;Atmosph&quot;</span><span class="p">,</span>
-            <span class="s">&#39;Files&#39;</span> <span class="p">:</span> <span class="p">{</span>
-                <span class="s">&#39;PalSky&#39;</span> <span class="p">:</span> <span class="p">{</span>
-                    <span class="s">&quot;Filename&quot;</span> <span class="p">:</span> <span class="s">&quot;Data/PalSky.fits&quot;</span><span class="p">,</span>
-                    <span class="s">&quot;Amplifier&quot;</span> <span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
-                <span class="p">},</span>
-                <span class="s">&#39;Massey&#39;</span> <span class="p">:</span> <span class="p">{</span>
-                    <span class="s">&quot;Filename&quot;</span> <span class="p">:</span> <span class="s">&quot;Data/MasseySky.fits&quot;</span><span class="p">,</span>
-                    <span class="s">&quot;Amplifier&quot;</span> <span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
-                <span class="p">},</span>
-                <span class="s">&#39;QuimbySky&#39;</span> <span class="p">:</span> <span class="p">{</span>
-                    <span class="s">&quot;Filename&quot;</span> <span class="p">:</span> <span class="s">&quot;Data/QuimbySky.fits&quot;</span><span class="p">,</span>
-                    <span class="s">&quot;Amplifier&quot;</span> <span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
-                <span class="p">},</span>
-                <span class="s">&#39;UVESSky&#39;</span> <span class="p">:</span> <span class="p">{</span>
-                    <span class="s">&quot;Filename&quot;</span> <span class="p">:</span> <span class="s">&quot;Data/UVESSky.fits&quot;</span><span class="p">,</span>
-                    <span class="s">&quot;Amplifier&quot;</span> <span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
-                <span class="p">},</span>
-                <span class="s">&#39;TurnroseSKY&#39;</span> <span class="p">:</span> <span class="p">{</span>
-                    <span class="s">&quot;Filename&quot;</span> <span class="p">:</span> <span class="s">&quot;Data/TurnroseSKY.fits&quot;</span><span class="p">,</span>
-                    <span class="s">&quot;Amplifier&quot;</span> <span class="p">:</span> <span class="mf">1.0e-18</span> <span class="o">*</span> <span class="mi">3</span><span class="p">,</span>
-                <span class="p">},</span>
-                <span class="s">&#39;Atmosph&#39;</span> <span class="p">:</span> <span class="p">{</span>
-                    <span class="s">&quot;Filename&quot;</span> <span class="p">:</span> <span class="s">&quot;Data/atmosphere.fits&quot;</span><span class="p">,</span>
-                    <span class="s">&quot;Amplifier&quot;</span> <span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
-                <span class="p">},</span>
-            <span class="p">},</span>
-        <span class="p">},</span>
-        <span class="s">&#39;Moon&#39;</span> <span class="p">:</span> <span class="p">{</span>
-            <span class="s">&#39;Phase&#39;</span> <span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
-        <span class="p">},</span>
-        
-        
-    <span class="p">}</span>
-    
-    
-    <span class="n">instrument</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s">&quot;Cameras&quot;</span> <span class="p">:</span> <span class="p">{</span>
-            <span class="s">&quot;Selected&quot;</span> <span class="p">:</span> <span class="s">&quot;PI&quot;</span><span class="p">,</span>
-          	<span class="s">&quot;PI&quot;</span><span class="p">:</span> <span class="p">{</span>
-              	<span class="s">&quot;RN&quot;</span> <span class="p">:</span> <span class="mf">5.</span><span class="p">,</span>
-              	<span class="s">&quot;DC&quot;</span><span class="p">:</span>  <span class="mf">0.006</span><span class="p">,</span>
-              	<span class="s">&quot;readtime&quot;</span><span class="p">:</span> <span class="mi">37</span><span class="p">,</span>
-            <span class="p">},</span>
-          	<span class="s">&quot;Andor&quot;</span><span class="p">:</span> <span class="p">{</span>
-              	<span class="s">&quot;RN&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
-              	<span class="s">&quot;DC&quot;</span><span class="p">:</span> <span class="mf">0.0004</span><span class="p">,</span>
-              	<span class="s">&quot;readtime&quot;</span><span class="p">:</span>  <span class="mi">82</span>
-            <span class="p">},</span>
-          	<span class="s">&quot;E2V&quot;</span><span class="p">:</span> <span class="p">{</span>
-              	<span class="s">&quot;RN&quot;</span><span class="p">:</span> <span class="mf">3.3</span><span class="p">,</span>
-              	<span class="s">&quot;DC&quot;</span><span class="p">:</span> <span class="mf">0.006</span><span class="p">,</span>
-              	<span class="s">&quot;readtime&quot;</span><span class="p">:</span> <span class="mi">37</span>
-            <span class="p">},</span>
-              
-        <span class="p">},</span>
-        <span class="s">&#39;files&#39;</span><span class="p">:</span> <span class="p">{</span>
-            <span class="s">&#39;dispersion&#39;</span><span class="p">:</span> <span class="s">&#39;Filename.txt&#39;</span><span class="p">,</span>
-            <span class="s">&#39;encircledenergy&#39;</span><span class="p">:</span> <span class="s">&#39;Filename.txt&#39;</span><span class="p">,</span>
-            <span class="s">&#39;lenslets&#39;</span><span class="p">:</span> <span class="s">&#39;Filename.txt&#39;</span><span class="p">,</span>
-        <span class="p">},</span>
-        <span class="s">&#39;convert&#39;</span><span class="p">:</span> <span class="p">{</span>
-            <span class="s">&#39;pxtomm&#39;</span><span class="p">:</span> <span class="mf">0.0135</span> <span class="p">},</span> 
-        <span class="s">&#39;density&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
-        <span class="s">&#39;dispfitorder&#39;</span> <span class="p">:</span> <span class="mi">2</span><span class="p">,</span> 
-        <span class="s">&#39;ccd&#39;</span><span class="p">:</span> <span class="p">{</span>
-            <span class="s">&#39;size&#39;</span> <span class="p">:</span> <span class="p">{</span><span class="s">&#39;px&#39;</span><span class="p">:</span> <span class="mi">2048</span><span class="p">},</span>
-        <span class="p">},</span>
-        <span class="s">&#39;padding&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span> 
-        <span class="s">&#39;PSF&#39;</span> <span class="p">:</span> <span class="p">{</span>
-            <span class="s">&#39;stdev&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s">&#39;px&#39;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">},</span> 
-            <span class="s">&#39;size&#39;</span><span class="p">:</span> <span class="p">{</span> <span class="s">&#39;px&#39;</span><span class="p">:</span> <span class="mf">2.4</span><span class="p">},</span>
-        <span class="p">},</span>
-        <span class="s">&#39;bias&#39;</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span> 
-        <span class="s">&#39;image&#39;</span><span class="p">:</span> <span class="p">{</span> 
-            <span class="s">&#39;size&#39;</span><span class="p">:{</span> <span class="s">&#39;mm&#39;</span><span class="p">:</span> <span class="mf">40.0</span><span class="p">},</span>
-            <span class="s">&#39;pad&#39;</span> <span class="p">:{</span> <span class="s">&#39;mm&#39;</span> <span class="p">:</span> <span class="mf">0.1</span><span class="p">},</span>
-        <span class="p">},</span>
-        <span class="s">&#39;Tel&#39;</span> <span class="p">:</span> <span class="p">{</span>
-            <span class="s">&#39;obsc&#39;</span> <span class="p">:</span> <span class="p">{</span><span class="s">&#39;px&#39;</span><span class="p">:</span> <span class="mf">0.2</span> <span class="p">,</span> <span class="s">&#39;ratio&#39;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">},</span>
-            <span class="s">&#39;area&#39;</span> <span class="p">:</span> <span class="mf">18242.</span> <span class="o">*</span> <span class="mf">0.9</span><span class="p">,</span>
-            <span class="s">&#39;radius&#39;</span><span class="p">:</span> <span class="p">{</span> <span class="s">&#39;px&#39;</span><span class="p">:</span> <span class="mf">1.2</span><span class="p">},</span>
-            <span class="s">&#39;ellipse&#39;</span><span class="p">:</span> <span class="bp">True</span><span class="p">,</span>
-            <span class="s">&#39;dispfitorder&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
-        <span class="p">},</span>
-        <span class="s">&#39;eADU&#39;</span> <span class="p">:</span> <span class="mf">3.802e-2</span><span class="p">,</span>
-        <span class="s">&#39;Lenslets&#39;</span> <span class="p">:</span> <span class="p">{</span>
-              <span class="s">&#39;radius&#39;</span> <span class="p">:</span> <span class="mf">0.245e-2</span><span class="p">,</span>
-              <span class="s">&#39;rotation&#39;</span> <span class="p">:</span> <span class="mf">27.0</span><span class="p">,</span>
-              <span class="s">&#39;strict&#39;</span> <span class="p">:</span> <span class="bp">True</span><span class="p">,</span>
-        <span class="p">},</span>
-        <span class="s">&#39;wavelengths&#39;</span> <span class="p">:</span> <span class="p">{</span>
-            <span class="s">&#39;max&#39;</span> <span class="p">:</span> <span class="mf">9300e-10</span><span class="p">,</span>
-            <span class="s">&#39;min&#39;</span> <span class="p">:</span> <span class="mf">3700e-10</span><span class="p">,</span>
-            <span class="s">&#39;resolution&#39;</span> <span class="p">:</span> <span class="mi">100</span><span class="p">,</span>
-        <span class="p">},</span>
-        <span class="s">&#39;Scatter&#39;</span> <span class="p">:</span> <span class="p">{</span>
-            <span class="s">&quot;FFT&quot;</span> <span class="p">:</span> <span class="bp">True</span><span class="p">,</span>
-            <span class="s">&quot;Amplifier&quot;</span> <span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
-            <span class="s">&quot;Kernels&quot;</span> <span class="p">:</span> <span class="p">{</span>
-                <span class="s">&quot;A&quot;</span> <span class="p">:</span> <span class="p">{</span>
-                    <span class="s">&quot;type&quot;</span> <span class="p">:</span> <span class="s">&quot;Gaussian&quot;</span><span class="p">,</span>
-                    <span class="s">&quot;stdev&quot;</span> <span class="p">:</span> <span class="mi">2</span><span class="o">*</span><span class="mi">83</span><span class="p">,</span>
-                    <span class="s">&quot;mag&quot;</span> <span class="p">:</span> <span class="mf">0.0008</span><span class="p">,</span>
-                <span class="p">},</span>
-                <span class="s">&quot;B&quot;</span> <span class="p">:</span> <span class="p">{</span>
-                    <span class="s">&quot;type&quot;</span> <span class="p">:</span> <span class="s">&quot;Gaussian&quot;</span><span class="p">,</span>
-                    <span class="s">&quot;stdev&quot;</span> <span class="p">:</span> <span class="mi">2</span><span class="o">*</span><span class="mi">11100</span><span class="p">,</span>
-                    <span class="s">&quot;mag&quot;</span> <span class="p">:</span> <span class="mf">6.6e-6</span><span class="p">,</span>
-                <span class="p">},</span>
-            <span class="p">},</span>
-        <span class="p">},</span>
-        <span class="s">&#39;Thpt&#39;</span> <span class="p">:</span> <span class="p">{</span>
-            <span class="s">&#39;File&#39;</span> <span class="p">:</span> <span class="s">&quot;Data/thpt.npy&quot;</span><span class="p">,</span>
-            <span class="s">&#39;Type&#39;</span> <span class="p">:</span> <span class="s">&quot;prism_pi&quot;</span><span class="p">,</span>
-        <span class="p">},</span>
-
-        
-    <span class="p">}</span>
-    
-    <span class="n">source</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s">&#39;Filename&#39;</span> <span class="p">:</span> <span class="s">&quot;Data/SNIa.R1000.dat&quot;</span><span class="p">,</span>
-        <span class="s">&#39;CubeName&#39;</span> <span class="p">:</span> <span class="s">&quot;Data/CUBE.fits&quot;</span><span class="p">,</span>
-        <span class="s">&#39;Flat&#39;</span> <span class="p">:</span> <span class="p">{</span>
-            <span class="s">&#39;value&#39;</span> <span class="p">:</span> <span class="mf">1e-6</span><span class="p">,</span>
-        <span class="p">},</span>
-        <span class="s">&#39;Lines&#39;</span> <span class="p">:</span> <span class="p">{</span>
-            <span class="s">&#39;List&#39;</span> <span class="p">:</span> <span class="s">&quot;Data/Lines.dat&quot;</span><span class="p">,</span>
-            <span class="s">&#39;sigma&#39;</span> <span class="p">:</span> <span class="mf">1e-9</span><span class="p">,</span>
-            <span class="s">&#39;value&#39;</span> <span class="p">:</span> <span class="mf">1e8</span><span class="p">,</span>
-        <span class="p">},</span>
-        <span class="s">&#39;PXSize&#39;</span> <span class="p">:</span> <span class="p">{</span> <span class="s">&#39;mm&#39;</span> <span class="p">:</span> <span class="mf">0.005</span> <span class="p">},</span>
-        <span class="s">&#39;Rotation&#39;</span> <span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">4.0</span><span class="p">,</span>
-    <span class="p">}</span>
     
 <div class="viewcode-block" id="SEDSimulator.setup_stages"><a class="viewcode-back" href="../../Simulator.html#SEDMachine.Simulator.SEDSimulator.setup_stages">[docs]</a>    <span class="k">def</span> <span class="nf">setup_stages</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Registers all of the availalbe simulator stages. For basic command help on the options registered here, use::</span>
@@ -361,19 +176,19 @@
         
         <span class="c"># Dispersion functions</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">registerStage</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lenslet_dispersion</span><span class="p">,</span><span class="s">&quot;dispersion&quot;</span><span class="p">,</span><span class="n">help</span><span class="o">=</span><span class="s">&quot;Calculate lenslet dispersion&quot;</span><span class="p">,</span><span class="n">description</span><span class="o">=</span><span class="s">&quot;Calculating dispersion for each lenslet&quot;</span><span class="p">,</span><span class="n">dependencies</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;setup-lenslets&quot;</span><span class="p">,</span><span class="s">&quot;setup-caches&quot;</span><span class="p">])</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">registerStage</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lenslet_trace</span><span class="p">,</span><span class="s">&quot;trace&quot;</span><span class="p">,</span><span class="n">help</span><span class="o">=</span><span class="s">&quot;Trace lenslet spectra dispersion&quot;</span><span class="p">,</span><span class="n">description</span><span class="o">=</span><span class="s">&quot;Tracing lenslet spectra dispersion&quot;</span><span class="p">,</span><span class="n">dependencies</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;dispersion&quot;</span><span class="p">,</span><span class="s">&quot;setup-caches&quot;</span><span class="p">,</span><span class="s">&quot;apply-sky&quot;</span><span class="p">,</span><span class="s">&quot;apply-qe&quot;</span><span class="p">,</span><span class="s">&quot;apply-atmosphere&quot;</span><span class="p">])</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">registerStage</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lenslet_place</span><span class="p">,</span><span class="s">&quot;place&quot;</span><span class="p">,</span><span class="n">help</span><span class="o">=</span><span class="s">&quot;Place subimages&quot;</span><span class="p">,</span><span class="n">description</span><span class="o">=</span><span class="s">&quot;Placing lenslet spectra&quot;</span><span class="p">,</span><span class="n">dependencies</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;trace&quot;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">registerStage</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lenslet_trace</span><span class="p">,</span><span class="s">&quot;trace&quot;</span><span class="p">,</span><span class="n">help</span><span class="o">=</span><span class="s">&quot;Trace lenslet spectra dispersion&quot;</span><span class="p">,</span><span class="n">description</span><span class="o">=</span><span class="s">&quot;Tracing lenslet spectra dispersion&quot;</span><span class="p">,</span><span class="n">dependencies</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;dispersion&quot;</span><span class="p">,</span><span class="s">&quot;setup-caches&quot;</span><span class="p">,</span><span class="s">&quot;setup-lenslets&quot;</span><span class="p">,</span><span class="s">&quot;apply-sky&quot;</span><span class="p">,</span><span class="s">&quot;apply-qe&quot;</span><span class="p">,</span><span class="s">&quot;apply-atmosphere&quot;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">registerStage</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lenslet_place</span><span class="p">,</span><span class="s">&quot;place&quot;</span><span class="p">,</span><span class="n">help</span><span class="o">=</span><span class="s">&quot;Place subimages&quot;</span><span class="p">,</span><span class="n">description</span><span class="o">=</span><span class="s">&quot;Placing lenslet spectra&quot;</span><span class="p">,</span><span class="n">dependencies</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;trace&quot;</span><span class="p">],</span><span class="n">include</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
         
         <span class="c"># Merge images back together</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">registerStage</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image_merge</span><span class="p">,</span><span class="s">&quot;merge-cached&quot;</span><span class="p">,</span><span class="n">help</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span><span class="n">description</span><span class="o">=</span><span class="s">&quot;Merging subimages&quot;</span><span class="p">,</span><span class="n">dependencies</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;setup-blank&quot;</span><span class="p">,</span><span class="s">&quot;setup-lenslets&quot;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">registerStage</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image_merge</span><span class="p">,</span><span class="s">&quot;merge-cached&quot;</span><span class="p">,</span><span class="n">help</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span><span class="n">description</span><span class="o">=</span><span class="s">&quot;Merging subimages&quot;</span><span class="p">,</span><span class="n">dependencies</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;setup-blank&quot;</span><span class="p">,</span><span class="s">&quot;setup-lenslets&quot;</span><span class="p">],</span><span class="n">include</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">registerStage</span><span class="p">(</span><span class="bp">None</span><span class="p">,</span><span class="s">&quot;merge&quot;</span><span class="p">,</span><span class="n">help</span><span class="o">=</span><span class="s">&quot;Merge Subimages&quot;</span><span class="p">,</span><span class="n">description</span><span class="o">=</span><span class="s">&quot;Merging subimage into master image&quot;</span><span class="p">,</span><span class="n">dependencies</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;place&quot;</span><span class="p">,</span><span class="s">&quot;merge-cached&quot;</span><span class="p">])</span>
         
         <span class="c"># Final Image work</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">registerStage</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ccd_crop</span><span class="p">,</span><span class="s">&quot;crop&quot;</span><span class="p">,</span><span class="n">help</span><span class="o">=</span><span class="s">&quot;Crop Final Image&quot;</span><span class="p">,</span><span class="n">description</span><span class="o">=</span><span class="s">&quot;Cropping image to CCD size&quot;</span><span class="p">,</span><span class="n">dependencies</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;setup-blank&quot;</span><span class="p">,</span><span class="s">&quot;setup-lenslets&quot;</span><span class="p">])</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">registerStage</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">apply_noise</span><span class="p">,</span><span class="s">&quot;add-noise&quot;</span><span class="p">,</span><span class="n">help</span><span class="o">=</span><span class="s">&quot;Add Dark/Bias noise to image&quot;</span><span class="p">,</span><span class="n">description</span><span class="o">=</span><span class="s">&quot;Adding Dark/Bias noise&quot;</span><span class="p">,</span><span class="n">dependencies</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;crop&quot;</span><span class="p">,</span><span class="s">&quot;setup-noise&quot;</span><span class="p">])</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">registerStage</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">apply_scatter</span><span class="p">,</span><span class="s">&quot;add-scatter&quot;</span><span class="p">,</span><span class="n">help</span><span class="o">=</span><span class="s">&quot;Add scattered light noise to image&quot;</span><span class="p">,</span><span class="n">description</span><span class="o">=</span><span class="s">&quot;Adding scatter noise&quot;</span><span class="p">,</span><span class="n">dependencies</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;crop&quot;</span><span class="p">,</span><span class="s">&quot;setup-scatter&quot;</span><span class="p">])</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">registerStage</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">transpose</span><span class="p">,</span><span class="s">&quot;transpose&quot;</span><span class="p">,</span><span class="n">help</span><span class="o">=</span><span class="s">&quot;Transpose the image&quot;</span><span class="p">,</span><span class="n">description</span><span class="o">=</span><span class="s">&quot;Transposing Image&quot;</span><span class="p">,</span><span class="n">dependencies</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;crop&quot;</span><span class="p">])</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">registerStage</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">save_file</span><span class="p">,</span><span class="s">&quot;save&quot;</span><span class="p">,</span><span class="n">help</span><span class="o">=</span><span class="s">&quot;Save image to file&quot;</span><span class="p">,</span><span class="n">description</span><span class="o">=</span><span class="s">&quot;Saving image to disk&quot;</span><span class="p">,</span><span class="n">dependencies</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;setup-blank&quot;</span><span class="p">,</span><span class="s">&quot;transpose&quot;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">registerStage</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ccd_crop</span><span class="p">,</span><span class="s">&quot;crop&quot;</span><span class="p">,</span><span class="n">help</span><span class="o">=</span><span class="s">&quot;Crop Final Image&quot;</span><span class="p">,</span><span class="n">description</span><span class="o">=</span><span class="s">&quot;Cropping image to CCD size&quot;</span><span class="p">,</span><span class="n">dependencies</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;setup-blank&quot;</span><span class="p">,</span><span class="s">&quot;setup-lenslets&quot;</span><span class="p">],</span><span class="n">include</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">registerStage</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">apply_noise</span><span class="p">,</span><span class="s">&quot;add-noise&quot;</span><span class="p">,</span><span class="n">help</span><span class="o">=</span><span class="s">&quot;Add Dark/Bias noise to image&quot;</span><span class="p">,</span><span class="n">description</span><span class="o">=</span><span class="s">&quot;Adding Dark/Bias noise&quot;</span><span class="p">,</span><span class="n">dependencies</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;crop&quot;</span><span class="p">,</span><span class="s">&quot;setup-noise&quot;</span><span class="p">],</span><span class="n">include</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">registerStage</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">apply_scatter</span><span class="p">,</span><span class="s">&quot;add-scatter&quot;</span><span class="p">,</span><span class="n">help</span><span class="o">=</span><span class="s">&quot;Add scattered light noise to image&quot;</span><span class="p">,</span><span class="n">description</span><span class="o">=</span><span class="s">&quot;Adding scatter noise&quot;</span><span class="p">,</span><span class="n">dependencies</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;crop&quot;</span><span class="p">,</span><span class="s">&quot;setup-scatter&quot;</span><span class="p">],</span><span class="n">include</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">registerStage</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">transpose</span><span class="p">,</span><span class="s">&quot;transpose&quot;</span><span class="p">,</span><span class="n">help</span><span class="o">=</span><span class="s">&quot;Transpose the image&quot;</span><span class="p">,</span><span class="n">description</span><span class="o">=</span><span class="s">&quot;Transposing Image&quot;</span><span class="p">,</span><span class="n">dependencies</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;crop&quot;</span><span class="p">],</span><span class="n">include</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">registerStage</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">save_file</span><span class="p">,</span><span class="s">&quot;save&quot;</span><span class="p">,</span><span class="n">help</span><span class="o">=</span><span class="s">&quot;Save image to file&quot;</span><span class="p">,</span><span class="n">description</span><span class="o">=</span><span class="s">&quot;Saving image to disk&quot;</span><span class="p">,</span><span class="n">dependencies</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;setup-blank&quot;</span><span class="p">,</span><span class="s">&quot;transpose&quot;</span><span class="p">],</span><span class="n">include</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
         
         <span class="c"># Alternative work macros</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">registerStage</span><span class="p">(</span><span class="bp">None</span><span class="p">,</span><span class="s">&quot;cached-only&quot;</span><span class="p">,</span><span class="n">help</span><span class="o">=</span><span class="s">&quot;Use cached subimages to construct final image&quot;</span><span class="p">,</span><span class="n">description</span><span class="o">=</span><span class="s">&quot;Building image from caches&quot;</span><span class="p">,</span><span class="n">dependencies</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;merge-cached&quot;</span><span class="p">,</span><span class="s">&quot;crop&quot;</span><span class="p">,</span><span class="s">&quot;add-noise&quot;</span><span class="p">,</span><span class="s">&quot;add-scatter&quot;</span><span class="p">,</span><span class="s">&quot;transpose&quot;</span><span class="p">,</span><span class="s">&quot;save&quot;</span><span class="p">])</span>
@@ -682,7 +497,8 @@
         <span class="c"># Each sky spectrum is saved in a FITS file for easy recall as a spectrum object.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">SKYData</span> <span class="o">=</span> <span class="n">SpectraObject</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">label</span><span class="p">,</span><span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Observation&quot;</span><span class="p">][</span><span class="s">&quot;Background&quot;</span><span class="p">][</span><span class="s">&quot;Files&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">SKYData</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s">&quot;Filename&quot;</span><span class="p">],</span><span class="n">statename</span><span class="o">=</span><span class="n">label</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">SKYData</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s">&quot;Filename&quot;</span><span class="p">],</span><span class="n">statename</span><span class="o">=</span><span class="n">label</span><span class="p">)</span>
+                
         
         <span class="c"># Moon phase adjustments. These moon phase attenuation values are for different filter bands.</span>
         <span class="c"># The intermediate wavelengths are accounted for using a polyfit</span>
@@ -1859,7 +1675,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li><a href="../../index.html">SEDMsim 0.3.1 documentation</a> &raquo;</li>
+        <li><a href="../../index.html">SEDMsim  documentation</a> &raquo;</li>
           <li><a href="../index.html" >Module code</a> &raquo;</li> 
       </ul>
     </div>
