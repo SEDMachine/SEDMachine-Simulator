@@ -62,8 +62,11 @@ class SetupAgent(Simulator):
         sourceDir = resource_filename(__name__,"Data/")
         items = os.listdir(sourceDir)
         for item in items:
-            if item.endswith(".dat"):
+            if item.endswith(".dat") and not os.access(dataDir+item,os.F_OK):
                 shutil.copy(sourceDir+item,dataDir)
+                self.log.debug("Copied %s to %s" % (item,dataDir))
+            else:
+                self.log.debug("Skipped copying %s" % (item))
         
     def MakeMassey(self):
         """Make the Massey.FITS file"""
