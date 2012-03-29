@@ -1,0 +1,148 @@
+# Configuration from SEDMachine
+Caches:
+  CONV: SED.conv.npy
+  PSF: SED.psf.npy
+  Telescope: SED.tel.npy
+  const: SED.const.yaml
+Configurations:
+  Main: SED.main.config.yaml
+  This: SED.main.config.yaml
+Debug: false
+Default: null
+Dirs:
+  Caches: Caches
+  Images: Images
+  Logs: Logs
+  Partials: Partials
+  Data: Data
+Instrument:
+  Cameras:
+    Andor:
+      DC: 0.0004
+      RN: 4
+      readtime: 82
+    E2V:
+      DC: 0.006
+      RN: 3.3
+      readtime: 37
+    PI:
+      DC: 0.006
+      RN: 5.0
+      readtime: 37
+    Selected: PI
+  Lenslets:
+    radius: 0.00245
+    rotation: 27.0
+    strict: true
+  PSF:
+    size:
+      px: 2.4
+    stdev:
+      px: 1.0
+  Scatter:
+    Amplifier: 1.0
+    FFT: true
+    Kernels:
+      A:
+        mag: 0.0008
+        stdev: 166
+        type: Gaussian
+      B:
+        mag: 6.6e-06
+        stdev: 22200
+        type: Gaussian
+  Tel:
+    area: 16417.8
+    dispfitorder: 5
+    ellipse: true
+    obsc:
+      px: 0.2
+      ratio: 0.1
+    radius:
+      px: 1.2
+  Thpt:
+    File: Data/thpt.npy
+    Type: prism_pi
+  bias: 20
+  ccd:
+    size:
+      px: 2048
+  convert:
+    pxtomm: 0.0135
+  density: 5
+  dispfitorder: 2
+  eADU: 0.03802
+  files:
+    dispersion: Filename.txt
+    encircledenergy: Filename.txt
+    lenslets: Filename.txt
+  image:
+    pad:
+      mm: 0.1
+    size:
+      mm: 40.0
+  padding: 5
+  wavelengths:
+    max: 9.3e-07
+    min: 3.7e-07
+    resolution: 100
+Lenslets: {}
+Observation:
+  Background:
+    Atmosphere: Atmosph
+    Files:
+      Atmosph:
+        Amplifier: 1
+        Filename: Data/atmosphere.fits
+      Massey:
+        Amplifier: 1
+        Filename: Data/MasseySky.fits
+      PalSky:
+        Amplifier: 1
+        Filename: Data/PalSky.fits
+      QuimbySky:
+        Amplifier: 1
+        Filename: Data/QuimbySky.fits
+      TurnroseSKY:
+        Amplifier: 3.0000000000000002e-18
+        Filename: Data/TurnroseSKY.fits
+      UVESSky:
+        Amplifier: 1
+        Filename: Data/UVESSky.fits
+    Sky: PalSky
+  Moon:
+    Phase: 0
+  airmass: 1
+  exposure: 1200
+  number: 3
+Output:
+  Format: fits
+  Label: Generated
+Plots:
+  format: .pdf
+Source:
+  CubeName: Data/CUBE.fits
+  Filename: Data/SNIa.R1000.dat
+  Flat:
+    value: 1.0e-06
+  Lines:
+    List: Data/Lines.dat
+    sigma: 1.0e-09
+    value: 100000000.0
+  PXSize:
+    mm: 0.005
+  Rotation: 0.7853981633974483
+logging:
+  console:
+    enable: true
+    format: '%(levelname)-8s... %(message)s'
+    level: 20
+    message: '...%(message)s'
+  file:
+    dateformat: '%Y-%m-%d-%H:%M:%S'
+    enable: true
+    filename: SEDMachine
+    format: '%(asctime)s : %(levelname)-8s : %(funcName)-20s : %(message)s'
+  growl:
+    enable: false
+    name: SED Machine Simulator
