@@ -9,7 +9,7 @@ Lenslets:
   radius: 0.01
 Instrument:
   Thpt:
-    File: Data/thpt.npy
+    File: thpt.npy
     Type: prism_pi
   bias: 20
   camera: PI
@@ -26,9 +26,9 @@ Instrument:
   density: 5
   eADU: 0.03802
   files:
-    dispersion: Data/dispersion_12-10-2011.txt
-    encircledenergy: Data/encircled_energy_4nov11.TXT
-    lenslets: Data/rays_run61e_temp_0degC.TXT
+    dispersion: dispersion.dat
+    encircledenergy: encircled_energy.dat
+    lenslets: rays.dat
   Lenslets:
     radius: 0.00245
     rotation: 27.0
@@ -78,15 +78,15 @@ Observation:
     Sky: PalSky
     Files:
       PalSky:
-        Filename: Data/palsky_100318.dat
+        Filename: palsky_100318.dat
         Amplifier: 0.1    
 Output:
   Format: fits
 Source:
-  CubeName: Data/CUBE.fits
-  Filename: Data/SNIa.R1000.dat
+  CubeName: CUBE.fits
+  Filename: SNIa.R1000.dat
   Lines:
-    List: Data/Lines.dat
+    List: Lines.dat
     sigma: 100.0e-10
     value: 100000000.0
     peaks: false
