@@ -26,3 +26,7 @@
 	- Rename SEDSpec2 to SEDTools
 	- Remove and re-include data files
 	- Make SEDMsetup command
+* 0.3.2
+	- Improvements to SEDTools
+* 0.3.3
+	- Documentation and README
