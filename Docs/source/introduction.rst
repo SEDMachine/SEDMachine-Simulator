@@ -10,11 +10,19 @@ Organization
 
 The program is contained within the :mod:`SEDMachine` module. This module has two primary components: the Simulator, and the supporting classes. The :mod:`SEDMachine.Simulator` module has a single class, :class:`SEDMachine.Simulator.SEDSimulator` which implements the control functions for the program. When you call :program:`SEDMsim`, you are using this class's :meth:`SEDMachine.Simulator.SEDSimulator.run` method. The program relies on the :mod:`AstroObject` module, which I've (Alex Rudy) developed to make lots of astronomy tasks a lot more "object-focused". `AstroObject`_ can be found online at `Github`_
 
+There are also some support tools, including a basic data setup for the latest SEDMachine simulations. These support tools are kept in :mod:`SEDTools`.
+
 What this program simulates
 ---------------------------
 
+This program uses a ray-trace output from an optical model of the SEDMachine to simulate data as it will appear when read from the SEDMachine's CCDs. The simulator is only focused on simulating the work of the integral-field-unit and does not simulate or produce rainbow-camera data. The simulator accounts for the resolution of the instrument, the spectral profile, and the point-spread function of the system.
+
+The simulation makes a few assumptions and uses a few "fudge" factors. These assumptions are documented in :ref:`Model` which gives an overview of the modelling system, step-by-step.
+
 What this program does not do
 -----------------------------
+
+This program does not handle ray-tracing, in any form. The ray tracing (and as such, the layout and physics of the system) are modeled separately and then interpreted by this simulator. The simulator also does not do rigorous scattered light calculations, nor does it manage the subtleties of image geometry.
 
 Very Basic Tutorial
 -------------------
@@ -24,7 +32,7 @@ This is the bare minimum required to just run a simulation. For a more detailed 
 Assuming you have `Matplotlib`_, `Numpy`_ and `Scipy`_ installed, run::
 	
 	$ sudo python setup.py install
-	$ SEDMsetup
+	$ SEDMsetup *all *config-files
 	$ SEDMsim *all
 	
 to perform a basic simulation. Simulations can take quite a long time to run. As such, you might want to try::
