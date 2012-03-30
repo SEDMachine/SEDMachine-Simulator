@@ -77,10 +77,14 @@
 </div>
 <div class="section" id="running-sedmsim">
 <h2>2.2. Running <strong class="program">SEDMsim</strong><a class="headerlink" href="#running-sedmsim" title="Permalink to this headline">¶</a></h2>
-<p>Before you can run the simulator, you must make sure you have the correct data and directory files installed. First, copy the <tt class="docutils literal"><span class="pre">Data/</span></tt> directory from the source tree into your desired working directory. Then, establish all of the other required directories.</p>
-<p>This can be accomplished with the <tt class="docutils literal"><span class="pre">SEDMsetup</span></tt> command:</p>
+<p>The simulator has two basic components: The simulation, and the environment. Your environment should be a working directory, but <strong>not</strong> your source directory.</p>
+<p>Setup of your environment is handled by the <tt class="docutils literal"><span class="pre">SEDMsetup</span></tt> command:</p>
 <div class="highlight-python"><pre>$ SEDMsetup</pre>
 </div>
+<p>This creates all of the necessary data and directory files for use with the program. Next, you will need a configuration file. A basic configuration file that works with the data provided can be generated using:</p>
+<div class="highlight-python"><pre>$ SEDMsetup *config-files</pre>
+</div>
+<p>If you change values in the configuration file (Such as the directory information), you may want to run <tt class="docutils literal"><span class="pre">SEDMsetup</span></tt> again to make sure you have the correct data files available.</p>
 <p>To run the program, choose a stage to run (see <em class="xref std std-option">{stages}</em> for a list of basic stages) and then run the SEDMsim command. The simplest command is <tt class="docutils literal"><span class="pre">*all</span></tt> which performs the default simulation</p>
 <div class="highlight-python"><pre>$ SEDMsim *all</pre>
 </div>
@@ -91,7 +95,7 @@
 <blockquote>
 <div><ul class="simple">
 <li><tt class="docutils literal"><span class="pre">Caches/</span></tt> which will contain cache files. Cache files include the <tt class="docutils literal"><span class="pre">.fits</span></tt> files for each individual spectra, useful to examine spectra in over-sampled view.</li>
-<li><tt class="docutils literal"><span class="pre">Data/</span></tt> which will contain the required data files. Some data files are distributed with the system. You should copy this directory from the source tree.</li>
+<li><tt class="docutils literal"><span class="pre">Data/</span></tt> which will contain the required data files. Some data files are distributed with the system.</li>
 <li><tt class="docutils literal"><span class="pre">Images/</span></tt> which is the output directory. The final <tt class="docutils literal"><span class="pre">.fits</span></tt> image will be saved there.</li>
 <li><tt class="docutils literal"><span class="pre">Logs/</span></tt> which contains simulation logs.</li>
 <li><tt class="docutils literal"><span class="pre">Partials/</span></tt> which will contain items produced part-way through the simulator. Many files will be placed there, including plots.</li>
@@ -103,14 +107,13 @@
 <p>The primary output will appear in the <tt class="docutils literal"><span class="pre">Images/</span></tt> directory. This directory will contain <tt class="docutils literal"><span class="pre">.fits</span></tt> files which are full ouput. Each simulation produces two <tt class="docutils literal"><span class="pre">.fits</span></tt> files. One file includes a <tt class="docutils literal"><span class="pre">-deep</span></tt> in the filename. Both will contain today&#8217;s date in the filename. The <tt class="docutils literal"><span class="pre">-deep</span></tt> file is an extended fits file with frames for a variety of stages in the simulation process. The other file is just the final output. If you use <tt class="docutils literal"><span class="pre">ds9</span></tt>, you can examine the extended frames in the fits file using</p>
 <div class="highlight-python"><pre>$ ds9 file-deep.fits[{0,1,3}]</pre>
 </div>
-<p>for frames 0, 1, and 3. The final image will always be in frame 0. Other frames will use the FITS keyword <tt class="docutils literal"><span class="pre">LABEL</span></tt> to describe their contents. These frames may also use the <tt class="docutils literal"><span class="pre">OBJECT</span></tt> keyword (if it in use) to describe their contents.</p>
+<p>for frames 0, 1, and 3. The final image will always be in frame 0. Other frames will use the FITS keyword <tt class="docutils literal"><span class="pre">LABEL</span></tt> to describe their contents. These frames may also use the <tt class="docutils literal"><span class="pre">OBJECT</span></tt> keyword (if it in use) to describe their contents. You can also view all of the frames using the <tt class="docutils literal"><span class="pre">ds9</span></tt> <tt class="docutils literal"><span class="pre">Open</span> <span class="pre">Other...</span></tt> menu item.</p>
 <p>If you made plots, or wish to look at results from the simulation which are not the final image, examine the <tt class="docutils literal"><span class="pre">Partials/</span></tt> directory. If you just ran the simulation normally, you can find the following files in the partials directory:</p>
 <ul class="simple">
 <li><tt class="docutils literal"><span class="pre">Instrument-Offsets.dat</span></tt>: Pixel offset values for subimages</li>
-<li><tt class="docutils literal"><span class="pre">LensletAudit.dat</span></tt>: Information about each lenslet processed, in a python-dictionary like way. Useful for detailed information about each lenslet used.</li>
 <li><tt class="docutils literal"><span class="pre">Lenslets-Raw.dat</span></tt>: Information about each lenslet, in human-readable form</li>
 <li><tt class="docutils literal"><span class="pre">center.dat</span></tt>: Information about the central lenslet</li>
-<li><tt class="docutils literal"><span class="pre">config-SEDMachine.yaml</span></tt>: Configuration file used for the simulation.</li>
+<li><tt class="docutils literal"><span class="pre">SEDMachine.config.yaml</span></tt>: Configuration file used for the simulation.</li>
 </ul>
 <p>If you ran the <tt class="docutils literal"><span class="pre">*plot</span></tt> stage, you will find a plethora of plots about the entire simulation. As plots are produced for each lenslet, it is advisable to limit the number of lenslets used for the <tt class="docutils literal"><span class="pre">*plot</span></tt> command, for example, run</p>
 <div class="highlight-python"><pre>$ SEDMsim -S *plot</pre>
