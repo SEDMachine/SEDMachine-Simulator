@@ -1,10 +1,4 @@
----
-Title: Simulation Scripts for SED Machine
-Author: Alexander Rudy
-
-  Version 0.3.2
-
----
+This is an introduction. A [full documentation][Docs] is on Github Pages
 
 # Introduction to the SEDMachine Simulator
 
@@ -30,16 +24,16 @@ This program does not handle ray-tracing, in any form. The ray tracing (and as s
 
 ## Very Basic Tutorial
 
-This is the bare minimum required to just run a simulation. For a more detailed tutorial, see :ref:`Tutorial`.
+This is the bare minimum required to just run a simulation. For a more detailed tutorial, see [Tutorial][].
 
-Assuming you have [Matplotlib][], [Numpy][] and [Scipy][] installed, run::
+Assuming you have [Matplotlib][], [Numpy][] and [Scipy][] installed, run:
 	
 	$ sudo python setup.py install
 	$ cd working/directory/path/
 	$ SEDMsetup *all *config-files
 	$ SEDMsim *all
 	
-to perform a basic simulation. Simulations can take quite a long time to run. As such, you might want to try::
+to perform a basic simulation. Simulations can take quite a long time to run. As such, you might want to try:
 	
 	$ SEDMsim -T *all
 	
@@ -47,7 +41,7 @@ to perform the same simulation, but using only 50 lenslets.
 
 ## Building Documentation
 
-If you can't find the documentation online (or it has moved), then:
+If you can't find the [documentation][Docs] online (or it has moved), then:
 
 1. Ensure you have Sphinx installed.
 2. Navigate to the `Docs/` directory in the source tree you downloaded
@@ -56,6 +50,7 @@ If you can't find the documentation online (or it has moved), then:
 
 You should then have a complete usable HTML copy of the documentation.
 
+[Tutorial]: http://alexrudy.github.com/SEDMachine-Simulator/
 [Repo]: http://github.com/alexrudy/SEDMachine-Simulator/
 [Docs]: http://alexrudy.github.com/SEDMachine-Simulator/
 [Matplotlib]: http://matplotlib.sourceforge.net/
