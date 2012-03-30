@@ -12,7 +12,7 @@ The [SEDMachine Simulator][Docs] is designed to simulate many aspects of the des
 
 ## Organization
 
-The program is contained within the `SEDMachine` module. This module has two primary components: the Simulator, and the supporting classes. The `SEDMachine.Simulator` module has a single class, `SEDMachine.Simulator.SEDSimulator` which implements the control functions for the program. When you call `SEDMsim`, you are using this class's `SEDMachine.Simulator.SEDSimulator.run()` method. The program relies on the [`AstroObject`][] module, which I've (Alex Rudy) developed to make lots of astronomy tasks a lot more "object-focused". [`AstroObject`][] can be found online at [`Github`][].
+The program is contained within the `SEDMachine` module. This module has two primary components: the Simulator, and the supporting classes. The `SEDMachine.Simulator` module has a single class, `SEDMachine.Simulator.SEDSimulator` which implements the control functions for the program. When you call `SEDMsim`, you are using this class's `SEDMachine.Simulator.SEDSimulator.run()` method. The program relies on the [AstroObject][] module, which I've (Alex Rudy) developed to make lots of astronomy tasks a lot more "object-focused". [AstroObject][] can be found online at [Github][].
 
 There are also some support tools, including a basic data setup for the latest SEDMachine simulations. These support tools are kept in `SEDTools`.
 

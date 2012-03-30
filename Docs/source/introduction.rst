@@ -3,7 +3,7 @@
 Introduction to the SEDMachine Simulator
 ========================================
 
-The SEDMachine Simulator is designed to simulate many aspects of the design and operation of the SEDMachine instrument. As such, it endeavors to be an accurate simulation of the optical processes in the SEDMachine and to faithfully reproduce data which might be created by the SEDMachine. This program can simulate the different types of data images that the SEDMachine is likely to produce. Images can be simulated which are based on data-cubes, simple sources (with a fixed geometry inserted), or uniform sources. Potential uniform sources include sky spectra, flat lamps (similar to what a quartz lamp would produce), calibration lamps (based on a line list) and arbitrary uniform sources (specified in a data file, with R>1000). The simulator works by generating large FITS images, and doing spectral resolution and flux calibration math. It can take a little while to run each simulation (there are more than 5000 active lenslets in the SED machine!), so be patient, and test your simulation on a small number of lenslets first to ensure that it works.
+The `SEDMachine Simulator`_ is designed to simulate many aspects of the design and operation of the SEDMachine instrument. As such, it endeavors to be an accurate simulation of the optical processes in the SEDMachine and to faithfully reproduce data which might be created by the SEDMachine. This program can simulate the different types of data images that the SEDMachine is likely to produce. Images can be simulated which are based on data-cubes, simple sources (with a fixed geometry inserted), or uniform sources. Potential uniform sources include sky spectra, flat lamps (similar to what a quartz lamp would produce), calibration lamps (based on a line list) and arbitrary uniform sources (specified in a data file, with R>1000). The simulator works by generating large FITS images, and doing spectral resolution and flux calibration math. It can take a little while to run each simulation (there are more than 5000 active lenslets in the SED machine!), so be patient, and test your simulation on a small number of lenslets first to ensure that it works.
 
 Organization
 ------------
@@ -32,6 +32,7 @@ This is the bare minimum required to just run a simulation. For a more detailed 
 Assuming you have `Matplotlib`_, `Numpy`_ and `Scipy`_ installed, run::
 	
 	$ sudo python setup.py install
+	$ cd working/directory/path/
 	$ SEDMsetup *all *config-files
 	$ SEDMsim *all
 	
@@ -41,7 +42,8 @@ to perform a basic simulation. Simulations can take quite a long time to run. As
 	
 to perform the same simulation, but using only 50 lenslets.
 
-
+.. _SEDMachine Documentation: http://alexrudy.github.com/SEDMachine-Simulator/
+.. _SEDMachine Simulator: http://github.com/alexrudy/SEDMachine-Simulator/
 .. _Matplotlib: http://matplotlib.sourceforge.net/
 .. _Numpy: http://numpy.scipy.org/
 .. _Scipy: http://scipy.org/
