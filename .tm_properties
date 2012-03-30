@@ -1,3 +1,4 @@
+# TextMate Properties for this Project
 windowTitle = "SEDMachine Simulator - DEV - $TM_DISPLAYNAME"
 
 [ *.yaml ]

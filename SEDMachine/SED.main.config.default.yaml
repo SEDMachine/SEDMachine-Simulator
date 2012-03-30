@@ -61,7 +61,7 @@ Instrument:
     radius:
       px: 1.2
   Thpt:
-    File: Data/thpt.npy
+    File: thpt.npy
     Type: prism_pi
   bias: 20
   ccd:
@@ -73,9 +73,9 @@ Instrument:
   dispfitorder: 2
   eADU: 0.03802
   files:
-    dispersion: Filename.txt
-    encircledenergy: Filename.txt
-    lenslets: Filename.txt
+    dispersion: dispersion.dat
+    encircledenergy: encircled_energy.dat
+    lenslets: rays.dat
   image:
     pad:
       mm: 0.1
@@ -93,22 +93,22 @@ Observation:
     Files:
       Atmosph:
         Amplifier: 1
-        Filename: Data/atmosphere.fits
+        Filename: atmosphere.fits
       Massey:
         Amplifier: 1
-        Filename: Data/MasseySky.fits
+        Filename: MasseySky.fits
       PalSky:
         Amplifier: 1
-        Filename: Data/PalSky.fits
+        Filename: PalSky.fits
       QuimbySky:
         Amplifier: 1
-        Filename: Data/QuimbySky.fits
+        Filename: QuimbySky.fits
       TurnroseSKY:
-        Amplifier: 3.0000000000000002e-18
-        Filename: Data/TurnroseSKY.fits
+        Amplifier: 3.0e-18
+        Filename: TurnroseSKY.fits
       UVESSky:
         Amplifier: 1
-        Filename: Data/UVESSky.fits
+        Filename: UVESSky.fits
     Sky: PalSky
   Moon:
     Phase: 0
@@ -121,8 +121,8 @@ Output:
 Plots:
   format: .pdf
 Source:
-  CubeName: Data/CUBE.fits
-  Filename: Data/SNIa.R1000.dat
+  CubeName: CUBE.fits
+  Filename: SNIa.R1000.dat
   Flat:
     value: 1.0e-06
   Lines:

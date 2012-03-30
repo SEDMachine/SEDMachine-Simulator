@@ -47,6 +47,7 @@ class SetupAgent(Simulator):
         self.registerStage(self.MakeAtmosphere,"make-atmosphere",dependencies=["setup-dirs"])
         self.registerStage(self.MakePalSky,"make-palsky",dependencies=["setup-dirs","get-data"])
         self.registerStage(None,"make-specs",dependencies=["make-massey","make-hansuchik","make-turnrose","make-quimby","make-atmosphere","make-palsky"],include=True,help="Setup spectral FITS files")
+        self.registerStage(self.BasicConfig,"config-file",dependencies=["setup-dirs"],help="Generate a basic configuration file for this data set.")
         
     def EnsureDirectories(self):
         """Ensure that the required directories exist."""
@@ -62,7 +63,7 @@ class SetupAgent(Simulator):
         sourceDir = resource_filename(__name__,"Data/")
         items = os.listdir(sourceDir)
         for item in items:
-            if item.endswith(".dat") and not os.access(dataDir+item,os.F_OK):
+            if (item.endswith(".dat") or item.endswith(".npy")) and not os.access(dataDir+item,os.F_OK):
                 shutil.copy(sourceDir+item,dataDir)
                 self.log.debug("Copied %s to %s" % (item,dataDir))
             else:
@@ -119,6 +120,17 @@ class SetupAgent(Simulator):
         palSKY = SpectraObject(filename=self.config["Dirs"]["Data"] + "/PalSky.fits")
         palSKY.save(palskydata,"PalSky")
         palSKY.write(clobber=True)
+        
+    def BasicConfig(self):
+        """Basic configrution file."""
+        sourceDir = resource_filename(__name__,"/")
+        sourceFile = self.config["Configurations"]["This"]
+        if not os.access(sourceFile, os.F_OK):
+            shutil.copy(sourceDir+sourceFile,".")
+            self.log.debug("Copied %s to %s" % (sourceFile,"."))
+        else:
+            self.log.warning("Not over-writing existing configuration file!")
+        
     
 def run():
     SA = SetupAgent()

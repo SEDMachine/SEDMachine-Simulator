@@ -6,7 +6,7 @@
 #  
 #  Created by Alexander Rudy on 2012-02-08.
 #  Copyright 2012 Alexander Rudy. All rights reserved.
-#  Version 0.3.2
+#  Version 0.3.3
 # 
 
 import numpy as np
@@ -42,7 +42,7 @@ from AstroObject.AstroImage import ImageObject,ImageFrame
 from AstroObject.AnalyticSpectra import BlackBodySpectrum,GaussianSpectrum, AnalyticSpectrum, FlatSpectrum, InterpolatedSpectrum, UnitarySpectrum
 from AstroObject.Utilities import *
 
-from Lenslet import *
+from Objects import *
 
 
 class SEDSimulator(Simulator,ImageObject):
@@ -247,7 +247,7 @@ class SEDSimulator(Simulator,ImageObject):
        """
        # Load Lenslet Specification File
        self.log.debug("Opening filename %s" % self.config["Instrument"]["files"]["lenslets"])
-       ix, xps, yps, lams, xcs, ycs, xls, yls, xas, yas, xbs, ybs, rs = np.genfromtxt(self.config["Instrument"]["files"]["lenslets"],skip_header=1,comments="#").T
+       ix, xps, yps, lams, xcs, ycs, xls, yls, xas, yas, xbs, ybs, rs = np.genfromtxt(self._dir_filename("Data",self.config["Instrument"]["files"]["lenslets"]),skip_header=1,comments="#",unpack=True)
        # This data describes the following:
        # ix - Index (number)
        # xps - Pupil position in the x-direction
@@ -344,7 +344,7 @@ class SEDSimulator(Simulator,ImageObject):
         return
         
         Source = ImageObject()
-        Source.read(self.config["Source"]["CubeName"])
+        Source.read(self._dir_filename("Data",self.config["Source"]["CubeName"]))
         data = Source.data()
         shape = data.shape
         
@@ -379,7 +379,7 @@ class SEDSimulator(Simulator,ImageObject):
         There is no amplification applied to the source. Sources are expected to be in cgs units during input.
             
         """        
-        WL,FL = np.genfromtxt(self.config["Source"]["Filename"]).T
+        WL,FL = np.genfromtxt(self._dir_filename("Data",self.config["Source"]["Filename"]),unpack=True,comments="#")
         FL /= self.const["hc"] / WL
         FL *= 1e10 #Spectrum was per Angstrom, should now be per Meter
         WL *= 1e-10
@@ -446,7 +446,8 @@ class SEDSimulator(Simulator,ImageObject):
         # Each sky spectrum is saved in a FITS file for easy recall as a spectrum object.
         self.SKYData = SpectraObject()
         for label,d in self.config["Observation"]["Background"]["Files"].iteritems():
-            self.SKYData.read(d["Filename"],statename=label)
+            self.SKYData.load(self._dir_filename("Data",d["Filename"]),statename=label)
+                
         
         # Moon phase adjustments. These moon phase attenuation values are for different filter bands.
         # The intermediate wavelengths are accounted for using a polyfit
@@ -478,7 +479,7 @@ class SEDSimulator(Simulator,ImageObject):
         
         # Throughputs are generated from Nick's simulation scripts in throughput.py
         # They are simply re-read here.
-        thpts = np.load(self.config["Instrument"]["Thpt"]["File"])[0]
+        thpts = np.load(self._dir_filename("Data",self.config["Instrument"]["Thpt"]["File"]))[0]
         WL = thpts["lambda"]* 1e-10
         self.qe["prism_pi"] = InterpolatedSpectrum(np.array([WL, thpts["thpt-prism-PI"]]),"PI Prism")
         self.qe["prism_andor"] = InterpolatedSpectrum(np.array([WL, thpts["thpt-prism-Andor"]]),"Andor Prism")
@@ -564,7 +565,7 @@ class SEDSimulator(Simulator,ImageObject):
         
     def setup_line_list(self):
         """Set up a line-list based spectrum for wavelength calibration."""
-        linelist = np.asarray(np.genfromtxt(self.config["Source"]["Lines"]["List"],comments="#"))
+        linelist = np.asarray(np.genfromtxt(self._dir_filename("Data",self.config["Source"]["Lines"]["List"]),comments="#"))
         if linelist.ndim < 1:
             linelist = linelist.flatten()
         CalSpec = FlatSpectrum(0.0)
@@ -619,9 +620,6 @@ class SEDSimulator(Simulator,ImageObject):
         """docstring for _lenslet_place"""
         l.place_trace(self.get_conv)
         l.write_subimage()
-        with open("%(Partials)s/LensletAudit.dat" % self.config["Dirs"],"a") as s:
-            s.write("%s\n" % vars(l) )
-        # gc.collect()
     
     def image_merge(self):
         """Merge subimages into master image"""
@@ -1498,7 +1496,7 @@ class SEDSimulator(Simulator,ImageObject):
             size = 0
             truncate = False
         try:
-            PSFIMG = self.psf_kern( self.config["Instrument"]["files"]["encircledenergy"],size,truncate)
+            PSFIMG = self.psf_kern(self._dir_filename("Data",self.config["Instrument"]["files"]["encircledenergy"]),size,truncate)
         except IOError as e:
             self.log.warning("Could not access encircled energy file: %s" % e)
             PSFIMG = self.gauss_kern( (self.config["Instrument"]["PSF"]["stdev"]["px"] * self.config["Instrument"]["density"]) )

@@ -1,11 +1,11 @@
 # 
-#  Lenslet.py
+#  Objects.py
 #  An object model of SED Machine Lenslets, containing most of the lenslet action logic.
 #  SED
 #  
 #  Created by Alexander Rudy on 2012-01-31.
 #  Copyright 2012 Alexander Rudy. All rights reserved.
-#  Version 0.3.2
+#  Version 0.3.3
 # 
 
 import numpy as np
