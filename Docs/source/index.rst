@@ -17,6 +17,7 @@ Contents:
    introduction
    tutorial
    SEDMsim
+   SEDMsetup
    AstroSimulator
    Simulator
    Lenslets
