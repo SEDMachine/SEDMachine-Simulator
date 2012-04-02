@@ -1,61 +1,43 @@
-# Configuration from SEDMachine
-Configurations:
-  Main: SED.main.config.yaml
-  This: SED.main.config.yaml
-Lenslets:
-  position:
-    x: 0.0
-    y: 0.0
-  radius: 0.01
+# Configuration: SED.main.config.ndf.yaml
 Instrument:
-  Thpt:
-    File: thpt.npy
-    Type: prism_pi
-  bias: 20
-  camera: PI
-  ccd:
-    size:
-      px: 2048
-  image:
-    pad:
-      mm: 0.1
-    size:
-      mm: 40.0
-  convert:
-    pxtomm: 0.0135
-  density: 5
-  eADU: 0.03802
-  files:
-    dispersion: dispersion.dat
-    encircledenergy: encircled_energy.dat
-    lenslets: rays.dat
+  Cameras:
+    Andor:
+      DC: 0.0004
+      RN: 4
+      readtime: 82
+    E2V:
+      DC: 0.006
+      RN: 3.3
+      readtime: 37
+    PI:
+      DC: 0.006
+      RN: 5.0
+      readtime: 37
+    Selected: PI
   Lenslets:
     radius: 0.00245
     rotation: 27.0
-    strict: false
-  padding: 5
   PSF:
+    ellipse: true
     size:
       px: 2.4
     stdev:
       px: 1.0
-    ellipse: true
   Scatter:
-    Amplifier: 0.1  
-    FFT: true
+    Amplifier: 0.1
     Kernels:
       A:
-        type: Gaussian
         mag: 0.0008
         stdev: 16.7
+        type: Gaussian
       B:
-        type: Gaussian
-        mag: 0.00007
+        mag: 7.0e-05
         stdev: 55.5
-      C:
         type: Gaussian
+      C:
         mag: 7.0e-06
         stdev: 222
+        type: Gaussian
   Tel:
     area: 16417.8
     obsc:
@@ -63,47 +45,47 @@ Instrument:
       ratio: 0.2
     radius:
       px: 1.2
+  Thpt:
+    File: thpt.npy
+    Type: prism_pi
+  camera: PI
+  ccd:
+    size:
+      px: 2048
+  convert:
+    pxtomm: 0.0135
+  eADU: 0.03802
+  files:
+    dispersion: dispersion.dat
+    encircledenergy: encircled_energy.dat
+    lenslets: rays.dat
+  image:
+    size:
+      mm: 40.0
   wavelengths:
     max: 9.2e-07
     min: 3.7e-07
     resolution: 100
 Observation:
+  Background:
+    Atmosphere: Atmosph
+    Files:
+      PalSky:
+        Amplifier: 0.1
+        Filename: palsky_100318.dat
+    Sky: PalSky
+  Moon:
+    Phase: 0.45
   airmass: 1
   exposure: 1200
   number: 3
-  Moon:
-    Phase: 0.45
-  Background:
-    Atmosphere: Atmosph
-    Sky: PalSky
-    Files:
-      PalSky:
-        Filename: palsky_100318.dat
-        Amplifier: 0.1    
-Output:
-  Format: fits
 Source:
   CubeName: CUBE.fits
   Filename: SNIa.R1000.dat
   Lines:
     List: Lines.dat
-    sigma: 100.0e-10
+    sigma: 1.0e-08
     value: 100000000.0
-    peaks: false
   PXSize:
     mm: 0.005
   Rotation: 0.7853981633974483
-logging:
-  console:
-    enable: true
-    format: '%(levelname)-8s... %(message)s'
-    level: 20
-    message: '...%(message)s'
-  file:
-    dateformat: '%Y-%m-%d-%H:%M:%S'
-    enable: true
-    filename: SEDMachine
-    format: '%(asctime)s : %(levelname)-8s : %(funcName)-20s : %(message)s'
-  growl:
-    enable: false
-    name: SED Machine Simulator
