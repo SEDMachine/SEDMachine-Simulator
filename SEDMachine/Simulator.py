@@ -720,10 +720,10 @@ class SEDSimulator(Simulator,ImageObject):
     
     def save_file(self):
         """Saves the file"""
-        self.Filename = "%(Images)s/%(label)s-%(date)s.%(fmt)s" % dict(label=self.config["Output"]["Label"],date=time.strftime("%Y-%m-%d"), fmt=self.config["Output"]["Format"], **self.config["Dirs"] )
+        self.Filename = "%(Output)s/%(label)s-%(date)s.%(fmt)s" % dict(label=self.config["Output"]["Label"],date=time.strftime("%Y-%m-%d"), fmt=self.config["Output"]["Format"], **self.config["Dirs"] )
         self.write(self.Filename,states=[self.statename],clobber=True)
         self.log.info("Wrote %s" % self.Filename)
-        self.Filename = "%(Images)s/%(label)s-deep-%(date)s.%(fmt)s" % dict(label=self.config["Output"]["Label"],date=time.strftime("%Y-%m-%d"), fmt=self.config["Output"]["Format"], **self.config["Dirs"] )
+        self.Filename = "%(Output)s/%(label)s-deep-%(date)s.%(fmt)s" % dict(label=self.config["Output"]["Label"],date=time.strftime("%Y-%m-%d"), fmt=self.config["Output"]["Format"], **self.config["Dirs"] )
         self.write(self.Filename,clobber=True)
         self.log.info("Wrote %s" % self.Filename)
     

@@ -11,7 +11,7 @@ Debug: false
 Default: null
 Dirs:
   Caches: Caches
-  Images: Images
+  Output: Images
   Logs: Logs
   Partials: Partials
   Data: Data
