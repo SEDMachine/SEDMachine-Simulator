@@ -24,7 +24,7 @@ then
 	exit
 fi
 
-SELECTREGEX="[0-9a-zA-Z\.\+]+"
+SELECTREGEX="[0-9a-zA-Z\.\+\-]+"
 DIR="SEDMachine"
 VSPECFILE="VERSION"
 AVSPECFILE="$DIR/VERSION"
@@ -47,7 +47,7 @@ for file in $files
 do
 	sed -i '' -Ee "s/# +Version $SELECTREGEX/#  Version $VERSION/" $file
 	sed -i '' -Ee "s/__version__ += +\'$SELECTREGEX\'/__version__ = \'$VERSION\'/" $file
-	sed -i '' -Ee "s/version\s+=\s+(\'|\")$SELECTREGEX(\'|\")/version = \'$VERSION\'/" $file
+	sed -i '' -Ee "s/version\s+=\s+[\'\"]+$SELECTREGEX[\'\"]+/version = \'$VERSION\'/" $file
 	sed -i '' -Ee "s/release += +\'$SELECTREGEX\'/version = \'$VERSION\'/" $file
 	
 	echo "  Changed Version to $VERSION in $file"
