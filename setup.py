@@ -5,7 +5,7 @@ setup(
     name = "SEDMachineSimulator",
     packages = ['SEDMachine','SEDTools','SEDTools.Data'],
     package_data = {'':['VERSION','README.md','LICENCE','*.yaml'],'SEDTools':['Data/*.dat','Data/*.npy','*.yaml']},
-    version = "0.3.3-p1",
+    version = "0.3.3-p2",
     install_requires = ['pyfits>=2.4','numpy>=1.5','scipy>=0.9','matplotlib>=1.0','AstroObject>=0.3.4'],
     dependency_links = ['https://github.com/alexrudy/AstroObject/zipball/v0.3.4#egg=AstroObject-0.3.4'],
     test_suite = 'Tests',
