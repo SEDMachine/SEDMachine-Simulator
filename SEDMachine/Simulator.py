@@ -85,21 +85,21 @@ class SEDSimulator(Simulator,ImageObject):
         self.registerConfigOpts("C",{"Lenslets":{"position":{"x":0.0,"y":0.0},"radius":0.01},"Debug":True,"Output":{"Label":"CFlag",},},help="Debug, Central Lenslets")
         
         # SETUP Stages
-        self.registerStage(self.setup_caches,"setup-caches",help=False,description="Setting up caches")
-        self.registerStage(self.setup_configuration,"setup-config",help=False,description="Setting up dynamic configuration")
-        self.registerStage(self.setup_constants,"setup-constants",help=False,description="Setting up physical constants",dependencies=["setup-caches"])
-        self.registerStage(self.setup_cameras,"setup-cameras",help=False,description="Setting up Cameras",dependencies=["setup-config"])
+        self.registerStage(self.setup_caches,"setup-caches")
+        self.registerStage(self.setup_configuration,"setup-config")
+        self.registerStage(self.setup_constants,"setup-constants")
+        self.registerStage(self.setup_cameras,"setup-cameras")
         self.registerStage(self.setup_lenslets,"setup-lenslets",help=False,description="Setting up lenslets",dependencies=["setup-config"])
-        self.registerStage(self.setup_hexagons,"setup-hexagons",help=False,description="Setting up lenslet hexagons",dependencies=["setup-lenslets"])
-        self.registerStage(self.setup_blank,"setup-blank",help=False,description="Creating blank image",dependencies=["setup-config"])        
-        self.registerStage(self.setup_dummy_blank,"setup-blank-d",help=False,description="Creating dummy blank image",dependencies=["setup-config"],replaces=["setup-blank"])        
+        self.registerStage(self.setup_hexagons,"setup-hexagons")
+        self.registerStage(self.setup_blank,"setup-blank")
+        self.registerStage(self.setup_dummy_blank,"setup-blank-d")
 
-        self.registerStage(self.setup_simple_source,"setup-source-simple",help=False,description="Creating simple source spectrum object",dependencies=["setup-config","setup-constants"],replaces=["setup-source"])
+        self.registerStage(self.setup_simple_source,"setup-source-simple")
         self.registerStage(None,"simple-source",help="Use a simple, centered source object",description="Replacing default source with a simple one",dependencies=["setup-source-simple"])
         self.registerStage(None,"setup-source",help=False,description="Creating source spectrum objects",dependencies=["setup-config","setup-constants","simple-source"])
-        self.registerStage(self.setup_source_pixels,"setup-source-pixels",help=False,description="Making source pixels",dependencies=["setup-source"])
+        self.registerStage(self.setup_source_pixels,"setup-source-pixels")
         self.registerStage(self.setup_noise,"setup-noise",help=False,description="Setting up Dark/Bias frames",dependencies=["setup-config","setup-cameras"])
-        self.registerStage(self.setup_sky,"setup-sky",help=False,description="Setting up Sky spectrum object",dependencies=["setup-config","setup-constants"])
+        self.registerStage(self.setup_sky,"setup-sky")
         self.registerStage(self.setup_line_list,"setup-lines",help=False,description="Setting up calibration source",dependencies=["setup-config","setup-constants"])
         self.registerStage(self.setup_scatter,"setup-scatter",help=False,description="Setting up scattered light calculations",dependencies=["setup-config","setup-blank"])
         # Setup Macro
@@ -108,12 +108,12 @@ class SEDSimulator(Simulator,ImageObject):
             )
         
         
-        self.registerStage(self.geometric_resample,"geometric-resample",help=False,description="Performing geometric resample",dependencies=["setup-source-pixels","setup-hexagons"])
+        self.registerStage(self.geometric_resample,"geometric-resample")
         
         # Apply spectral properties
-        self.registerStage(self.apply_sky,"apply-sky",help=False,description="Including sky spectrum",dependencies=["setup-sky"])
-        self.registerStage(self.apply_qe,"apply-qe",help=False,description="Applying Quantum Efficiency Functions",dependencies=["setup-sky"])
-        self.registerStage(self.apply_atmosphere,"apply-atmosphere",help=False,description="Applying Atmospheric Extinction",dependencies=["setup-sky"])
+        self.registerStage(self.apply_sky,"apply-sky")
+        self.registerStage(self.apply_qe,"apply-qe")
+        self.registerStage(self.apply_atmosphere,"apply-atmosphere")
 
         # Adjust spectra
         self.registerStage(self.sky_source,"sky-source",help="Use only sky spectrum",description="Using only Sky spectrum",dependencies=["setup-sky","apply-sky","apply-qe","apply-atmosphere","setup-lenslets","setup"],replaces=["setup-source","geometric-resample","setup-source-pixels"])
@@ -178,6 +178,8 @@ class SEDSimulator(Simulator,ImageObject):
         
         self.registerStage(None,"plot",help="Create all plots",description="Plotting everything",dependencies=["plot-lenslet-xy","plot-lenslets","plot-sky","plot-qe","plot-source","plot-p-geometry","plot-hexagons","plot-pixels","plot-spectrum-tests","plot-kernel"])
         
+    
+    @description("Setting up Caches")
     def setup_caches(self):
         """Establish Cache objects for image kernels. The Caching algorithm doesn't quite work properly yet, so this method is really superfluous.
         
@@ -194,6 +196,9 @@ class SEDSimulator(Simulator,ImageObject):
         if "cache" in self.options and not self.options["cache"]:
             self.Caches.flag('saving',False)
     
+    
+    @description("Setting up operational constants")
+    @depends("setup-caches")
     def setup_constants(self):
         """Generate the physical constants required for simple calculations.
         
@@ -210,7 +215,9 @@ class SEDSimulator(Simulator,ImageObject):
         self.const["hc"] = 1.98644521e-8 # erg angstrom
         self.Caches["CONST"] = ConfigCache(self.const,filename=self.config["Caches"]["const"])
         
-        
+    
+    
+    @description("Setting up lenslets")
     def setup_lenslets(self):
        """This function loads data about lenslet positions, and thier dispersion through the prism. The data are original produced by ZEMAX. This function reads the Zeemax data directly and then cleans the data in certain ways, preparing it for use later in the system.
        
@@ -309,6 +316,9 @@ class SEDSimulator(Simulator,ImageObject):
        for ix,lx in enumerate(self.lenslets.values()):
            lx.idx = ix
     
+    
+    @description("Creating blank frame")
+    @depends("setup-config")
     def setup_blank(self):
         """Establish a blank image of zeros in every position. The image is established as ``np.int32`` values.
         
@@ -316,6 +326,10 @@ class SEDSimulator(Simulator,ImageObject):
         """
         self["Blank"] = np.zeros((self.config["Instrument"]["image"]["size"]["px"],self.config["Instrument"]["image"]["size"]["px"])).astype(np.int32)
         
+    
+    @description("Creating blank frame with a single one")
+    @depends("setup-config")
+    @replaces("setup-blank")
     def setup_dummy_blank(self):
         """Setup a dummy blank image with a single value of 1.0 in the center of the image. This is useful for a sanity-check of the scattered light calculation.
         
@@ -359,7 +373,11 @@ class SEDSimulator(Simulator,ImageObject):
         
         PBar.render(1,"L:%4s,%4s %6d/%-6d" % ("Done","",finished,total))
         
-        
+    
+    
+    @description("Creating a simple source object")
+    @depends("setup-config","setup-constants")
+    @replaces("setup-source")
     def setup_simple_source(self):
         """Creates a simple-source object. The simple source is placed in three fixed positions on the image plane. Each source is a uniform distribution of the provided spectrum.
         
@@ -384,6 +402,9 @@ class SEDSimulator(Simulator,ImageObject):
         for ix,px in enumerate(self.SourcePixels):
             px.idx = ix
     
+    
+    @description("Setting up Cameras")
+    @depends("setup-config")
     def setup_cameras(self):
         """Set up camera configuration values. Camera configuratiosn can be slightly dynamic, so some values are copied from others.
         
@@ -400,6 +421,9 @@ class SEDSimulator(Simulator,ImageObject):
         self.config["Instrument"]["Cameras"]["Andor-fast"]["readtime"] = 1.398
         
     
+    
+    @description("Setting up Sky Sources")
+    @depends("setup-config","setup-constants")
     def setup_sky(self):
         """Setup sky spectrum from a file. Sky spectrum setup also includes moon spectrum, atmospheric extinction setup and quantum efficiency setup for cameras.
         
@@ -434,7 +458,7 @@ class SEDSimulator(Simulator,ImageObject):
         for more information.
             
         """
-
+        
         
         # Sky Data (From sim_pdr.py by Nick, regenerated using SEDTools module's make_files.py script)
         # Each sky spectrum is saved in a FITS file for easy recall as a spectrum object.
@@ -452,7 +476,7 @@ class SEDSimulator(Simulator,ImageObject):
         moon_g = np.array([2e-17, 2.1e-17, 2.15e-17, 2.3e-17, 5.3e-17, 1.7e-16, 3.2e-16])
         moon_r = np.array([2.3e-17,2.3e-17,2.3e-17,3.3e-17,3.5e-17,8.3e-17,1.3e-16])
         moon_i = np.array([2.8e-17,3.0e-17,3.0e-17,3.3e-17,3.8e-17,7.0e-17,9.0e-17])
-
+        
         sky_ls = np.array([4868., 6290., 7706., 10000]) * 1e-10
         
         gm = moon_g - moon_g[0]
@@ -469,7 +493,7 @@ class SEDSimulator(Simulator,ImageObject):
             mfl.append(moon_specs[i](self.config["Observation"]["Moon"]["Phase"]))
             mls.append(sky_ls[i])
             
-
+        
         
         # Throughputs are generated from Nick's simulation scripts in throughput.py
         # They are simply re-read here.
@@ -507,6 +531,9 @@ class SEDSimulator(Simulator,ImageObject):
         FL += M_FL
         self.sky.save(InterpolatedSpectrum(np.array([WL,FL]),"SkySpectrum",method="resolve_and_integrate"))
         
+    
+    @description("Applying atmospheric extinction term")
+    @depends("setup-sky")
     def apply_atmosphere(self):
         """Apply the atmospheric extinction term."""
         self.map_over_lenslets(self._apply_atmosphere,color=False)
@@ -517,14 +544,23 @@ class SEDSimulator(Simulator,ImageObject):
         """docstring for _apply_atmosphere"""
         lenslet.spectrum *= self.sky.frame("Atmosphere")
         
+    
+    @description("Setting up lenslet hexagons")
+    @depends("setup-lenslets")
     def setup_hexagons(self):
         """Make the lenslet hexagons"""
         self.map_over_lenslets(lambda l: l.make_hexagon(),color="green")
         
+    
+    @description("Making source pixels")
+    @depends("setup-source")
     def setup_source_pixels(self):
         """Setup source pixels"""
         self.map_over_pixels(lambda p: p.make_pixel_square(),color="green")
        
+    
+    @description("Applying Sky Spectrum to Source")
+    @depends("setup-sky")
     def apply_sky(self):
         """Apply Sky Spectrum to each lenslet"""
         self.map_over_lenslets(self._apply_sky_spectrum,color=False)
@@ -539,6 +575,9 @@ class SEDSimulator(Simulator,ImageObject):
         """Apply qe to each lenslet"""
         lenslet.spectrum *= self.qe.frame() * self.config["Instrument"]["Tel"]["area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"]
         
+    
+    @description("Applying Quantum Efficiency Functions")
+    @depends("setup-sky")
     def apply_qe(self):
         """Apply the instrument quantum efficiency"""
         self.map_over_lenslets(self._apply_qe_spectrum,color=False)
@@ -549,6 +588,9 @@ class SEDSimulator(Simulator,ImageObject):
         self.sky.save(self.sky.frame("Moon") * self.config["Instrument"]["Tel"]["area"] * self.config["Observation"]["exposure"] * self.config["Instrument"]["eADU"],"Moon Mul",select=False)
         self.sky.save(self.sky.frame("Moon Mul") * self.qe.frame(),"Moon QE",select=False)
         
+    
+    @description("Performing geometric resample")
+    @depends("setup-source-pixels","setup-hexagons")
     def geometric_resample(self):
         """docstring for fname"""
         n = len(self.SourcePixels)
