@@ -26,12 +26,19 @@ Then return to step 3 above. As much as I try to make the installation of `Astro
 Running :program:`SEDMsim`
 --------------------------
 
-Before you can run the simulator, you must make sure you have the correct data and directory files installed. First, copy the ``Data/`` directory from the source tree into your desired working directory. Then, establish all of the other required directories.
+The simulator has two basic components: The simulation, and the environment. Your environment should be a working directory, but **not** your source directory.
 
-This can be accomplished with the ``SEDMsetup`` command::
+Setup of your environment is handled by the ``SEDMsetup`` command::
 	
 	$ SEDMsetup
 	
+
+This creates all of the necessary data and directory files for use with the program. Next, you will need a configuration file. A basic configuration file that works with the data provided can be generated using::
+	
+	$ SEDMsetup *config-files
+	
+
+If you change values in the configuration file (Such as the directory information), you may want to run ``SEDMsetup`` again to make sure you have the correct data files available.
 
 To run the program, choose a stage to run (see :option:`{stages}` for a list of basic stages) and then run the SEDMsim command. The simplest command is ``*all`` which performs the default simulation ::
 	
@@ -46,7 +53,7 @@ Run this command with the ``-T`` option to limit the number of lenslets evaluate
 The operating directory of the simulation should contain the following sub-directories which handle input and output:
 
 	- ``Caches/`` which will contain cache files. Cache files include the ``.fits`` files for each individual spectra, useful to examine spectra in over-sampled view.
-	- ``Data/`` which will contain the required data files. Some data files are distributed with the system. You should copy this directory from the source tree.
+	- ``Data/`` which will contain the required data files. Some data files are distributed with the system.
 	- ``Images/`` which is the output directory. The final ``.fits`` image will be saved there.
 	- ``Logs/`` which contains simulation logs.
 	- ``Partials/`` which will contain items produced part-way through the simulator. Many files will be placed there, including plots.
@@ -58,15 +65,14 @@ The primary output will appear in the ``Images/`` directory. This directory will
 	
 	$ ds9 file-deep.fits[{0,1,3}]
 	
-for frames 0, 1, and 3. The final image will always be in frame 0. Other frames will use the FITS keyword ``LABEL`` to describe their contents. These frames may also use the ``OBJECT`` keyword (if it in use) to describe their contents.
+for frames 0, 1, and 3. The final image will always be in frame 0. Other frames will use the FITS keyword ``LABEL`` to describe their contents. These frames may also use the ``OBJECT`` keyword (if it in use) to describe their contents. You can also view all of the frames using the ``ds9`` ``Open Other...`` menu item.
 
 If you made plots, or wish to look at results from the simulation which are not the final image, examine the ``Partials/`` directory. If you just ran the simulation normally, you can find the following files in the partials directory:
 
 - ``Instrument-Offsets.dat``: Pixel offset values for subimages
-- ``LensletAudit.dat``: Information about each lenslet processed, in a python-dictionary like way. Useful for detailed information about each lenslet used.
 - ``Lenslets-Raw.dat``: Information about each lenslet, in human-readable form
 - ``center.dat``: Information about the central lenslet
-- ``config-SEDMachine.yaml``: Configuration file used for the simulation.
+- ``SEDMachine.config.yaml``: Configuration file used for the simulation.
 
 If you ran the ``*plot`` stage, you will find a plethora of plots about the entire simulation. As plots are produced for each lenslet, it is advisable to limit the number of lenslets used for the ``*plot`` command, for example, run ::
 	

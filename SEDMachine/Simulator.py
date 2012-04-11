@@ -6,7 +6,7 @@
 #  
 #  Created by Alexander Rudy on 2012-02-08.
 #  Copyright 2012 Alexander Rudy. All rights reserved.
-#  Version 0.3.3
+#  Version 0.3.3-p1-p1
 # 
 
 import numpy as np
@@ -270,11 +270,9 @@ class SEDSimulator(Simulator,ImageObject):
        
         
        # Progress bar for lenslet creation and validation
-       PBar = arpytools.progressbar.ProgressBar(color="green")
-       finished = 0.0
+      
        total = len(self.lensletIndex)
-       self.log.useConsole(False)
-       PBar.render(0,"L:%4s %4d/%-4d" % ("",finished,total))
+       self._start_progress_bar(total,"green")
         
        # Variables for lenslet use
        FileName = "%(Partials)s/%(name)s%(ext)s" % dict(name="Lenslets-raw",ext=".dat",**self.config["Dirs"])
@@ -285,12 +283,10 @@ class SEDSimulator(Simulator,ImageObject):
                if lenslet.valid(strict=self.config["Instrument"]["Lenslets"]["strict"]):
                    self.lenslets[idx] = lenslet
                    stream.write(lenslet.introspect())
-               progress = int((finished/float(total)) * 100)
-               finished += 1
-               PBar.render(progress,"L:%4d %4d/%-4d" % (idx,finished,total))
-       PBar.render(100,"L:%4s %4d/%-4d" % ("Done",total,total))
+               self.progress += 1
+               self.progressbar.update(self.progress)
        self.lensletIndex = np.asarray(self.lenslets.keys())
-       self.log.useConsole(True)
+       self._end_progress_bar()
        
        
        # Central Lenslet Output
@@ -720,10 +716,10 @@ class SEDSimulator(Simulator,ImageObject):
     
     def save_file(self):
         """Saves the file"""
-        self.Filename = "%(Images)s/%(label)s-%(date)s.%(fmt)s" % dict(label=self.config["Output"]["Label"],date=time.strftime("%Y-%m-%d"), fmt=self.config["Output"]["Format"], **self.config["Dirs"] )
+        self.Filename = "%(Output)s/%(label)s-%(date)s.%(fmt)s" % dict(label=self.config["Output"]["Label"],date=time.strftime("%Y-%m-%d"), fmt=self.config["Output"]["Format"], **self.config["Dirs"] )
         self.write(self.Filename,states=[self.statename],clobber=True)
         self.log.info("Wrote %s" % self.Filename)
-        self.Filename = "%(Images)s/%(label)s-deep-%(date)s.%(fmt)s" % dict(label=self.config["Output"]["Label"],date=time.strftime("%Y-%m-%d"), fmt=self.config["Output"]["Format"], **self.config["Dirs"] )
+        self.Filename = "%(Output)s/%(label)s-deep-%(date)s.%(fmt)s" % dict(label=self.config["Output"]["Label"],date=time.strftime("%Y-%m-%d"), fmt=self.config["Output"]["Format"], **self.config["Dirs"] )
         self.write(self.Filename,clobber=True)
         self.log.info("Wrote %s" % self.Filename)
     
@@ -1273,54 +1269,7 @@ class SEDSimulator(Simulator,ImageObject):
     def map_over_pixels(self,function,exceptions=True,color="green"):
         """Maps some function over a bunch of source pixels"""
         collection = self.SourcePixels
-        self.map_over_collection(function,lambda p:p.num,collection,exceptions,color)
-        
-    
-    def map_over_collection(self,function,idfun,collection,exceptions=True,color="green"):
-        """docstring for map_over_collection"""
-        if exceptions == True:
-            exceptions = Exception
-        self.errors = 0
-        showBar = False
-        if not self.mapping and isinstance(color,str):
-            showBar = True
-            self.progress = 0.0
-            self.total = len(collection)
-            self.bar = arpytools.progressbar.ProgressBar(color=color)
-            self.log.useConsole(False)
-            self.bar.render(0,"L:%4s %4d/%-4d" % ("",self.progress,self.total))
-        self.mapping = True
-        map(lambda l:self._collection_map(l,function,exceptions,idfun,showBar),collection)
-        if showBar:
-            self.bar.render(100,"L:%4s %4d/%-4d" % ("Done",self.progress,self.total))
-            self.log.useConsole(True)
-            if self.progress != self.total:
-                self.log.warning("Progress and Total are different at end of loop: %d != %d" % (self.progress,self.total))
-        if self.errors != 0:
-            self.log.warning("Trapped %d errors" % self.errors)
-        self.mapping = False
-        
-    
-            
-    def _collection_map(self,lenslet,function,exceptions,idfun,showBar):
-        """Maps something over a bunch of lenslets"""
-        identity = idfun(lenslet)
-        if showBar:
-            self.bar.render(int(self.progress/self.total * 100),"L:%4d %4d/%-4d" % (identity,self.progress,self.total))
-        try:
-            function(lenslet)
-        except exceptions as e:
-            self.log.error(u"Caught %s in %d" % (e.__class__.__name__,identity))
-            self.log.error(u"%s" % e)
-            self.errors += 1
-            if self.config["Debug"]:
-                self.log.useConsole(True)
-                raise
-        finally:
-            if showBar:
-                self.progress += 1.0
-                self.bar.render(int(self.progress/self.total * 100),"L:%4d %4d/%-4d" % (identity,self.progress,self.total))
-        
+        self.map_over_collection(function,lambda p:p.num,collection,exceptions,color)        
         
         
     ###################

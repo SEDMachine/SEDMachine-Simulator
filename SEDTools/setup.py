@@ -33,6 +33,7 @@ class SetupAgent(Simulator):
         super(SetupAgent, self).__init__(commandLine=True)
         self.config.load(resource_filename("SEDMachine","SED.main.config.default.yaml"))
         self.config.setFile("Main")
+        self.config.load()
         self.config.update({"Default":"*all"})
         self._register_stages()
         
