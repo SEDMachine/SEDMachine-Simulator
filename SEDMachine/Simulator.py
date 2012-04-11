@@ -6,7 +6,7 @@
 #  
 #  Created by Alexander Rudy on 2012-02-08.
 #  Copyright 2012 Alexander Rudy. All rights reserved.
-#  Version 0.3.3-p1-p1
+#  Version 0.3.3-p2
 # 
 
 import numpy as np
@@ -21,8 +21,6 @@ import yaml
 
 import shapely as sh
 import shapely.geometry
-
-import arpytools.progressbar
 
 import os
 import logging,logging.handlers
