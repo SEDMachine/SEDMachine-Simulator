@@ -89,7 +89,7 @@ class SEDSimulator(Simulator,ImageObject):
         self.registerStage(self.setup_configuration,"setup-config")
         self.registerStage(self.setup_constants,"setup-constants")
         self.registerStage(self.setup_cameras,"setup-cameras")
-        self.registerStage(self.setup_lenslets,"setup-lenslets",help=False,description="Setting up lenslets",dependencies=["setup-config"])
+        self.registerStage(self.setup_lenslets,"setup-lenslets")
         self.registerStage(self.setup_hexagons,"setup-hexagons")
         self.registerStage(self.setup_blank,"setup-blank")
         self.registerStage(self.setup_dummy_blank,"setup-blank-d")
@@ -98,10 +98,10 @@ class SEDSimulator(Simulator,ImageObject):
         self.registerStage(None,"simple-source",help="Use a simple, centered source object",description="Replacing default source with a simple one",dependencies=["setup-source-simple"])
         self.registerStage(None,"setup-source",help=False,description="Creating source spectrum objects",dependencies=["setup-config","setup-constants","simple-source"])
         self.registerStage(self.setup_source_pixels,"setup-source-pixels")
-        self.registerStage(self.setup_noise,"setup-noise",help=False,description="Setting up Dark/Bias frames",dependencies=["setup-config","setup-cameras"])
+        self.registerStage(self.setup_noise,"setup-noise")
         self.registerStage(self.setup_sky,"setup-sky")
-        self.registerStage(self.setup_line_list,"setup-lines",help=False,description="Setting up calibration source",dependencies=["setup-config","setup-constants"])
-        self.registerStage(self.setup_scatter,"setup-scatter",help=False,description="Setting up scattered light calculations",dependencies=["setup-config","setup-blank"])
+        self.registerStage(self.setup_line_list,"setup-lines")
+        self.registerStage(self.setup_scatter,"setup-scatter")
         # Setup Macro
         self.registerStage(None,"setup",help="System Setup",description="Set up simulator",
             dependencies=["setup-hexagons","setup-blank","setup-source","setup-noise","setup-constants","setup-sky","setup-cameras","setup-lines","setup-scatter"],
@@ -116,33 +116,33 @@ class SEDSimulator(Simulator,ImageObject):
         self.registerStage(self.apply_atmosphere,"apply-atmosphere")
 
         # Adjust spectra
-        self.registerStage(self.sky_source,"sky-source",help="Use only sky spectrum",description="Using only Sky spectrum",dependencies=["setup-sky","apply-sky","apply-qe","apply-atmosphere","setup-lenslets","setup"],replaces=["setup-source","geometric-resample","setup-source-pixels"])
-        self.registerStage(self.flat_source,"flat-source",help="Make a constant value source",description="Using flat source",dependencies=["setup-lenslets","setup"],replaces=["setup-source","geometric-resample","setup-source-pixels","apply-sky","apply-atmosphere"])
-        self.registerStage(self.line_source,"line-source",help="Use a calibration lamp source",description="Using calibration lamp source",dependencies=["setup-lenslets","setup-lines","setup"],replaces=["setup-source","geometric-resample","setup-source-pixels","apply-sky","apply-atmosphere"])
+        self.registerStage(self.sky_source,"sky-source")
+        self.registerStage(self.flat_source,"flat-source")
+        self.registerStage(self.line_source,"line-source")
         
         
         # Dispersion functions
-        self.registerStage(self.lenslet_dispersion,"dispersion",help="Calculate lenslet dispersion",description="Calculating dispersion for each lenslet",dependencies=["setup-lenslets","setup-caches"])
-        self.registerStage(self.lenslet_trace,"trace",help="Trace lenslet spectra dispersion",description="Tracing lenslet spectra dispersion",dependencies=["dispersion","setup-caches","setup-lenslets","apply-sky","apply-qe","apply-atmosphere"])
-        self.registerStage(self.lenslet_place,"place",help="Place subimages",description="Placing lenslet spectra",dependencies=["trace"],include=True)
+        self.registerStage(self.lenslet_dispersion,"dispersion")
+        self.registerStage(self.lenslet_trace,"trace")
+        self.registerStage(self.lenslet_place,"place")
         
         # Merge images back together
-        self.registerStage(self.image_merge,"merge-cached",help=False,description="Merging subimages",dependencies=["setup-blank","setup-lenslets"],include=True)
+        self.registerStage(self.image_merge,"merge-cached")
         self.registerStage(None,"merge",help="Merge Subimages",description="Merging subimage into master image",dependencies=["place","merge-cached"])
         
         # Final Image work
-        self.registerStage(self.ccd_crop,"crop",help="Crop Final Image",description="Cropping image to CCD size",dependencies=["setup-blank","setup-lenslets"],include=True)
-        self.registerStage(self.apply_noise,"add-noise",help="Add Dark/Bias noise to image",description="Adding Dark/Bias noise",dependencies=["crop","setup-noise"],include=True)
-        self.registerStage(self.apply_scatter,"add-scatter",help="Add scattered light noise to image",description="Adding scatter noise",dependencies=["crop","setup-scatter"],include=True)
-        self.registerStage(self.transpose,"transpose",help="Transpose the image",description="Transposing Image",dependencies=["crop"],include=True)
-        self.registerStage(self.save_file,"save",help="Save image to file",description="Saving image to disk",dependencies=["setup-blank","transpose"],include=True)
+        self.registerStage(self.ccd_crop,"crop")
+        self.registerStage(self.apply_noise,"add-noise")
+        self.registerStage(self.apply_scatter,"add-scatter")
+        self.registerStage(self.transpose,"transpose")
+        self.registerStage(self.save_file,"save")
         
         # Alternative work macros
         self.registerStage(None,"cached-only",help="Use cached subimages to construct final image",description="Building image from caches",dependencies=["merge-cached","crop","add-noise","add-scatter","transpose","save"])
         
         
         # Plotting geometry functions
-        self.registerStage(self.plot_kernel_partials,"plot-kernel",help=False,description="Plotting PSF Kernels",dependencies=["setup-caches","setup-config"])
+        self.registerStage(self.plot_kernel_partials,"plot-kernel")
         self.registerStage(self.plot_hexagons,"plot-hexagons",help=False,description="Plotting Lenslet hexagons",dependencies=["setup-hexagons"])
         self.registerStage(self.plot_invalid_hexagons,"plot-bad-hexagons",help=False,description="Plotting invalid hexagons",dependencies=["setup-hexagons"])
         self.registerStage(self.plot_pixels,"plot-pixels",help=False,description="Plotting pixel squares",dependencies=["setup-source-pixels"])
@@ -197,6 +197,7 @@ class SEDSimulator(Simulator,ImageObject):
             self.Caches.flag('saving',False)
     
     
+    
     @description("Setting up operational constants")
     @depends("setup-caches")
     def setup_constants(self):
@@ -218,6 +219,7 @@ class SEDSimulator(Simulator,ImageObject):
     
     
     @description("Setting up lenslets")
+    @depends("setup-config")
     def setup_lenslets(self):
        """This function loads data about lenslet positions, and thier dispersion through the prism. The data are original produced by ZEMAX. This function reads the Zeemax data directly and then cleans the data in certain ways, preparing it for use later in the system.
        
@@ -599,6 +601,9 @@ class SEDSimulator(Simulator,ImageObject):
         self.map_over_pixels(lambda p:p.setup_crosstalk(m),color=False)
         self.map_over_lenslets(lambda l:self.map_over_pixels(lambda p:l.find_crosstalk(p),color=False),color="green")
         
+    
+    @description("Setting up calibration source")
+    @depends("setup-config","setup-constants")
     def setup_line_list(self):
         """Set up a line-list based spectrum for wavelength calibration."""
         linelist = np.asarray(np.genfromtxt(self._dir_filename("Data",self.config["Source"]["Lines"]["List"]),comments="#"))
@@ -616,47 +621,87 @@ class SEDSimulator(Simulator,ImageObject):
             CalSpec += GaussianSpectrum(center,sigma,value,"Line %g" % line)
         self.spectra.save(UnitarySpectrum(CalSpec,method='resolve_and_integrate',label="Calibration Lamp"),select=False)
         
+    
+    @description("Using calibration lamp source")
+    @help("Use a calibration lamp source")
+    @depends("setup-lenslets","setup-lines","setup")
+    @replaces("setup-source","geometric-resample","setup-source-pixels","apply-sky","apply-atmosphere")
     def line_source(self):
         """Use the line spectrum only"""
         self.config["Output"]["Label"] += "-cal-"
         self.replace_source(self.spectra.frame("Calibration Lamp"))
         
+    
+    @description("Using only Sky spectrum")
+    @description("Use only Sky spectrum")
+    @depends("setup-sky","apply-sky","apply-qe","apply-atmosphere","setup-lenslets","setup")
+    @replaces("setup-source","geometric-resample","setup-source-pixels")
     def sky_source(self):
         """Use the sky spectrum only"""
         self.config["Output"]["Label"] += "-sky-"
         self.replace_source(self.sky.frame())
 
+    
+    @ignore
     def replace_source(self,spectrum):
         """Replace the default file-source with a flat spectrum"""
         self.spectra.save(spectrum,clobber=True)
         self.map_over_lenslets(self._replace_source,color=False)
     
+    
+    @ignore
     def _replace_source(self,lenslet):
         """docstring for _flat_source"""
         lenslet.spectrum = self.spectra.frame()
             
+    
+    
+    
+    @description("Using flat source")
+    @help("Make a constant value source")
+    @depends("setup-lenslets","setup")
+    @replaces("setup-source","geometric-resample","setup-source-pixels","apply-sky","apply-atmosphere")
     def flat_source(self):
         """Replace the default file-source with a flat spectrum"""
         self.config["Output"]["Label"] += "-flat-"
         self.replace_source(FlatSpectrum(self.config["Source"]["Flat"]["value"]))
-
+        
+    
+    @description("Calculating dispersion for each lenslet")
+    @help("Calculate lenslet dispersion")
+    @depends("setup-lenslets","setup-caches")
     def lenslet_dispersion(self):
         """Calculate the dispersion for each lenslet"""
         self.map_over_lenslets(lambda l: l.find_dispersion(),color="blue")
         
+    
+    @description("Tracing lenslet spectra dispersion")
+    @help("Trace lenslet spectra dispersion")
+    @depends("dispersion","setup-caches","setup-lenslets","apply-sky","apply-qe","apply-atmosphere")
     def lenslet_trace(self):
         """Trace out each lenslet"""
         self.map_over_lenslets(lambda l: l.get_trace(l.spectrum),color="blue")
 
+    
+    @include
+    @description("Placing lenslet spectra")
+    @help("Place subimages")
+    @depends("trace")
     def lenslet_place(self):
         """Place each spectrum into the subimage"""
         self.map_over_lenslets(self._lenslet_place,color="yellow")
         
+    
+    @ignore
     def _lenslet_place(self,l):
         """docstring for _lenslet_place"""
         l.place_trace(self.get_conv)
         l.write_subimage()
     
+    
+    @include
+    @description("Merging subimages")
+    @depends("setup-blank","setup-lenslets")
     def image_merge(self):
         """Merge subimages into master image"""
         self.select("Blank")
@@ -664,6 +709,9 @@ class SEDSimulator(Simulator,ImageObject):
         self.map_over_lenslets(self._lenslet_merge,color="yellow")
         self.select("Merge")
         
+    
+    
+    @ignore
     def _lenslet_merge(self,lenslet):
         """Merge a single lenslet into the master image"""
         lenslet.read_subimage()
@@ -671,6 +719,10 @@ class SEDSimulator(Simulator,ImageObject):
         self.place(lenslet.data(),lenslet.subcorner)
         lenslet.clear(delete=True)
     
+    
+    
+    @description("Setting up scattered light calculations")
+    @depends("setup-config","setup-blank")
     def setup_scatter(self):
         """Sets up scattered light level"""
         
@@ -687,12 +739,21 @@ class SEDSimulator(Simulator,ImageObject):
         self.save(area,"Scatter")        
         self.select(state)
         
+    
+    
+    @include
+    @help("Crop Final Image")
+    @description("Cropping image to CCD size")
+    @depends("setup-blank","setup-lenslets")
     def ccd_crop(self):
         """Crops the image to the appropriate ccd size"""
         x,y = self.center
         size = self.config["Instrument"]["ccd"]["size"]["px"] / 2.0
         self.crop(x,y,size)
         
+    
+    @description("Setting up Dark/Bias frames")
+    @depends("setup-config","setup-cameras")
     def setup_noise(self):
         """Makes noise masks"""
         
@@ -708,6 +769,11 @@ class SEDSimulator(Simulator,ImageObject):
         self.select(state)
     
         
+    
+    @include
+    @help("Add Dark/Bias noise to image")
+    @description("Adding Dark/Bias noise")
+    @depends("crop","setup-noise")
     def apply_noise(self):
         """Apply the noise masks to the target image label"""
         
@@ -720,6 +786,11 @@ class SEDSimulator(Simulator,ImageObject):
         
         self.save(data,"Noisy",clobber=True)
     
+    
+    @include
+    @help("Add scattered light noise to image")
+    @description("Adding scatter noise")
+    @depends("crop","setup-scatter")
     def apply_scatter(self):
         """Apply the scattered light frame"""
         
@@ -747,6 +818,11 @@ class SEDSimulator(Simulator,ImageObject):
         self.save(end,"Scattered",clobber=True)
         
     
+    
+    @include
+    @help("Transpose the image")
+    @description("Transposing Image")
+    @depends("crop")
     def transpose(self):
         """transpose the final image"""
         data = self.data()
@@ -754,6 +830,13 @@ class SEDSimulator(Simulator,ImageObject):
         self.save(data.T.astype(np.int16),"Transposed",clobber=True)
         
     
+    
+    
+    
+    
+    @include
+    @help("Save image to file")
+    @description("Saving image to disk")
     def save_file(self):
         """Saves the file"""
         self.Filename = "%(Output)s/%(label)s-%(date)s.%(fmt)s" % dict(label=self.config["Output"]["Label"],date=time.strftime("%Y-%m-%d"), fmt=self.config["Output"]["Format"], **self.config["Dirs"] )
@@ -767,7 +850,8 @@ class SEDSimulator(Simulator,ImageObject):
     ################################
     ## IMAGE MANAGEMENT FUNCTIONS ##
     ################################
-        
+    
+    @ignore
     def place(self,img,corner):
         """Place the given AstroObject.AnalyticSpectra.AnalyticSpectrum onto the SEDMachine Image"""
         
@@ -790,6 +874,8 @@ class SEDSimulator(Simulator,ImageObject):
         self.save(data,self.statename,clobber=True)    
         
     
+    
+    @ignore
     def crop(self,x,y,xsize,ysize=None,label=None):
         """Crops the provided image to twice the specified size, centered around the x and y coordinates provided."""
         if not ysize:
@@ -1227,7 +1313,8 @@ class SEDSimulator(Simulator,ImageObject):
         plt.axis(expandLim(plt.axis()))
         plt.savefig("%(Partials)s/Lenslets-WL-dy%(ext)s" % dict(ext=self.config["Plots"]["format"],**self.config["Dirs"]))
         
-   
+    
+    
     def plot_rotation(self):
         """Plot rotation"""
         plt.clf()
@@ -1238,7 +1325,9 @@ class SEDSimulator(Simulator,ImageObject):
         plt.axis(expandLim(plt.axis()))
         plt.savefig("%(Partials)s/Lenslets-WL-dr%(ext)s" % dict(ext=self.config["Plots"]["format"],**self.config["Dirs"]))
         
-   
+    
+    @description("Plotting PSF Kernels")
+    @depends("setup-caches","setup-config")
     def plot_kernel_partials(self):
         """Plots the kernel data partials"""
         self.log.debug("Generating Kernel Plots and Images")
