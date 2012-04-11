@@ -270,11 +270,9 @@ class SEDSimulator(Simulator,ImageObject):
        
         
        # Progress bar for lenslet creation and validation
-       PBar = arpytools.progressbar.ProgressBar(color="green")
-       finished = 0.0
+      
        total = len(self.lensletIndex)
-       self.log.useConsole(False)
-       PBar.render(0,"L:%4s %4d/%-4d" % ("",finished,total))
+       self._start_progress_bar(total,"green")
         
        # Variables for lenslet use
        FileName = "%(Partials)s/%(name)s%(ext)s" % dict(name="Lenslets-raw",ext=".dat",**self.config["Dirs"])
@@ -285,12 +283,10 @@ class SEDSimulator(Simulator,ImageObject):
                if lenslet.valid(strict=self.config["Instrument"]["Lenslets"]["strict"]):
                    self.lenslets[idx] = lenslet
                    stream.write(lenslet.introspect())
-               progress = int((finished/float(total)) * 100)
-               finished += 1
-               PBar.render(progress,"L:%4d %4d/%-4d" % (idx,finished,total))
-       PBar.render(100,"L:%4s %4d/%-4d" % ("Done",total,total))
+               self.progress += 1
+               self.progressbar.update(self.progress)
        self.lensletIndex = np.asarray(self.lenslets.keys())
-       self.log.useConsole(True)
+       self._end_progress_bar()
        
        
        # Central Lenslet Output
