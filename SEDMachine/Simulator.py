@@ -1269,54 +1269,7 @@ class SEDSimulator(Simulator,ImageObject):
     def map_over_pixels(self,function,exceptions=True,color="green"):
         """Maps some function over a bunch of source pixels"""
         collection = self.SourcePixels
-        self.map_over_collection(function,lambda p:p.num,collection,exceptions,color)
-        
-    
-    def map_over_collection(self,function,idfun,collection,exceptions=True,color="green"):
-        """docstring for map_over_collection"""
-        if exceptions == True:
-            exceptions = Exception
-        self.errors = 0
-        showBar = False
-        if not self.mapping and isinstance(color,str):
-            showBar = True
-            self.progress = 0.0
-            self.total = len(collection)
-            self.bar = arpytools.progressbar.ProgressBar(color=color)
-            self.log.useConsole(False)
-            self.bar.render(0,"L:%4s %4d/%-4d" % ("",self.progress,self.total))
-        self.mapping = True
-        map(lambda l:self._collection_map(l,function,exceptions,idfun,showBar),collection)
-        if showBar:
-            self.bar.render(100,"L:%4s %4d/%-4d" % ("Done",self.progress,self.total))
-            self.log.useConsole(True)
-            if self.progress != self.total:
-                self.log.warning("Progress and Total are different at end of loop: %d != %d" % (self.progress,self.total))
-        if self.errors != 0:
-            self.log.warning("Trapped %d errors" % self.errors)
-        self.mapping = False
-        
-    
-            
-    def _collection_map(self,lenslet,function,exceptions,idfun,showBar):
-        """Maps something over a bunch of lenslets"""
-        identity = idfun(lenslet)
-        if showBar:
-            self.bar.render(int(self.progress/self.total * 100),"L:%4d %4d/%-4d" % (identity,self.progress,self.total))
-        try:
-            function(lenslet)
-        except exceptions as e:
-            self.log.error(u"Caught %s in %d" % (e.__class__.__name__,identity))
-            self.log.error(u"%s" % e)
-            self.errors += 1
-            if self.config["Debug"]:
-                self.log.useConsole(True)
-                raise
-        finally:
-            if showBar:
-                self.progress += 1.0
-                self.bar.render(int(self.progress/self.total * 100),"L:%4d %4d/%-4d" % (identity,self.progress,self.total))
-        
+        self.map_over_collection(function,lambda p:p.num,collection,exceptions,color)        
         
         
     ###################
