@@ -22,8 +22,6 @@ import yaml
 import shapely as sh
 import shapely.geometry
 
-import arpytools.progressbar
-
 import os
 import logging,logging.handlers
 import time
