@@ -139,7 +139,7 @@ def _get_git_devstatus():
         warn('Git failed: '+stderr)
         return False
     
-    parts = stdout.split("/")
+    parts = stdout.rstrip("\n").split("/")
     if len(parts) < 3:
         warn('Parts missing stuff: '+stdout)
         return False
