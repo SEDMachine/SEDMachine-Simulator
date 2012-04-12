@@ -223,5 +223,8 @@ dev = %s
 release = not dev
 """
 
+def show():
+    print version
+
 if __name__ == '__main__':
     print version

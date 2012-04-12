@@ -3,7 +3,23 @@ use_setuptools()
 from setuptools import setup, find_packages
 
 from distutils.command.build_py import build_py as du_build_py
+from distutils.core import Command
+
 from SEDMachine.version import version as versionstr
+
+class Version(Command):
+    description = "Print the module version"
+    user_options = []
+    def initialize_options(self):
+        pass
+        
+    def finalize_options (self):
+        pass
+        
+    def run(self):
+        print 'version',versionstr
+        return
+        
 
 #custom build_py overwrites version.py with a version overwriting the revno-generating version.py
 class SED_build_py(du_build_py):
@@ -30,21 +46,27 @@ class SED_build_py(du_build_py):
         
 
 SEDpkgs = find_packages(exclude=['Tests'])
+AstroObjectReq = "0.3.5.dev"
+AstroObjectDep = "AstroObject>=" + AstroObjectReq
+AstroObjectVer = "0.3.5"
+AstroObjectURL = "https://github.com/alexrudy/AstroObject/zipball/v%(ver)s#egg=AstroObject-%(ver)s" % { 'ver' : AstroObjectVer}
 
 setup(
     name = "SEDMachineSimulator",
     packages = SEDpkgs,
     package_data = {'':['VERSION','README.md','LICENCE','*.yaml'],'SEDTools':['Data/*.dat','Data/*.npy','*.yaml']},
     version = versionstr,
-    install_requires = ['pyfits>=2.4','numpy>=1.5','scipy>=0.9','matplotlib>=1.0','AstroObject>=0.3.4'],
-    dependency_links = ['https://github.com/alexrudy/AstroObject/zipball/v0.3.4#egg=AstroObject-0.3.4'],
+    install_requires = ['pyfits>=2.4','numpy>=1.5','scipy>=0.9','matplotlib>=1.0','shapely>=1.2.14',"PyYAML>=3.10",AstroObjectDep],
+    dependency_links = [AstroObjectURL],
     test_suite = 'Tests',
     author = "Alexander Rudy",
     author_email = "dev@alexrudy.org",
     entry_points = {
         'console_scripts' : ['SEDMsim = SEDMachine.Simulator:run', 'SEDMsetup = SEDTools.setup:run'],
+        'distutils.commands' : ['version = SEDMachine.version:show',],
     },
     cmdclass = {
         'build_py' : SED_build_py,
+        'version' : Version,
     },
 )
