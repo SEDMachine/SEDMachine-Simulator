@@ -30,3 +30,7 @@
 	- Improvements to SEDTools
 * 0.3.3
 	- Documentation and README
+* 0.3.4
+	- Fixes for installation, data and exports
+* 0.3.5
+	- Fixes and upgrades to setuptools, as well as decorator based simulator
