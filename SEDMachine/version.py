@@ -20,7 +20,7 @@ from __future__ import division,with_statement
 #these components can be changed for new versions
 major = 0
 minor = 3
-bugfix = 5
+bugfix = 4
 patch = None
 dev = True
 
@@ -118,6 +118,9 @@ def _get_git_devstatus():
     from os import path
     from subprocess import Popen,PIPE
     from warnings import warn
+    
+    if release:
+        return False
     
     currdir = path.abspath(path.split(__file__)[0])
     try:

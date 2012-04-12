@@ -6,7 +6,7 @@
 #  
 #  Created by Alexander Rudy on 2012-02-08.
 #  Copyright 2012 Alexander Rudy. All rights reserved.
-#  Version 0.3.5
+#  Version 0.3.4
 # 
 
 import numpy as np
@@ -32,7 +32,7 @@ import gc
 from pkg_resources import resource_filename
 
 import AstroObject
-from AstroObject.AstroSimulator import Simulator
+from AstroObject.AstroSimulator import *
 from AstroObject.AstroCache import *
 from AstroObject.AstroConfig import *
 from AstroObject.AstroSpectra import SpectraObject,SpectraFrame
@@ -40,6 +40,7 @@ from AstroObject.AstroImage import ImageObject,ImageFrame
 from AstroObject.AnalyticSpectra import BlackBodySpectrum,GaussianSpectrum, AnalyticSpectrum, FlatSpectrum, InterpolatedSpectrum, UnitarySpectrum
 from AstroObject.Utilities import *
 
+from version import version as versionstr
 from Objects import *
 
 
@@ -48,7 +49,7 @@ class SEDSimulator(Simulator,ImageObject):
     
     This simulator is based on :class:`AstroObject.AstroSimulator.Simulator`. It is designed to run as a series of dependent stages. The simulator is first setup, with basic data structures created in the constructor, and then simulator stages registered in :meth:`setup_stages`."""
     def __init__(self):
-        super(SEDSimulator, self).__init__(name="SEDMachine")
+        super(SEDSimulator, self).__init__(name="SEDMachine",version=versionstr)
         self.debug = False
         self.mapping = False
         self.dataClasses = [SubImage]
