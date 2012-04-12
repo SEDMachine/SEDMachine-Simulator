@@ -8,7 +8,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>1. Introduction to the SEDMachine Simulator &mdash; SEDMsim  documentation</title>
+    <title>1. Introduction to the SEDMachine Simulator &mdash; SEDMsim 0.3.5.dev-git-5c729413e3c3eff3435ed43ac823ec249e299b8f documentation</title>
     
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -16,7 +16,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '',
+        VERSION:     '0.3.5.dev-git-5c729413e3c3eff3435ed43ac823ec249e299b8f',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -25,7 +25,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="SEDMsim  documentation" href="index.html" />
+    <link rel="top" title="SEDMsim 0.3.5.dev-git-5c729413e3c3eff3435ed43ac823ec249e299b8f documentation" href="index.html" />
     <link rel="next" title="2. Basic Tutorial" href="tutorial.html" />
     <link rel="prev" title="Welcome to SEDMsim documentation!" href="index.html" /> 
   </head>
@@ -45,7 +45,7 @@
         <li class="right" >
           <a href="index.html" title="Welcome to SEDMsim documentation!"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">SEDMsim  documentation</a> &raquo;</li> 
+        <li><a href="index.html">SEDMsim 0.3.5.dev-git-5c729413e3c3eff3435ed43ac823ec249e299b8f documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -59,7 +59,7 @@
 <p>The <a class="reference external" href="http://github.com/alexrudy/SEDMachine-Simulator/">SEDMachine Simulator</a> is designed to simulate many aspects of the design and operation of the SEDMachine instrument. As such, it endeavors to be an accurate simulation of the optical processes in the SEDMachine and to faithfully reproduce data which might be created by the SEDMachine. This program can simulate the different types of data images that the SEDMachine is likely to produce. Images can be simulated which are based on data-cubes, simple sources (with a fixed geometry inserted), or uniform sources. Potential uniform sources include sky spectra, flat lamps (similar to what a quartz lamp would produce), calibration lamps (based on a line list) and arbitrary uniform sources (specified in a data file, with R&gt;1000). The simulator works by generating large FITS images, and doing spectral resolution and flux calibration math. It can take a little while to run each simulation (there are more than 5000 active lenslets in the SED machine!), so be patient, and test your simulation on a small number of lenslets first to ensure that it works.</p>
 <div class="section" id="organization">
 <h2>1.1. Organization<a class="headerlink" href="#organization" title="Permalink to this headline">¶</a></h2>
-<p>The program is contained within the <tt class="xref py py-mod docutils literal"><span class="pre">SEDMachine</span></tt> module. This module has two primary components: the Simulator, and the supporting classes. The <a class="reference internal" href="Simulator.html#module-SEDMachine.Simulator" title="SEDMachine.Simulator"><tt class="xref py py-mod docutils literal"><span class="pre">SEDMachine.Simulator</span></tt></a> module has a single class, <a class="reference internal" href="Simulator.html#SEDMachine.Simulator.SEDSimulator" title="SEDMachine.Simulator.SEDSimulator"><tt class="xref py py-class docutils literal"><span class="pre">SEDMachine.Simulator.SEDSimulator</span></tt></a> which implements the control functions for the program. When you call <strong class="program">SEDMsim</strong>, you are using this class&#8217;s <tt class="xref py py-meth docutils literal"><span class="pre">SEDMachine.Simulator.SEDSimulator.run()</span></tt> method. The program relies on the <tt class="xref py py-mod docutils literal"><span class="pre">AstroObject</span></tt> module, which I&#8217;ve (Alex Rudy) developed to make lots of astronomy tasks a lot more &#8220;object-focused&#8221;. <a class="reference external" href="http://github.com/alexrudy/AstroObject/">AstroObject</a> can be found online at <a class="reference external" href="http://github.com/alexrudy/AstroObject/">Github</a></p>
+<p>The program is contained within the <tt class="xref py py-mod docutils literal"><span class="pre">SEDMachine</span></tt> module. This module has two primary components: the Simulator, and the supporting classes. The <a class="reference internal" href="Simulator.html#module-SEDMachine.Simulator" title="SEDMachine.Simulator"><tt class="xref py py-mod docutils literal"><span class="pre">SEDMachine.Simulator</span></tt></a> module has a single class, <tt class="xref py py-class docutils literal"><span class="pre">SEDMachine.Simulator.SEDSimulator</span></tt> which implements the control functions for the program. When you call <strong class="program">SEDMsim</strong>, you are using this class&#8217;s <tt class="xref py py-meth docutils literal"><span class="pre">SEDMachine.Simulator.SEDSimulator.run()</span></tt> method. The program relies on the <tt class="xref py py-mod docutils literal"><span class="pre">AstroObject</span></tt> module, which I&#8217;ve (Alex Rudy) developed to make lots of astronomy tasks a lot more &#8220;object-focused&#8221;. <a class="reference external" href="http://github.com/alexrudy/AstroObject/">AstroObject</a> can be found online at <a class="reference external" href="http://github.com/alexrudy/AstroObject/">Github</a></p>
 <p>There are also some support tools, including a basic data setup for the latest SEDMachine simulations. These support tools are kept in <tt class="xref py py-mod docutils literal"><span class="pre">SEDTools</span></tt>.</p>
 </div>
 <div class="section" id="what-this-program-simulates">
@@ -147,7 +147,7 @@ $ SEDMsim *all</pre>
         <li class="right" >
           <a href="index.html" title="Welcome to SEDMsim documentation!"
              >previous</a> |</li>
-        <li><a href="index.html">SEDMsim  documentation</a> &raquo;</li> 
+        <li><a href="index.html">SEDMsim 0.3.5.dev-git-5c729413e3c3eff3435ed43ac823ec249e299b8f documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">

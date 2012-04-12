@@ -1,0 +1,229 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>4. SEDMsetup Program managing environments &mdash; SEDMsim 0.3.5.dev-git-5c729413e3c3eff3435ed43ac823ec249e299b8f documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.3.5.dev-git-5c729413e3c3eff3435ed43ac823ec249e299b8f',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="SEDMsim 0.3.5.dev-git-5c729413e3c3eff3435ed43ac823ec249e299b8f documentation" href="index.html" />
+    <link rel="next" title="5. Simulator AstroSimulator" href="AstroSimulator.html" />
+    <link rel="prev" title="3. SEDMsim Program for running simulations" href="SEDMsim.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="AstroSimulator.html" title="5. Simulator AstroSimulator"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="SEDMsim.html" title="3. SEDMsim Program for running simulations"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">SEDMsim 0.3.5.dev-git-5c729413e3c3eff3435ed43ac823ec249e299b8f documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="sedmsetup-program-managing-environments">
+<span id="sedmsetup"></span><h1>4. <strong class="program">SEDMsetup</strong> Program managing environments<a class="headerlink" href="#sedmsetup-program-managing-environments" title="Permalink to this headline">¶</a></h1>
+<p>This program is a command-line interface to set-up a simulation environment for the <strong class="program">SEDMsim</strong> tool.</p>
+<div class="section" id="sedmsetup-usage">
+<h2>4.1. <strong class="program">SEDMsetup</strong> Usage<a class="headerlink" href="#sedmsetup-usage" title="Permalink to this headline">¶</a></h2>
+<p>Usage Statement:</p>
+<div class="highlight-python"><pre>SEDMsetup [ options ] { stages }</pre>
+</div>
+<dl class="option">
+<dt>
+<tt class="descname">{stages}</tt></dt>
+<dd><p>The stages option specifies individual stages for the program to run. You must specify at least one stage to run in the simulator.
+The commonly used stages in <strong class="program">SEDMsetup</strong> are</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="34%" />
+<col width="66%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Stage</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><tt class="docutils literal"><span class="pre">*all</span></tt></td>
+<td>Run all default stages</td>
+</tr>
+<tr class="row-odd"><td><tt class="docutils literal"><span class="pre">*none</span></tt></td>
+<td>Run no stages</td>
+</tr>
+<tr class="row-even"><td><tt class="docutils literal"><span class="pre">*config-file</span></tt></td>
+<td>Generate a basic configuration file</td>
+</tr>
+</tbody>
+</table>
+<p>Stages are registered by the <tt class="xref py py-meth docutils literal"><span class="pre">AstroObject.AstroSimulator.Simulator.registerStage()</span></tt> method.</p>
+</dd></dl>
+
+<dl class="option">
+<dt id="cmdoption-SEDMsetup-h">
+<tt class="descname">-h</tt><tt class="descclassname"></tt><tt class="descclassname">, </tt><tt class="descname">--help</tt><tt class="descclassname"></tt><a class="headerlink" href="#cmdoption-SEDMsetup-h" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get help about the <strong class="program">SEDMsetup</strong> command. Help will list commonly used stages, optional arguments, and configuration items.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">To get a full list of stages available, use <a class="reference internal" href="#cmdoption-SEDMsetup--stages"><em class="xref std std-option">--stages</em></a></p>
+</div>
+</dd></dl>
+
+<dl class="option">
+<dt id="cmdoption-SEDMsetup--version">
+<tt class="descname">--version</tt><tt class="descclassname"></tt><a class="headerlink" href="#cmdoption-SEDMsetup--version" title="Permalink to this definition">¶</a></dt>
+<dd><p>Print the program version.</p>
+</dd></dl>
+
+<dl class="option">
+<dt id="cmdoption-SEDMsetup--cf">
+<tt class="descname">--cf</tt><tt class="descclassname"> file.yaml</tt><a class="headerlink" href="#cmdoption-SEDMsetup--cf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the name of the configuration file to use. By default, the configuation file is called <cite>SED.main.config.yaml</cite>. This will be the filename used for dumping configurations with the <a class="reference internal" href="#cmdoption-SEDMsetup--dump"><em class="xref std std-option">--dump</em></a> command (Dump will append the extension <tt class="docutils literal"><span class="pre">-dump.yaml</span></tt> onto the filename to prevent overwriting exisitng configurations)</p>
+</dd></dl>
+
+<dl class="option">
+<dt id="cmdoption-SEDMsetup--dry-run">
+<tt class="descname">--dry-run</tt><tt class="descclassname"></tt><a class="headerlink" href="#cmdoption-SEDMsetup--dry-run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Traverse all of the stages to be run, printing them as the program goes, but do not run any stages.</p>
+</dd></dl>
+
+<dl class="option">
+<dt id="cmdoption-SEDMsetup--stages">
+<tt class="descname">--stages</tt><tt class="descclassname"></tt><a class="headerlink" href="#cmdoption-SEDMsetup--stages" title="Permalink to this definition">¶</a></dt>
+<dd><p>Print all stages registered in the simulator. Any stage listed in the output of this function can be run.</p>
+</dd></dl>
+
+<dl class="option">
+<dt id="cmdoption-SEDMsetup--dump">
+<tt class="descname">--dump</tt><tt class="descclassname"></tt><a class="headerlink" href="#cmdoption-SEDMsetup--dump" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dump the configuration to a file. Filenames are the configuration file name with <tt class="docutils literal"><span class="pre">-dump.yaml</span></tt> appended.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="sedmsetup-stages">
+<h2>4.2. <strong class="program">SEDMsetup</strong> stages<a class="headerlink" href="#sedmsetup-stages" title="Permalink to this headline">¶</a></h2>
+<p>The basic, important stages are:</p>
+<blockquote>
+<div><dl class="object">
+<dt>
+<tt class="descname">*all</tt></dt>
+<dd><p>Produces directories for the system. Loads spectral data files and basic ray trace files which are packaged with the simulator.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">*config-file</tt></dt>
+<dd><p>Generates a simple configuration file which correctly uses the packaged data. The basic configuration file contains all instrument-specific values (as opposed to algorithm or operationally specific values). To get a full configuration file (which includes all values...) use</p>
+</dd></dl>
+
+</div></blockquote>
+<div class="highlight-python"><pre>$ SEDMsim --dump *none</pre>
+</div>
+</div>
+<div class="section" id="sedmsetup-configuration">
+<h2>4.3. <strong class="program">SEDMsetup</strong> configuration<a class="headerlink" href="#sedmsetup-configuration" title="Permalink to this headline">¶</a></h2>
+<p>This program respects the basic configuration items of <strong class="program">SEDMsim</strong></p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">4. <strong class="program">SEDMsetup</strong> Program managing environments</a><ul>
+<li><a class="reference internal" href="#sedmsetup-usage">4.1. <strong class="program">SEDMsetup</strong> Usage</a></li>
+<li><a class="reference internal" href="#sedmsetup-stages">4.2. <strong class="program">SEDMsetup</strong> stages</a></li>
+<li><a class="reference internal" href="#sedmsetup-configuration">4.3. <strong class="program">SEDMsetup</strong> configuration</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="SEDMsim.html"
+                        title="previous chapter">3. <strong class="program">SEDMsim</strong> Program for running simulations</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="AstroSimulator.html"
+                        title="next chapter">5. Simulator <tt class="docutils literal docutils literal"><span class="pre">AstroSimulator</span></tt></a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/SEDMsetup.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="AstroSimulator.html" title="5. Simulator AstroSimulator"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="SEDMsim.html" title="3. SEDMsim Program for running simulations"
+             >previous</a> |</li>
+        <li><a href="index.html">SEDMsim 0.3.5.dev-git-5c729413e3c3eff3435ed43ac823ec249e299b8f documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012, Alexander Rudy.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

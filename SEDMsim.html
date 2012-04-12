@@ -8,7 +8,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>3. SEDMsim Program for running simulations &mdash; SEDMsim  documentation</title>
+    <title>3. SEDMsim Program for running simulations &mdash; SEDMsim 0.3.5.dev-git-5c729413e3c3eff3435ed43ac823ec249e299b8f documentation</title>
     
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -16,7 +16,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '',
+        VERSION:     '0.3.5.dev-git-5c729413e3c3eff3435ed43ac823ec249e299b8f',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -25,8 +25,8 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="SEDMsim  documentation" href="index.html" />
-    <link rel="next" title="5. Simulator AstroSimulator" href="AstroSimulator.html" />
+    <link rel="top" title="SEDMsim 0.3.5.dev-git-5c729413e3c3eff3435ed43ac823ec249e299b8f documentation" href="index.html" />
+    <link rel="next" title="4. SEDMsetup Program managing environments" href="SEDMsetup.html" />
     <link rel="prev" title="2. Basic Tutorial" href="tutorial.html" /> 
   </head>
   <body>
@@ -40,12 +40,12 @@
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="AstroSimulator.html" title="5. Simulator AstroSimulator"
+          <a href="SEDMsetup.html" title="4. SEDMsetup Program managing environments"
              accesskey="N">next</a> |</li>
         <li class="right" >
           <a href="tutorial.html" title="2. Basic Tutorial"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">SEDMsim  documentation</a> &raquo;</li> 
+        <li><a href="index.html">SEDMsim 0.3.5.dev-git-5c729413e3c3eff3435ed43ac823ec249e299b8f documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -56,15 +56,18 @@
             
   <div class="section" id="sedmsim-program-for-running-simulations">
 <span id="sedmsim"></span><h1>3. <strong class="program">SEDMsim</strong> Program for running simulations<a class="headerlink" href="#sedmsim-program-for-running-simulations" title="Permalink to this headline">¶</a></h1>
-<p>The master simulator program is a command-line interface to the <a class="reference internal" href="AstroSimulator.html#AstroObject.AstroSimulator.Simulator.run" title="AstroObject.AstroSimulator.Simulator.run"><tt class="xref py py-meth docutils literal"><span class="pre">AstroObject.AstroSimulator.Simulator.run()</span></tt></a> method. Below are the major command line components.</p>
+<p>The master simulator program is a command-line interface to the <tt class="xref py py-meth docutils literal"><span class="pre">AstroObject.AstroSimulator.Simulator.run()</span></tt> method. Below are the major command line components.</p>
+<div class="section" id="sedmsim-usage">
+<h2>3.1. <strong class="program">SEDMsim</strong> Usage<a class="headerlink" href="#sedmsim-usage" title="Permalink to this headline">¶</a></h2>
 <p>Usage Statement</p>
 <div class="highlight-python"><pre>SEDMsim [ options ][ configuration ] {stages}</pre>
 </div>
 <p>The program is actually agnostic to the order of arguments. Any argument may come in any position. As such, all arguments must be unique.</p>
-<dl class="option">
+<blockquote>
+<div><dl class="option">
 <dt>
 <tt class="descname">{stages}</tt></dt>
-<dd><p>The stages option specifies individual stages for the program to run. You must specify at least one stage to run in the simulator. By default, two basic stages are provided, <tt class="docutils literal"><span class="pre">*all</span></tt> and <tt class="docutils literal"><span class="pre">*none</span></tt>. The default simulation is performed by <tt class="docutils literal"><span class="pre">*all</span></tt>. To test the simulator without running any stages (for example, to test <a class="reference internal" href="AstroSimulator.html#AstroObject.AstroSimulator.Simulator.registerFunction" title="AstroObject.AstroSimulator.Simulator.registerFunction"><tt class="xref py py-meth docutils literal"><span class="pre">AstroObject.AstroSimulator.Simulator.registerFunction()</span></tt></a> functionality), us the <tt class="docutils literal"><span class="pre">*none</span></tt> stage to opertate without using any stages.</p>
+<dd><p>The stages option specifies individual stages for the program to run. You must specify at least one stage to run in the simulator. By default, two basic stages are provided, <tt class="docutils literal"><span class="pre">*all</span></tt> and <tt class="docutils literal"><span class="pre">*none</span></tt>. The default simulation is performed by <tt class="docutils literal"><span class="pre">*all</span></tt>. To test the simulator without running any stages (for example, to test <tt class="xref py py-meth docutils literal"><span class="pre">AstroObject.AstroSimulator.Simulator.registerFunction()</span></tt> functionality), us the <tt class="docutils literal"><span class="pre">*none</span></tt> stage to opertate without using any stages.</p>
 <p>Stages are called with either a <tt class="docutils literal"><span class="pre">*</span></tt>, <tt class="docutils literal"><span class="pre">+</span></tt> or <tt class="docutils literal"><span class="pre">-</span></tt> character at the beginning. Their resepctive actions are shown below. All commands must include at least one macro. If you don&#8217;t want any particular macro, use the <tt class="docutils literal"><span class="pre">*none</span></tt> macro.</p>
 <table border="1" class="docutils">
 <colgroup>
@@ -120,26 +123,14 @@ $ SEDMsim *none</pre>
 <tr class="row-even"><td><tt class="docutils literal"><span class="pre">*all</span></tt></td>
 <td>Run all default stages</td>
 </tr>
-<tr class="row-odd"><td><tt class="docutils literal"><span class="pre">*none</span></tt></td>
+<tr class="row-odd"><td><tt class="docutils literal"><span class="pre">*cached-only</span></tt></td>
+<td>Use cached subimages to construct final image</td>
+</tr>
+<tr class="row-even"><td><tt class="docutils literal"><span class="pre">*none</span></tt></td>
 <td>Run no stages</td>
 </tr>
-<tr class="row-even"><td><tt class="docutils literal"><span class="pre">*plot</span></tt></td>
-<td>Run all stages that make plots</td>
-</tr>
-<tr class="row-odd"><td><tt class="docutils literal"><span class="pre">*simple-source</span></tt></td>
-<td>Use a simple, centered source object</td>
-</tr>
-<tr class="row-even"><td><tt class="docutils literal"><span class="pre">*setup</span></tt></td>
-<td>System Setup</td>
-</tr>
-<tr class="row-odd"><td><tt class="docutils literal"><span class="pre">*sky-source</span></tt></td>
-<td>Use only sky spectrum</td>
-</tr>
-<tr class="row-even"><td><tt class="docutils literal"><span class="pre">*flat-source</span></tt></td>
-<td>Use a constant value source</td>
-</tr>
-<tr class="row-odd"><td><tt class="docutils literal"><span class="pre">*line-source</span></tt></td>
-<td>Use a calibration lamp source</td>
+<tr class="row-odd"><td><tt class="docutils literal"><span class="pre">*setup-blank</span></tt></td>
+<td>Set up a blank image.</td>
 </tr>
 <tr class="row-even"><td><tt class="docutils literal"><span class="pre">*crop</span></tt></td>
 <td>Crop Final Image</td>
@@ -153,18 +144,33 @@ $ SEDMsim *none</pre>
 <tr class="row-odd"><td><tt class="docutils literal"><span class="pre">*save</span></tt></td>
 <td>Save image to file</td>
 </tr>
-<tr class="row-even"><td><tt class="docutils literal"><span class="pre">*cached-only</span></tt></td>
-<td>Use cached subimages to construct final image</td>
+<tr class="row-even"><td><tt class="docutils literal"><span class="pre">*simple-source</span></tt></td>
+<td>Use a simple, centered source object</td>
+</tr>
+<tr class="row-odd"><td><tt class="docutils literal"><span class="pre">*sky-source</span></tt></td>
+<td>Use only sky spectrum</td>
+</tr>
+<tr class="row-even"><td><tt class="docutils literal"><span class="pre">*flat-source</span></tt></td>
+<td>Use a constant value source</td>
+</tr>
+<tr class="row-odd"><td><tt class="docutils literal"><span class="pre">*line-source</span></tt></td>
+<td>Use a calibration lamp source</td>
+</tr>
+<tr class="row-even"><td><tt class="docutils literal"><span class="pre">*setup</span></tt></td>
+<td>System Setup</td>
+</tr>
+<tr class="row-odd"><td><tt class="docutils literal"><span class="pre">*plot</span></tt></td>
+<td>Run all stages that make plots</td>
 </tr>
 </tbody>
 </table>
-<p>Stages are registered by the <a class="reference internal" href="AstroSimulator.html#AstroObject.AstroSimulator.Simulator.registerStage" title="AstroObject.AstroSimulator.Simulator.registerStage"><tt class="xref py py-meth docutils literal"><span class="pre">AstroObject.AstroSimulator.Simulator.registerStage()</span></tt></a> method.</p>
+<p>Stages are registered by the <tt class="xref py py-meth docutils literal"><span class="pre">AstroObject.AstroSimulator.Simulator.registerStage()</span></tt> method.</p>
 </dd></dl>
 
 <dl class="option">
 <dt>
 <tt class="descname">[configurations]</tt></dt>
-<dd><p>Configuration options override defaults set up in <a class="reference internal" href="Simulator.html#SEDMachine.Simulator.SEDSimulator" title="SEDMachine.Simulator.SEDSimulator"><tt class="xref py py-class docutils literal"><span class="pre">SEDMachine.Simulator.SEDSimulator</span></tt></a>. As such, they are useful quick changes to a configuration.</p>
+<dd><p>Configuration options override defaults set up in <tt class="xref py py-class docutils literal"><span class="pre">SEDMachine.Simulator.SEDSimulator</span></tt>. As such, they are useful quick changes to a configuration.</p>
 <blockquote>
 <div><table border="1" class="docutils">
 <colgroup>
@@ -247,337 +253,504 @@ $ SEDMsim *none</pre>
 <dd><p>Dump the configuration to a file. Filenames are the configuration file name with <tt class="docutils literal"><span class="pre">-dump.yaml</span></tt> appended.</p>
 </dd></dl>
 
+</div></blockquote>
+</div>
+<div class="section" id="sedmsim-stages">
+<span id="stages"></span><h2>3.2. <strong class="program">SEDMsim</strong> Stages<a class="headerlink" href="#sedmsim-stages" title="Permalink to this headline">¶</a></h2>
+<p>The following are the most commonly used <strong class="program">SEDMsim</strong> stages in a production environment.</p>
+<blockquote>
+<div><dl class="describe">
+<dt>
+<tt class="descname">*all</tt></dt>
+<dd><p>Complete a full simulation.</p>
+</dd></dl>
+
+<dl class="describe">
+<dt>
+<tt class="descname">*cached-only</tt></dt>
+<dd><p>Complete only the parts of the simulation conducted after the <tt class="docutils literal"><span class="pre">*place</span></tt> stage. I.e. assemble a full image from pre-rendered spectra stored in the <tt class="docutils literal"><span class="pre">Caches/</span></tt> folder.</p>
+</dd></dl>
+
+<dl class="describe">
+<dt>
+<tt class="descname">*none</tt></dt>
+<dd><p>Do no stages.</p>
+</dd></dl>
+
+<dl class="describe">
+<dt>
+<tt class="descname">*setup-blank</tt></dt>
+<dd><p>Make a basic, empty image.</p>
+</dd></dl>
+
+<dl class="describe">
+<dt>
+<tt class="descname">*crop</tt></dt>
+<dd><p>Crop the image to the appropriate CCD size.</p>
+</dd></dl>
+
+<dl class="describe">
+<dt>
+<tt class="descname">*add-noise</tt></dt>
+<dd><p>Add read noise and dark current appropriate for the image.</p>
+</dd></dl>
+
+<dl class="describe">
+<dt>
+<tt class="descname">*transpose</tt></dt>
+<dd><p>Account for the difference between x,y ordered arrays and c-ordered (y,x) arrays that are used in Numpy.</p>
+</dd></dl>
+
+<dl class="describe">
+<dt>
+<tt class="descname">*save</tt></dt>
+<dd><p>Save the image to a <tt class="docutils literal"><span class="pre">.fits</span></tt> file.</p>
+</dd></dl>
+
+<dl class="describe">
+<dt>
+<tt class="descname">*simple-source</tt></dt>
+<dd><p>Create a simple source for use in the simulation. The simple source geometry is hardcoded into the program. To examine the geometry of this source, use:</p>
+<div class="highlight-python"><pre>$ SEDMsim *simple-source *plot-p-geometry</pre>
+</div>
+<p>See <tt class="xref py py-meth docutils literal"><span class="pre">SEDMachine.Simulator.SEDSimulator.setup_simple_source()</span></tt></p>
+</dd></dl>
+
+<dl class="describe">
+<dt>
+<tt class="descname">*flat-source</tt></dt>
+<dd><p>Use only a flat, uniformly applied source. Source will use the system throughput and quantum efficiency. To disable system throughput interpretation, use <tt class="docutils literal"><span class="pre">-apply-qe</span></tt>.</p>
+</dd></dl>
+
+<dl class="describe">
+<dt>
+<tt class="descname">*line-source</tt></dt>
+<dd><p>Use a list of lines as the source. The list of lines should be at minimum a list of wavelengths in meters. If desired, the list of lines can be two columns, the first for the position of the line in meters, the second for the height of the peak of the line in Joules per meter (similar to ergs per angstrom), i.e. F-Lambda units.</p>
+</dd></dl>
+
+<dl class="describe">
+<dt>
+<tt class="descname">*sky-source</tt></dt>
+<dd><p>Use only the sky, uniformly applied, in the image.</p>
+</dd></dl>
+
+<dl class="describe">
+<dt>
+<tt class="descname">*setup</tt></dt>
+<dd><p>Does all of the required methods to ready the simulator for action. This stage is a good test of the configuration and basic opertaion of the system without much computational expense.</p>
+</dd></dl>
+
+<dl class="describe">
+<dt>
+<tt class="descname">*plot</tt></dt>
+<dd><p>Make plots about the system. Plots made are:</p>
+<ul class="simple">
+<li>The pupil x,y positions of lenslets</li>
+<li>The camera x,y positions of lenslets</li>
+<li>Arc-distance (delta) in px vs. x in pixels. <tt class="docutils literal"><span class="pre">%(Partials)s/Instrument-%(num)04d-Delta-Distances%(ext)s</span></tt></li>
+<li>Wavelength vs. effective sampling resolution. <tt class="docutils literal"><span class="pre">%(Partials)s/Instrument-%(num)04d-WL%(ext)s</span></tt></li>
+</ul>
+</dd></dl>
+
+</div></blockquote>
 </div>
 <div class="section" id="sedmsim-configuration-files">
-<span id="configuration"></span><h1>4. <strong class="program">SEDMsim</strong> Configuration Files<a class="headerlink" href="#sedmsim-configuration-files" title="Permalink to this headline">¶</a></h1>
+<span id="configuration"></span><h2>3.3. <strong class="program">SEDMsim</strong> Configuration Files<a class="headerlink" href="#sedmsim-configuration-files" title="Permalink to this headline">¶</a></h2>
 <p><strong class="program">SEDMsim</strong> configuration files are YAML files which contain a dictionary structure. All values in the YAML files are basic yaml, and contain no python-specific directives. To find out what the default or current configuration is, use the <a class="reference internal" href="#cmdoption-SEDMsim--dump"><em class="xref std std-option">--dump</em></a> command. The file produced from this will contain a YAML structure for the configuration in use when the system started up. The various directives in the configuration file are described below.</p>
-<ul>
-<li><dl class="first docutils">
-<dt>Caches:</dt>
-<dd><ul class="first last simple">
-<li>CONV: SED.conv.npy</li>
-<li>PSF: SED.psf.npy</li>
-<li>Telescope: SED.tel.npy</li>
-<li>config: SED.config.yaml</li>
-<li>const: SED.const.yaml</li>
-</ul>
-</dd>
-</dl>
-</li>
-<li><dl class="first docutils">
-<dt>Configurations:</dt>
-<dd><ul class="first last simple">
-<li>Main: SED.main.config.yaml</li>
-<li>This: SED.main.config.yaml</li>
-</ul>
-</dd>
-</dl>
-</li>
-<li><p class="first">Debug: false</p>
-</li>
-<li><dl class="first docutils">
-<dt>Dirs:</dt>
-<dd><ul class="first last simple">
-<li>Caches: Caches</li>
-<li>Images: Images</li>
-<li>Logs: Logs</li>
-<li>Partials: Partials</li>
-</ul>
-</dd>
-</dl>
-</li>
-<li><dl class="first docutils">
-<dt>Instrument:</dt>
-<dd><ul class="first last">
-<li><dl class="first docutils">
-<dt>Thpt:</dt>
-<dd><ul class="first last simple">
-<li>File: SEDTools/Data/thpt.npy</li>
-<li>Type: prism_pi</li>
-</ul>
-</dd>
-</dl>
-</li>
-<li><p class="first">bias: 20</p>
-</li>
-<li><p class="first">camera: PI</p>
-</li>
-<li><dl class="first docutils">
-<dt>ccd_size:</dt>
-<dd><ul class="first last simple">
-<li>px: 2048</li>
-</ul>
-</dd>
-</dl>
-</li>
-<li><dl class="first docutils">
-<dt>convert:</dt>
-<dd><ul class="first last simple">
-<li>pxtomm: 0.0135</li>
-</ul>
-</dd>
-</dl>
-</li>
-<li><p class="first">density: 5</p>
-</li>
-<li><p class="first">dispfitorder: 2</p>
-</li>
-<li><p class="first">eADU: 0.03802</p>
-</li>
-<li><dl class="first docutils">
-<dt>files:</dt>
-<dd><ul class="first last simple">
-<li>dispersion: Data/dispersion_12-10-2011.txt</li>
-<li>encircledenergy: Data/encircled_energy_4nov11.TXT</li>
-<li>lenslets: Data/xy_17nov2011_v57.TXT</li>
-</ul>
-</dd>
-</dl>
-</li>
-<li><p class="first">gain: 5</p>
-</li>
-<li><dl class="first docutils">
-<dt>image_pad:</dt>
-<dd><ul class="first last simple">
-<li>mm: 0.1</li>
-</ul>
-</dd>
-</dl>
-</li>
-<li><dl class="first docutils">
-<dt>image_size:</dt>
-<dd><ul class="first last simple">
-<li>mm: 40.0</li>
-</ul>
-</dd>
-</dl>
-</li>
-<li><dl class="first docutils">
-<dt>lenslets:</dt>
-<dd><ul class="first last simple">
-<li>radius: 0.00245</li>
-<li>rotation: 27.0</li>
-</ul>
-</dd>
-</dl>
-</li>
-<li><p class="first">padding: 5</p>
-</li>
-<li><p class="first">plot: false</p>
-</li>
-<li><dl class="first docutils">
-<dt>psf_size:</dt>
-<dd><ul class="first last simple">
-<li>px: 2.4</li>
-</ul>
-</dd>
-</dl>
-</li>
-<li><dl class="first docutils">
-<dt>psf_stdev:</dt>
-<dd><ul class="first last simple">
-<li>px: 1.0</li>
-</ul>
-</dd>
-</dl>
-</li>
-<li><dl class="first docutils">
-<dt>scatter:</dt>
-<dd><ul class="first last simple">
-<li>radius: 800</li>
-<li>wavelength: 4.5e-07</li>
-</ul>
-</dd>
-</dl>
-</li>
-<li><p class="first">tel_area: 16417.8</p>
-</li>
-<li><dl class="first docutils">
-<dt>tel_obsc:</dt>
-<dd><ul class="first last simple">
-<li>px: 0.2</li>
-<li>ratio: 0.1</li>
-</ul>
-</dd>
-</dl>
-</li>
-<li><dl class="first docutils">
-<dt>tel_radii:</dt>
-<dd><ul class="first last simple">
-<li>px: 1.2</li>
-</ul>
-</dd>
-</dl>
-</li>
-<li><dl class="first docutils">
-<dt>wavelengths:</dt>
-<dd><ul class="first last simple">
-<li>max: 9.3e-07</li>
-<li>min: 3.7e-07</li>
-<li>resolution: 100</li>
-</ul>
-</dd>
-</dl>
-</li>
-</ul>
-</dd>
-</dl>
-</li>
-<li><p class="first">Lenslets: {}</p>
-</li>
-<li><dl class="first docutils">
-<dt>Observation:</dt>
-<dd><ul class="first last">
-<li><dl class="first docutils">
-<dt>Moon:</dt>
-<dd><ul class="first last simple">
-<li>Phase: 6</li>
-</ul>
-</dd>
-</dl>
-</li>
-<li><dl class="first docutils">
-<dt>Sky:</dt>
-<dd><ul class="first last">
-<li><p class="first">Atmosphere: Atmosph</p>
-</li>
-<li><dl class="first docutils">
-<dt>Files:</dt>
-<dd><ul class="first last simple">
-<li>HansuchikUVES: SEDTools/HansuchikUVES.fits</li>
-<li>Massey: SEDTools/MasseySky.fits</li>
-<li>PALext: SEDTools/atmosphere.fits</li>
-<li>Quimby: SEDTools/Quimby.fits</li>
-<li>TurnroseSKY: SEDTools/TurnroseSKY.fits</li>
-</ul>
-</dd>
-</dl>
-</li>
-<li><p class="first">Use: TurnroseSKY</p>
-</li>
-</ul>
-</dd>
-</dl>
-</li>
-<li><p class="first">airmass: 1</p>
-</li>
-<li><p class="first">exposure: 1200</p>
-</li>
-<li><p class="first">number: 3</p>
-</li>
-</ul>
-</dd>
-</dl>
-</li>
-<li><dl class="first docutils">
-<dt>Output:</dt>
-<dd><ul class="first last simple">
-<li>Format: fits</li>
-<li>Label: Generated</li>
-</ul>
-</dd>
-</dl>
-</li>
-<li><dl class="first docutils">
-<dt>Plots:</dt>
-<dd><ul class="first last simple">
-<li>format: .pdf</li>
-</ul>
-</dd>
-</dl>
-</li>
-<li><dl class="first docutils">
-<dt>Source:</dt>
-<dd><ul class="first last">
-<li><p class="first">CubeName: Data/CUBE.fits</p>
-</li>
-<li><p class="first">Filename: Data/SNIa.R1000.dat</p>
-</li>
-<li><dl class="first docutils">
-<dt>Flat:</dt>
-<dd><ul class="first last simple">
-<li>value: 1.0e-06</li>
-</ul>
-</dd>
-</dl>
-</li>
-<li><p class="first">LineList: null</p>
-</li>
-<li><dl class="first docutils">
-<dt>PXSize:</dt>
-<dd><ul class="first last simple">
-<li>mm: 0.005</li>
-</ul>
-</dd>
-</dl>
-</li>
-<li><p class="first">PreAmp: 0.001</p>
-</li>
-<li><p class="first">Rotation: 0.7853981633974483</p>
-</li>
-<li><p class="first">Sample_Lenslet: 2000</p>
-</li>
-<li><dl class="first docutils">
-<dt>WLCal:</dt>
-<dd><ul class="first last simple">
-<li>List: Data/Lines.dat</li>
-</ul>
-</dd>
-</dl>
-</li>
-<li><p class="first">sigma: 1.0e-09</p>
-</li>
-<li><p class="first">value: 100000000.0</p>
-</li>
-</ul>
-</dd>
-</dl>
-</li>
-<li><dl class="first docutils">
-<dt>logging:</dt>
-<dd><ul class="first last">
-<li><dl class="first docutils">
-<dt>console:</dt>
-<dd><blockquote class="first">
-<div><ul class="simple">
-<li>enable: true</li>
-</ul>
+<p>In general, the configuration is minimally set. If you don&#8217;t know what a value does, don&#8217;t set it! The defaults should do just fine. If you need to see what a minimal configuration looks like, examine the <strong class="program">SEDMsetup</strong> <tt class="docutils literal"><span class="pre">*config-file</span></tt> stage.</p>
+<p>The configuration is documented with Dot-syntax. Each dot represnets a new sub-level. As such, <strong>Instrument.Scatter.Kernel.[].mag</strong> would be written as</p>
+<div class="highlight-python"><pre>Instrument:
+  Scatter:
+    Kernel:
+      A:
+        mag: value</pre>
+</div>
+<p>where <tt class="docutils literal"><span class="pre">[]</span></tt> is used as a substitue for some key, <tt class="docutils literal"><span class="pre">A</span></tt> in this case.</p>
+<div class="section" id="general-configuration">
+<h3>3.3.1. General Configuration<a class="headerlink" href="#general-configuration" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><dl class="object">
+<dt>
+<tt class="descname">Configurations</tt></dt>
+<dd><p>Files used to configure the system.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Configurations.Main</tt></dt>
+<dd><p>The name of the configuration file.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Configurations.This</tt></dt>
+<dd><p>The most recently selected and read configuration file, and the one that will be loaded next.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Debug</tt></dt>
+<dd><p>If true, will halt the simulation when it comes across exceptions. False will run the simulator, trying to recover from as many exceptions as possible.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Dirs</tt></dt>
+<dd><p>Directories used in the simulation environment. This configuration is used to set up the environment in <strong class="program">SEDMsetup</strong> and then used to find data files, and store other files during the simulation.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Dirs.Caches</tt></dt>
+<dd><p>A directory to store files which will be used internally by the simulator. These files may provide useful information about the work of the simulator and are generally written in standard formats. This directory will be read when using the <tt class="docutils literal"><span class="pre">*cached-only</span></tt> stage. Files in here should generally only be created by the <strong class="program">SEDMsim</strong> program, to ensure a consistent and expected format. The contents of this directory can be deleted at any point, and with the exception of the special command <tt class="docutils literal"><span class="pre">*cached-only</span></tt>, its contents will be regenerated on the next run.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Dirs.Output</tt></dt>
+<dd><p>The output directory for the system.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Dirs.Logs</tt></dt>
+<dd><p>The logging directory for the system. Logs are stored here by default, and rotated at midnight each night. Logging can be quickly disabled by removing this folder.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Dirs.Partials</tt></dt>
+<dd><p>Files generated during the simulation which are useful introspections of the process, but not necessary outputs. Plots, and readouts of data are stored here.</p>
+</dd></dl>
+
 </div></blockquote>
-<ul class="last simple">
-<li>format: &#8216;%(levelname)-8s... %(message)s&#8217;</li>
-<li>level: 20</li>
-<li>message: &#8216;...%(message)s&#8217;</li>
-</ul>
-</dd>
-</dl>
-</li>
-<li><dl class="first docutils">
-<dt>file:</dt>
-<dd><ul class="first last simple">
-<li>dateformat: &#8216;%Y-%m-%d-%H:%M:%S&#8217;</li>
-<li>enable: true</li>
-<li>filename: SEDMachine</li>
-<li>format: &#8216;%(asctime)s : %(levelname)-8s : %(funcName)-20s : %(message)s&#8217;</li>
-<li>level: null</li>
-</ul>
-</dd>
-</dl>
-</li>
-<li><dl class="first docutils">
-<dt>growl:</dt>
-<dd><ul class="first last simple">
-<li>enable: false</li>
-<li>level: null</li>
-<li>name: SED Machine Simulator</li>
-</ul>
-</dd>
-</dl>
-</li>
-</ul>
-</dd>
-</dl>
-</li>
-</ul>
+</div>
+<div class="section" id="instrument-configuration">
+<h3>3.3.2. Instrument Configuration<a class="headerlink" href="#instrument-configuration" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><dl class="object">
+<dt>
+<tt class="descname">Instrument</tt></dt>
+<dd><p>Configuration related to the characteristics of the instrument iteslf.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.Thpt</tt></dt>
+<dd><p>Data about the throughput of the system.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.Thpt.File</tt></dt>
+<dd><p>The numpy throughput calculation file. This file is provided as-is, and no customization of the file is available right now.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.Thpt.Type</tt></dt>
+<dd><p>The type of throughput system to use. The value <tt class="docutils literal"><span class="pre">prism_pi</span></tt> uses the characteristics of the three-glass prism in SEDMachine and the PI CCD.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.Cameras</tt></dt>
+<dd><p>A dictionary of camera settings</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.Cameras.[]</tt></dt>
+<dd><p>The identifying key for each camera type.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.Cameras.[].DC</tt></dt>
+<dd><p>Camera dark current, per exposure second, in counts.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.Cameras.[].RN</tt></dt>
+<dd><p>Camera read noise, per exposure, in counts.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.Cameras.[].readtime</tt></dt>
+<dd><p>Camera read time in seconds</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.Cameras.Selected</tt></dt>
+<dd><p>The name of the selected camera.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.Lenslets</tt></dt>
+<dd><p>Information about the lenslet array.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.Lenslets.radius</tt></dt>
+<dd><p>Raidus of each lenslet in mm</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.Lenslets.rotation</tt></dt>
+<dd><p>Rotation of the lenslet, relative to CCD columns, in degrees.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.Lenslets.strict</tt></dt>
+<dd><p>Determines whether lenslets are included in a strict fashion, or whether any possible lenslet should be calculated. Should only be turned off during advanced debugging, as in general, the strict validity checks will not eliminate any lenslet which has any effect on the system. See <tt class="xref py py-meth docutils literal"><span class="pre">SEDMachine.Objects.Lenslet.valid()</span></tt>.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.PSF</tt></dt>
+<dd><p>Data about the instrument PSF</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.PSF.size</tt></dt>
+<dd><p>The size of the PSF in pixels.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.PSF.stdev</tt></dt>
+<dd><p>The standard deviation of the PSF (if a gaussian is used.)</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.Scatter</tt></dt>
+<dd><p>Settings to do with scattered light generation.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.Scatter.Amplifier</tt></dt>
+<dd><p>A scalar gain setting for scattered light.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.Scatter.FFT</tt></dt>
+<dd><p>Boolean, whether the system should use a fast-fourier-transform algorithm.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.Scatter.Kernel.[].mag</tt></dt>
+<dd><p>Maximum height of the kernel.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.Scatter.Kernel.[].stdev</tt></dt>
+<dd><p>Standard deviation of the kernel.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.Scatter.Kernel.[].type</tt></dt>
+<dd><p>&#8220;Gaussian&#8221; for gaussian kernels (the only ones supported right now.)</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.Tel</tt></dt>
+<dd><p>Information about the telescope.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.Tel.area</tt></dt>
+<dd><p>Telescope mirror area in square mm.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.Tel.dispfitorder</tt></dt>
+<dd><p>Fit order used when fitting ellipse size from the ray-trace for each lenslet.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.Tel.ellipse</tt></dt>
+<dd><p>Whether elliptical shape data is included in the ray-trace file.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.Tel.obsc.{ratio,px}</tt></dt>
+<dd><p>Size of the telescope&#8217;s central obscuration. If elliptical images are used, should be specified as a fraction of the radius of the telescope image/primary mirror diameter, using the <tt class="docutils literal"><span class="pre">ratio</span></tt> keyword. If not, should be specified in <tt class="docutils literal"><span class="pre">mm</span></tt> or <tt class="docutils literal"><span class="pre">px</span></tt> keywords in absolute terms.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.Tel.raidus.px</tt></dt>
+<dd><p>Radius of the primary mirror image in pixels.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.ccd</tt></dt>
+<dd><p>Information about the CCD</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.ccd.size.px</tt></dt>
+<dd><p>Size of the ccd in px.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.convert.pxtomm</tt></dt>
+<dd><p>The number of pixels per mm.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.density</tt></dt>
+<dd><p>The amount of oversampling used to generate spectra.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.dispfitorder</tt></dt>
+<dd><p>Wavelength-to-arclength function fit order.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.eADU</tt></dt>
+<dd><p>Electrons per photon.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.files</tt></dt>
+<dd><p>Files used in the simulator.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.files.encircledenergy</tt></dt>
+<dd><p>An encircled energy function, showing percentage of energy encircled and distance from central pixel.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.files.lenslets</tt></dt>
+<dd><p>Ray trace file for the system. See <tt class="xref py py-meth docutils literal"><span class="pre">SEDMachine.Simulator.SEDSimulator.setup_lenslets()</span></tt></p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.image</tt></dt>
+<dd><p>Information about the image plane. The image plane needs to contain all photons from all traces to prevent boundary errors.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.image.pad.mm</tt></dt>
+<dd><p>Padding between ray traces and the edge of the image plane.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.image.size.mm</tt></dt>
+<dd><p>Size of the image plane</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.padding</tt></dt>
+<dd><p>Pixels (full-size) of padding around each spectrum for individual specturm generation. Must be <strong>larger</strong> than the convolved PSF and telescope image in order to capture all photons in each sub-image.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.wavelengths</tt></dt>
+<dd><p>Wavelenght settings for arbitrary spectra (not final image) generation used for debugging.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.wavelengths.max</tt></dt>
+<dd><p>Longest wavelegnth included.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.wavelengths.min</tt></dt>
+<dd><p>Shortest wavelength sampled.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Instrument.wavelengths.resolution</tt></dt>
+<dd><p>Constant sampling resolution.</p>
+</dd></dl>
+
+</div></blockquote>
+</div>
+<div class="section" id="observation-and-source-configuration">
+<h3>3.3.3. Observation and Source Configuration<a class="headerlink" href="#observation-and-source-configuration" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="logging-and-other-configuration">
+<h3>3.3.4. Logging and other Configuration<a class="headerlink" href="#logging-and-other-configuration" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><dl class="object">
+<dt>
+<tt class="descname">Caches</tt></dt>
+<dd><p>Cache object Filenames</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Caches.CONV</tt></dt>
+<dd><p>Cache filename for the convolution of the telescope image and the PSF.</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Caches.PSF</tt></dt>
+<dd><p>Cache filename for the instrument PSF</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Caches.Telescope</tt></dt>
+<dd><p>Cache filename for the telescope image</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Caches.config</tt></dt>
+<dd><p>Cache filename for the configuration</p>
+</dd></dl>
+
+<dl class="object">
+<dt>
+<tt class="descname">Caches.const</tt></dt>
+<dd><p>Cache filename for the set of constants used in the program.</p>
+</dd></dl>
+
+</div></blockquote>
+</div>
+</div>
 </div>
 
 
@@ -588,16 +761,26 @@ $ SEDMsim *none</pre>
         <div class="sphinxsidebarwrapper">
   <h3><a href="index.html">Table Of Contents</a></h3>
   <ul>
-<li><a class="reference internal" href="#">3. <strong class="program">SEDMsim</strong> Program for running simulations</a></li>
-<li><a class="reference internal" href="#sedmsim-configuration-files">4. <strong class="program">SEDMsim</strong> Configuration Files</a></li>
+<li><a class="reference internal" href="#">3. <strong class="program">SEDMsim</strong> Program for running simulations</a><ul>
+<li><a class="reference internal" href="#sedmsim-usage">3.1. <strong class="program">SEDMsim</strong> Usage</a></li>
+<li><a class="reference internal" href="#sedmsim-stages">3.2. <strong class="program">SEDMsim</strong> Stages</a></li>
+<li><a class="reference internal" href="#sedmsim-configuration-files">3.3. <strong class="program">SEDMsim</strong> Configuration Files</a><ul>
+<li><a class="reference internal" href="#general-configuration">3.3.1. General Configuration</a></li>
+<li><a class="reference internal" href="#instrument-configuration">3.3.2. Instrument Configuration</a></li>
+<li><a class="reference internal" href="#observation-and-source-configuration">3.3.3. Observation and Source Configuration</a></li>
+<li><a class="reference internal" href="#logging-and-other-configuration">3.3.4. Logging and other Configuration</a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 
   <h4>Previous topic</h4>
   <p class="topless"><a href="tutorial.html"
                         title="previous chapter">2. Basic Tutorial</a></p>
   <h4>Next topic</h4>
-  <p class="topless"><a href="AstroSimulator.html"
-                        title="next chapter">5. Simulator <tt class="docutils literal docutils literal"><span class="pre">AstroSimulator</span></tt></a></p>
+  <p class="topless"><a href="SEDMsetup.html"
+                        title="next chapter">4. <strong class="program">SEDMsetup</strong> Program managing environments</a></p>
   <h3>This Page</h3>
   <ul class="this-page-menu">
     <li><a href="_sources/SEDMsim.txt"
@@ -630,12 +813,12 @@ $ SEDMsim *none</pre>
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="AstroSimulator.html" title="5. Simulator AstroSimulator"
+          <a href="SEDMsetup.html" title="4. SEDMsetup Program managing environments"
              >next</a> |</li>
         <li class="right" >
           <a href="tutorial.html" title="2. Basic Tutorial"
              >previous</a> |</li>
-        <li><a href="index.html">SEDMsim  documentation</a> &raquo;</li> 
+        <li><a href="index.html">SEDMsim 0.3.5.dev-git-5c729413e3c3eff3435ed43ac823ec249e299b8f documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
