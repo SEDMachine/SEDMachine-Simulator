@@ -6,7 +6,7 @@
 #  
 #  Created by Alexander Rudy on 2012-02-08.
 #  Copyright 2012 Alexander Rudy. All rights reserved.
-#  Version 0.3.3-p4
+#  Version 0.3.5
 # 
 
 import numpy as np
@@ -143,36 +143,36 @@ class SEDSimulator(Simulator,ImageObject):
         
         # Plotting geometry functions
         self.registerStage(self.plot_kernel_partials,"plot-kernel")
-        self.registerStage(self.plot_hexagons,"plot-hexagons",help=False,description="Plotting Lenslet hexagons",dependencies=["setup-hexagons"])
-        self.registerStage(self.plot_invalid_hexagons,"plot-bad-hexagons",help=False,description="Plotting invalid hexagons",dependencies=["setup-hexagons"])
-        self.registerStage(self.plot_pixels,"plot-pixels",help=False,description="Plotting pixel squares",dependencies=["setup-source-pixels"])
-        self.registerStage(self.plot_invalid_pixels,"plot-bad-pixels",help=False,description="Plotting invalid pixel squares",dependencies=["setup-source-pixels"])
-        self.registerStage(self.plot_geometry,"plot-p-geometry",help=False,description="Plotting Lenslet-plane geometry",dependencies=["setup-source-pixels","setup-hexagons"])
-        self.registerStage(self.write_resample,"write-resample",help=False,description="Writing resample Matrix",dependencies=["geometric-resample"])
-        self.registerStage(self.plot_resample,"plot-resample",help=False,description="Plotting resample matrix",dependencies=["geometric-resample"])
+        self.registerStage(self.plot_hexagons,"plot-hexagons")
+        self.registerStage(self.plot_invalid_hexagons,"plot-bad-hexagons")
+        self.registerStage(self.plot_pixels,"plot-pixels")
+        self.registerStage(self.plot_invalid_pixels,"plot-bad-pixels")
+        self.registerStage(self.plot_geometry,"plot-p-geometry")
+        self.registerStage(self.write_resample,"write-resample")
+        self.registerStage(self.plot_resample,"plot-resample")
         self.registerStage(None,"plot-geometry",help="Do all geometry plots",description="Plotting geometries",dependencies=["plot-hexagons","plot-invalid-hexagons","plot-pixels","plot-bad-pixels","plot-p-geometry","plot-resample"])
         
         # Spectrum Plotting Functions
-        self.registerStage(self.compare_methods,"plot-spectrum-tests",description="Plotting Spectrum Tests",dependencies=["setup-sky","setup-source","apply-sky","apply-qe","apply-atmosphere"])
-        self.registerStage(self.plot_original_calibration,"plot-cal-o",help=False,description="Plotting Original Source Spectrum",dependencies=["setup-lines"])
-        self.registerStage(self.plot_original_source,"plot-source-o",help=False,description="Plotting Original Source Spectrum",dependencies=["setup-source"])
-        self.registerStage(self.plot_source,"plot-source",help=False,description="Plotting Source Spectrum",dependencies=["setup-sky","setup-source","apply-sky","apply-qe","apply-atmosphere","plot-source-o"])
-        self.registerStage(self.plot_sky_original,"plot-sky-o",help=False,description="Plotting Original Sky Spectrum",dependencies=["setup-sky"])
-        self.registerStage(self.plot_sky,"plot-sky",help=False,description="Plotting Sky Spectrum",dependencies=["setup-sky","apply-sky","apply-qe","plot-sky-o"])
-        self.registerStage(self.plot_qe,"plot-qe",help=False,description="Plotting QE Spectrum",dependencies=["setup-sky"])
+        self.registerStage(self.compare_methods,"plot-spectrum-tests")
+        self.registerStage(self.plot_original_calibration,"plot-cal-o")
+        self.registerStage(self.plot_original_source,"plot-source-o")
+        self.registerStage(self.plot_source,"plot-source")
+        self.registerStage(self.plot_sky_original,"plot-sky-o")
+        self.registerStage(self.plot_sky,"plot-sky")
+        self.registerStage(self.plot_qe,"plot-qe")
         
         self.registerStage(None,"plot-spectra",help=False,dependencies=["plot-qe","plot-sky","plot-source","plot-cal-o"])
         
         
         # Dispersion plotting functions
-        self.registerStage(self.plot_ellipses,"plot-lenslet-es",help=False,description="Plotting lenslet ellipse sizes",dependencies=["setup-lenslets","dispersion"])
-        self.registerStage(self.plot_rotation,"plot-lenslet-rs",help=False,description="Plotting lenslet ellipse sizes",dependencies=["setup-lenslets","dispersion"])
+        self.registerStage(self.plot_ellipses,"plot-lenslet-es")
+        self.registerStage(self.plot_rotation,"plot-lenslet-rs")
         
         
-        self.registerStage(self.plot_lenslet_data,"plot-lenslet-xy",help=False,description="Plotting lenslet positions",dependencies=["setup-lenslets"])
-        self.registerStage(self.plot_dispersion_data,"plot-dispersion",help=False,description="Plotting dispersion for each lenslet",dependencies=["dispersion"])
-        self.registerStage(self.plot_trace_data,"plot-trace",help=False,description="Plotting trace data for each lenslet",dependencies=["trace"])
-        self.registerStage(self.plot_spectrum_data,"plot-spectrum",help=False,description="Plotting spectral data for each lenslet",dependencies=["trace"])
+        self.registerStage(self.plot_lenslet_data,"plot-lenslet-xy")
+        self.registerStage(self.plot_dispersion_data,"plot-dispersion")
+        self.registerStage(self.plot_trace_data,"plot-trace")
+        self.registerStage(self.plot_spectrum_data,"plot-spectrum")
         self.registerStage(None,"plot-lenslets",help=False,description="Plotting data about each lenslet",dependencies=["plot-dispersion","plot-trace","plot-spectrum"])
         
         
@@ -891,10 +891,14 @@ class SEDSimulator(Simulator,ImageObject):
     ## DEBUGGING METHODS ##
     #######################
     
+    @depends("dispersion")
+    @description("Plotting dispersion for each lenslet")
     def plot_dispersion_data(self):
         """Outputs dispersion debugging data"""
         self.map_over_lenslets(lambda l: l.plot_dispersion(),color="cyan")
     
+    @description("Plotting trace data for each lenslet")
+    @depends("trace")
     def plot_trace_data(self):
         """Outputs plots about each lenslet trace"""
         self.map_over_lenslets(lambda l: l.plot_trace(),color="cyan")
@@ -903,6 +907,8 @@ class SEDSimulator(Simulator,ImageObject):
         """Outputs plots about each lenslet trace"""
         self.map_over_lenslets(lambda l: l.plot_spectrum(),color="cyan")
     
+    @description("Plotting lenslet positions")
+    @depends("setup-lenslets")
     def plot_lenslet_data(self):
         """Outputs the lenslet data"""
         plt.figure()
@@ -929,6 +935,8 @@ class SEDSimulator(Simulator,ImageObject):
         """Plot lesnlet raw data"""
         self.map_over_lenslets(lambda l: l.plot_raw_data(),color="cyan")
     
+    @description("Plotting Spectrum Tests")
+    @depends("setup-sky","setup-source","apply-sky","apply-qe","apply-atmosphere")
     def compare_methods(self):
         """A plot for comparing resolving methods"""
         WL = self.config["Instrument"]["wavelengths"]["values"]
@@ -1029,7 +1037,8 @@ class SEDSimulator(Simulator,ImageObject):
         plt.clf()
         
         
-    
+    @description("Plotting Sky Spectrum")
+    @depends("setup-sky","apply-sky","apply-qe","plot-sky-o")
     def plot_sky(self):
         """Plot sky spectrum"""
         WL = self.config["Instrument"]["wavelengths"]["values"]
@@ -1069,6 +1078,8 @@ class SEDSimulator(Simulator,ImageObject):
         plt.savefig(FileName)
         plt.clf()
     
+    @description("Plotting Original Sky Spectrum")
+    @depends("setup-sky")
     def plot_sky_original(self):
         """Plot sky spectrum"""
         WL = self.config["Instrument"]["wavelengths"]["values"]
@@ -1094,6 +1105,8 @@ class SEDSimulator(Simulator,ImageObject):
         plt.clf()
     
     
+    @description("Plotting Original Source Spectrum")
+    @depends("setup-lines")
     def plot_original_calibration(self):
         """Plot the original calibration source"""
         WL = self.config["Instrument"]["wavelengths"]["values"]
@@ -1133,6 +1146,8 @@ class SEDSimulator(Simulator,ImageObject):
         plt.clf()
         
     
+    @description("Plotting Source Spectrum")
+    @depends("setup-sky","setup-source","apply-sky","apply-qe","apply-atmosphere","plot-source-o")
     def plot_source(self):
         """Plot the source spectrum"""
         WL = self.config["Instrument"]["wavelengths"]["values"]
@@ -1188,7 +1203,9 @@ class SEDSimulator(Simulator,ImageObject):
         plt.savefig(FileName)
         plt.clf()
         
-
+    
+    @description("Plotting QE Spectrum")
+    @depends("setup-sky")
     def plot_qe(self):
         """Plot sky spectrum"""
         WL = self.config["Instrument"]["wavelengths"]["values"]
@@ -1212,6 +1229,8 @@ class SEDSimulator(Simulator,ImageObject):
         plt.savefig(FileName)
         plt.clf()
     
+    @description("Plotting Lenslet hexagons")
+    @depends("setup-hexagons")
     def plot_hexagons(self):
         """Plot the lenslet Hexagons"""
         plt.figure()
@@ -1224,6 +1243,9 @@ class SEDSimulator(Simulator,ImageObject):
         plt.savefig(FileName)
         plt.clf()
         
+    
+    @description("Plotting pixel squares")
+    @depends("setup-source-pixels")
     def plot_pixels(self):
         """Plot the source pixels"""
         plt.figure()
@@ -1236,6 +1258,8 @@ class SEDSimulator(Simulator,ImageObject):
         plt.savefig(FileName)
         plt.clf()
     
+    @description("Plotting invalid pixel squares")
+    @depends("setup-source-pixels")
     def plot_invalid_pixels(self):
         """Plot invalid shapes"""
         plt.figure()
@@ -1248,12 +1272,15 @@ class SEDSimulator(Simulator,ImageObject):
         plt.savefig(FileName)
         plt.clf()
     
+    @ignore
     def _plot_invalid_pixels(self,pixel):
         """docstring for _plot_invalid_hexagon"""
         if not pixel.shape.is_valid:
             pixel.show_geometry()
     
-        
+    
+    @description("Plotting invalid hexagons")
+    @depends("setup-hexagons")
     def plot_invalid_hexagons(self):
         """Plot invalid shapes"""
         plt.figure()
@@ -1266,11 +1293,15 @@ class SEDSimulator(Simulator,ImageObject):
         plt.savefig(FileName)
         plt.clf()
     
+    @ignore
     def _plot_invalid_hexagon(self,lenslet):
         """docstring for _plot_invalid_hexagon"""
         if not lenslet.shape.is_valid:
             lenslet.show_geometry()
         
+    
+    @description("Plotting Lenslet-plane geometry")
+    @depends("setup-source-pixels","setup-hexagons")
     def plot_geometry(self):
         """Plot all of the geomoetry stacked"""
         plt.figure()
@@ -1285,10 +1316,14 @@ class SEDSimulator(Simulator,ImageObject):
         plt.savefig(FileName)
         plt.clf()
     
+    
+    @description("Plotting resample matrix")
+    @depends("geometric-resample")
     def plot_resample(self):
         """Show the geometric resample"""
         self.map_over_pixels(self._show_resample,color="cyan")
     
+    @ignore
     def _show_resample(self,pixel):
         """docstring for _show_resample"""
         plt.figure()
@@ -1302,7 +1337,10 @@ class SEDSimulator(Simulator,ImageObject):
         
         plt.savefig(FileName)
         plt.clf()
-   
+    
+    
+    @description("Plotting lenslet ellipse sizes")
+    @depends("setup-lenslets","dispersion")
     def plot_ellipses(self):
         """docstring for plot_ellipses"""
         plt.clf()
@@ -1314,7 +1352,8 @@ class SEDSimulator(Simulator,ImageObject):
         plt.savefig("%(Partials)s/Lenslets-WL-dy%(ext)s" % dict(ext=self.config["Plots"]["format"],**self.config["Dirs"]))
         
     
-    
+    @description("Plotting lenslet ellipse sizes")
+    @depends("setup-lenslets","dispersion")
     def plot_rotation(self):
         """Plot rotation"""
         plt.clf()
@@ -1367,11 +1406,14 @@ class SEDSimulator(Simulator,ImageObject):
         plt.clf()
         
         
+    @ignore
     def _show_lenslet_resample(self,lenslet,pixel):
         """docstring for _show_lenslet_resample"""
         lenslet.show_geometry(color=pixel.get_color(lenslet.idx))
     
     
+    @description("Writing resample Matrix")
+    @depends("geometric-resample")
     def write_resample(self):
         """Write the resample matrix to file"""
         with open("%(Partials)s/Resample-info.dat" % dict(**self.config["Dirs"]),"w") as infostream:
@@ -1379,6 +1421,7 @@ class SEDSimulator(Simulator,ImageObject):
                 infostream.write("# Resample Matrix \n")
                 self.map_over_lenslets(lambda l: self._write_resample(l,infostream,rawstream),color="cyan")
     
+    @ignore
     def _write_resample(self,lenslet,streama,streamb):
         """Write the resampleing matrix"""
         string = "%(lenslet)d %(info)s %(spec)s\n" % { 'lenslet': lenslet.num, 'info': npArrayInfo(lenslet.pixelValues), 'array': lenslet.pixelValues , 'spec' : str(lenslet.spectrum)}
@@ -1390,23 +1433,26 @@ class SEDSimulator(Simulator,ImageObject):
     ## Mapping Functions ##
     #######################
     
+    @ignore
     def map_over_lenslets(self,function,exceptions=True,color="green"):
         """Maps a given function to operate on each lenslet, and displays a progress bar along the way."""
         collection = self.lenslets.values()
         self.map_over_collection(function,lambda l:l.num,collection,exceptions,color)
         
+    
+    @ignore
     def map_over_pixels(self,function,exceptions=True,color="green"):
         """Maps some function over a bunch of source pixels"""
         collection = self.SourcePixels
         self.map_over_collection(function,lambda p:p.num,collection,exceptions,color)        
         
-        
+    
     ###################
     ## Image KERNELS ##
     ###################
     
     
-    
+    @ignore
     def generate_poisson_noise(self,label=None,lam=2.0,num=1):
         """Generates a poisson noise mask, saving to this object"""
         distribution = np.random.poisson
@@ -1419,6 +1465,7 @@ class SEDSimulator(Simulator,ImageObject):
             noise += distribution(*arguments)
         self.save(noise,label)
     
+    @ignore
     def get_conv(self,wavelength,a=None,b=None,rot=None):
         """Return a PSF for a given wavelength in the system"""
         if a and b:
@@ -1440,6 +1487,7 @@ class SEDSimulator(Simulator,ImageObject):
             self.CONV = self.Caches["CONV"] 
         return self.CONV
     
+    @ignore
     def psf_kern(self,filename,size=0,truncate=False,header_lines=18):
         """Generates a PSF Kernel from a file with micron-encircled energy conversions. The file should have two columns, first, microns from the center of the PSF, and second, the fraction of encircled energy at that distance from the PSF.
         
@@ -1470,7 +1518,7 @@ class SEDSimulator(Simulator,ImageObject):
         self.log.debug("Generated a PSF Kernel for the encircled energy file %s with shape %s" % (filename,str(v.shape)))
         return val / np.sum(val)
     
-    
+    @ignore
     def ellipse_kern(self,major,minor,alpha=0,size=0,sizey=False,normalize=False):
         """docstring for elipse_kern"""
         size /= 2
@@ -1497,7 +1545,8 @@ class SEDSimulator(Simulator,ImageObject):
             return v
         
         
-        
+    
+    @ignore
     def circle_kern(self,radius,size=0,sizey=0,normalize=False):
         """Generate a Circle Kernel for modeling the \"Image of the Telescope\". The radius should be set in array units.
         
@@ -1518,6 +1567,7 @@ class SEDSimulator(Simulator,ImageObject):
         else:
             return v
     
+    @ignore
     def gauss_kern(self,stdev,size=0,stdevy=None,sizey=None,enlarge=True,normalize=True):
         """ Returns a normalized 2D gaussian kernel array for convolutions.
         
@@ -1548,6 +1598,7 @@ class SEDSimulator(Simulator,ImageObject):
         else:
             return g
     
+    @ignore
     def get_tel_kern(self,major=None,minor=None):
         """Returns the telescope kernel. This kernel is built by creating a circle mask for the size of the telescope mirror, and then subtracting a telescope obscuration from the center of the mirror image. The values for all of these items are set in the configuration file."""
         if major or minor:
@@ -1565,6 +1616,7 @@ class SEDSimulator(Simulator,ImageObject):
         self.log.debug(npArrayInfo(TELIMG,"TELIMG"))
         return TELIMG
     
+    @ignore
     def get_psf_kern(self):
         """Returns the PSF Kernel. The function first tries to read the encircled energy file. In this case, if a `psf_size` is set in the instrument configuration, this value will be used to truncate the size of the encircled energy function. If the encircled energy function cannot be loaded, the system will fall back on to a gaussian psf as configured by the instrument."""
         if self.config["Instrument"]["PSF"]["size"]["px"] != 0:
@@ -1581,7 +1633,8 @@ class SEDSimulator(Simulator,ImageObject):
         else:
             self.log.debug("Loaded Encircled Energy from %s" % self.config["Instrument"]["files"]["encircledenergy"])
         return PSFIMG
-        
+    
+    @ignore
     def setup_configuration(self):
         """Generate dynamic configuration values.
         
@@ -1622,6 +1675,7 @@ class SEDSimulator(Simulator,ImageObject):
         
         sys.setrecursionlimit(10000000)
     
+    @ignore
     def get_resolution_spectrum(self,minwl,maxwl,resolution):
         """docstring for get_resolution_spectrum"""
         
@@ -1636,6 +1690,7 @@ class SEDSimulator(Simulator,ImageObject):
         dense_wavelengths = dense_wavelengths[:-1]
         return dense_wavelengths, dense_resolution
     
+    @ignore
     def _setUnits(self,config,parent):
         """docstring for _setUnits"""
         r = copy.deepcopy(config)
