@@ -21,7 +21,7 @@ from __future__ import division,with_statement
 major = 0
 minor = 3
 bugfix = 5
-patch = None
+patch = 1
 dev = True
 
 
@@ -139,7 +139,7 @@ def _get_git_devstatus():
         warn('Git failed: '+stderr)
         return False
     
-    parts = stdout.split("/")
+    parts = stdout.rstrip("\n").split("/")
     if len(parts) < 3:
         warn('Parts missing stuff: '+stdout)
         return False
