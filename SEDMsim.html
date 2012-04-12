@@ -8,7 +8,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>3. SEDMsim Program for running simulations &mdash; SEDMsim 0.3.5.dev-git-5c729413e3c3eff3435ed43ac823ec249e299b8f documentation</title>
+    <title>3. SEDMsim Program for running simulations &mdash; SEDMsim 0.3.5-p1 documentation</title>
     
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -16,7 +16,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.3.5.dev-git-5c729413e3c3eff3435ed43ac823ec249e299b8f',
+        VERSION:     '0.3.5-p1',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -25,7 +25,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="SEDMsim 0.3.5.dev-git-5c729413e3c3eff3435ed43ac823ec249e299b8f documentation" href="index.html" />
+    <link rel="top" title="SEDMsim 0.3.5-p1 documentation" href="index.html" />
     <link rel="next" title="4. SEDMsetup Program managing environments" href="SEDMsetup.html" />
     <link rel="prev" title="2. Basic Tutorial" href="tutorial.html" /> 
   </head>
@@ -45,7 +45,7 @@
         <li class="right" >
           <a href="tutorial.html" title="2. Basic Tutorial"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">SEDMsim 0.3.5.dev-git-5c729413e3c3eff3435ed43ac823ec249e299b8f documentation</a> &raquo;</li> 
+        <li><a href="index.html">SEDMsim 0.3.5-p1 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -56,7 +56,7 @@
             
   <div class="section" id="sedmsim-program-for-running-simulations">
 <span id="sedmsim"></span><h1>3. <strong class="program">SEDMsim</strong> Program for running simulations<a class="headerlink" href="#sedmsim-program-for-running-simulations" title="Permalink to this headline">¶</a></h1>
-<p>The master simulator program is a command-line interface to the <tt class="xref py py-meth docutils literal"><span class="pre">AstroObject.AstroSimulator.Simulator.run()</span></tt> method. Below are the major command line components.</p>
+<p>The master simulator program is a command-line interface to the <a class="reference internal" href="AstroSimulator.html#AstroObject.AstroSimulator.Simulator.run" title="AstroObject.AstroSimulator.Simulator.run"><tt class="xref py py-meth docutils literal"><span class="pre">AstroObject.AstroSimulator.Simulator.run()</span></tt></a> method. Below are the major command line components.</p>
 <div class="section" id="sedmsim-usage">
 <h2>3.1. <strong class="program">SEDMsim</strong> Usage<a class="headerlink" href="#sedmsim-usage" title="Permalink to this headline">¶</a></h2>
 <p>Usage Statement</p>
@@ -67,7 +67,7 @@
 <div><dl class="option">
 <dt>
 <tt class="descname">{stages}</tt></dt>
-<dd><p>The stages option specifies individual stages for the program to run. You must specify at least one stage to run in the simulator. By default, two basic stages are provided, <tt class="docutils literal"><span class="pre">*all</span></tt> and <tt class="docutils literal"><span class="pre">*none</span></tt>. The default simulation is performed by <tt class="docutils literal"><span class="pre">*all</span></tt>. To test the simulator without running any stages (for example, to test <tt class="xref py py-meth docutils literal"><span class="pre">AstroObject.AstroSimulator.Simulator.registerFunction()</span></tt> functionality), us the <tt class="docutils literal"><span class="pre">*none</span></tt> stage to opertate without using any stages.</p>
+<dd><p>The stages option specifies individual stages for the program to run. You must specify at least one stage to run in the simulator. By default, two basic stages are provided, <tt class="docutils literal"><span class="pre">*all</span></tt> and <tt class="docutils literal"><span class="pre">*none</span></tt>. The default simulation is performed by <tt class="docutils literal"><span class="pre">*all</span></tt>. To test the simulator without running any stages (for example, to test <a class="reference internal" href="AstroSimulator.html#AstroObject.AstroSimulator.Simulator.registerFunction" title="AstroObject.AstroSimulator.Simulator.registerFunction"><tt class="xref py py-meth docutils literal"><span class="pre">AstroObject.AstroSimulator.Simulator.registerFunction()</span></tt></a> functionality), us the <tt class="docutils literal"><span class="pre">*none</span></tt> stage to opertate without using any stages.</p>
 <p>Stages are called with either a <tt class="docutils literal"><span class="pre">*</span></tt>, <tt class="docutils literal"><span class="pre">+</span></tt> or <tt class="docutils literal"><span class="pre">-</span></tt> character at the beginning. Their resepctive actions are shown below. All commands must include at least one macro. If you don&#8217;t want any particular macro, use the <tt class="docutils literal"><span class="pre">*none</span></tt> macro.</p>
 <table border="1" class="docutils">
 <colgroup>
@@ -164,13 +164,13 @@ $ SEDMsim *none</pre>
 </tr>
 </tbody>
 </table>
-<p>Stages are registered by the <tt class="xref py py-meth docutils literal"><span class="pre">AstroObject.AstroSimulator.Simulator.registerStage()</span></tt> method.</p>
+<p>Stages are registered by the <a class="reference internal" href="AstroSimulator.html#AstroObject.AstroSimulator.Simulator.registerStage" title="AstroObject.AstroSimulator.Simulator.registerStage"><tt class="xref py py-meth docutils literal"><span class="pre">AstroObject.AstroSimulator.Simulator.registerStage()</span></tt></a> method.</p>
 </dd></dl>
 
 <dl class="option">
 <dt>
 <tt class="descname">[configurations]</tt></dt>
-<dd><p>Configuration options override defaults set up in <tt class="xref py py-class docutils literal"><span class="pre">SEDMachine.Simulator.SEDSimulator</span></tt>. As such, they are useful quick changes to a configuration.</p>
+<dd><p>Configuration options override defaults set up in <a class="reference internal" href="Simulator.html#SEDMachine.Simulator.SEDSimulator" title="SEDMachine.Simulator.SEDSimulator"><tt class="xref py py-class docutils literal"><span class="pre">SEDMachine.Simulator.SEDSimulator</span></tt></a>. As such, they are useful quick changes to a configuration.</p>
 <blockquote>
 <div><table border="1" class="docutils">
 <colgroup>
@@ -313,7 +313,7 @@ $ SEDMsim *none</pre>
 <dd><p>Create a simple source for use in the simulation. The simple source geometry is hardcoded into the program. To examine the geometry of this source, use:</p>
 <div class="highlight-python"><pre>$ SEDMsim *simple-source *plot-p-geometry</pre>
 </div>
-<p>See <tt class="xref py py-meth docutils literal"><span class="pre">SEDMachine.Simulator.SEDSimulator.setup_simple_source()</span></tt></p>
+<p>See <a class="reference internal" href="Simulator.html#SEDMachine.Simulator.SEDSimulator.setup_simple_source" title="SEDMachine.Simulator.SEDSimulator.setup_simple_source"><tt class="xref py py-meth docutils literal"><span class="pre">SEDMachine.Simulator.SEDSimulator.setup_simple_source()</span></tt></a></p>
 </dd></dl>
 
 <dl class="describe">
@@ -653,7 +653,7 @@ $ SEDMsim *none</pre>
 <dl class="object">
 <dt>
 <tt class="descname">Instrument.files.lenslets</tt></dt>
-<dd><p>Ray trace file for the system. See <tt class="xref py py-meth docutils literal"><span class="pre">SEDMachine.Simulator.SEDSimulator.setup_lenslets()</span></tt></p>
+<dd><p>Ray trace file for the system. See <a class="reference internal" href="Simulator.html#SEDMachine.Simulator.SEDSimulator.setup_lenslets" title="SEDMachine.Simulator.SEDSimulator.setup_lenslets"><tt class="xref py py-meth docutils literal"><span class="pre">SEDMachine.Simulator.SEDSimulator.setup_lenslets()</span></tt></a></p>
 </dd></dl>
 
 <dl class="object">
@@ -818,7 +818,7 @@ $ SEDMsim *none</pre>
         <li class="right" >
           <a href="tutorial.html" title="2. Basic Tutorial"
              >previous</a> |</li>
-        <li><a href="index.html">SEDMsim 0.3.5.dev-git-5c729413e3c3eff3435ed43ac823ec249e299b8f documentation</a> &raquo;</li> 
+        <li><a href="index.html">SEDMsim 0.3.5-p1 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
