@@ -1636,6 +1636,7 @@ class SEDSimulator(Simulator,ImageObject):
         return PSFIMG
     
     @ignore
+    @description("Setting up configuration values")
     def setup_configuration(self):
         """Generate dynamic configuration values.
         
