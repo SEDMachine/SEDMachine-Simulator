@@ -14,7 +14,7 @@ import numpy as np
 
 from pkg_resources import resource_filename
 
-from AstroObject.AstroSimulator import Simulator
+from AstroObject.AstroSimulator import *
 from AstroObject.AstroSpectra import SpectraObject
 import AstroObject.Utilities as AOU
 
@@ -39,26 +39,24 @@ class SetupAgent(Simulator):
         
     def _register_stages(self):
         """Register all of the required stages"""
-        self.registerStage(self.EnsureDirectories,"setup-dirs",description="Setting up directories",include=True,help="Make required Directories")
-        self.registerStage(self.GetStaticData,"get-data",description="Collecting static (.dat) files",include=True,dependencies=["setup-dirs"],help="Populate data directory with included static data")
-        self.registerStage(self.MakeMassey,"make-massey",dependencies=["setup-dirs"])
-        self.registerStage(self.MakeHansuchik,"make-hansuchik",dependencies=["setup-dirs"])
-        self.registerStage(self.MakeTurnrose,"make-turnrose",dependencies=["setup-dirs"])
-        self.registerStage(self.MakeQuimby,"make-quimby",dependencies=["setup-dirs"])
-        self.registerStage(self.MakeAtmosphere,"make-atmosphere",dependencies=["setup-dirs"])
-        self.registerStage(self.MakePalSky,"make-palsky",dependencies=["setup-dirs","get-data"])
+        self.collect()
         self.registerStage(None,"make-specs",dependencies=["make-massey","make-hansuchik","make-turnrose","make-quimby","make-atmosphere","make-palsky"],include=True,help="Setup spectral FITS files")
-        self.registerStage(self.BasicConfig,"config-file",dependencies=["setup-dirs"],help="Generate a basic configuration file for this data set.")
-        
-    def EnsureDirectories(self):
+     
+    @include()
+    @description("Setting up directories")
+    @help("Make required Directories")   
+    def setup_dirs(self):
         """Ensure that the required directories exist."""
         for key,directory in self.config["Dirs"].iteritems():
             try:
                 os.mkdir(directory)
             except os.error, e:
                 self.log.debug("Directory %s already exists." % directory)
-        
-    def GetStaticData(self):
+    
+    @description("Collecting static (.dat) files")   
+    @help("Populate data directory with included static data")
+    @depends("setup-dirs")
+    def get_data(self):
         """Copy static data files to the data directory."""
         dataDir = self.config["Dirs"]["Data"] + "/"
         sourceDir = resource_filename(__name__,"Data/")
@@ -69,8 +67,9 @@ class SetupAgent(Simulator):
                 self.log.debug("Copied %s to %s" % (item,dataDir))
             else:
                 self.log.debug("Skipped copying %s" % (item))
-        
-    def MakeMassey(self):
+    
+    @depends("setup-dirs")    
+    def make_massey(self):
         """Make the Massey.FITS file"""
         # Massey.py -> MasseySky.FITS
         from Data.massey import skyab
@@ -81,16 +80,18 @@ class SetupAgent(Simulator):
         MasseySky.save(skyab.T,"SkyAB")
         MasseySky.save(skyflam,"SkyFL")
         MasseySky.write(clobber=True)
-        
-    def MakeHansuchik(self):
+    
+    @depends("setup-dirs")        
+    def make_hansuchik(self):
         """Make Hansuchik.FITS file"""
         # Hansuchik.py -> HansuchikUVES.FITS
         from Data.Hansuchik import uves_sky
         HansuchikUVES = SpectraObject(filename=self.config["Dirs"]["Data"] + "/UVESSky.fits")
         HansuchikUVES.save(uves_sky.T,"UVESSky")
         HansuchikUVES.write(clobber=True)
-        
-    def MakeTurnrose(self):
+    
+    @depends("setup-dirs")        
+    def make_turnrose(self):
         """Make Turnrose.FITS file"""
         # Turnrose.py -> Turnrose.FITS
         from Data.Turnrose import skyspec
@@ -98,7 +99,8 @@ class SetupAgent(Simulator):
         TurnroseSKY.save(skyspec.T,"TurnroseSKY")
         TurnroseSKY.write(clobber=True)
         
-    def MakeQuimby(self):
+    @depends("setup-dirs")    
+    def make_quimby(self):
         """Make Quimby.FITS file"""
         # Quimby.py -> QuimbySky.FITS
         from Data.Quimby import quimby_sky
@@ -106,7 +108,8 @@ class SetupAgent(Simulator):
         QuimbySKY.save(quimby_sky.T,"QuimbySky")
         QuimbySKY.write(clobber=True)
     
-    def MakeAtmosphere(self):
+    @depends("setup-dirs")    
+    def make_atmosphere(self):
         """Make Atmosphere.FITS file"""
         # atmosphere.py -> atmosphere.FITS
         from Data.atmosphere import palextinct
@@ -114,15 +117,18 @@ class SetupAgent(Simulator):
         atmosphereEXT.save(palextinct.T,"Atmosph")
         atmosphereEXT.write(clobber=True)
 
-    def MakePalSky(self):
+    @depends("setup-dirs","get-data")    
+    def make_palsky(self):
         """Make palsky.FITS file"""
         # palsky_100318.dat -> Palsky.FITS
         palskydata = np.genfromtxt(self.config["Dirs"]["Data"] + "/palsky_100318.dat").T
         palSKY = SpectraObject(filename=self.config["Dirs"]["Data"] + "/PalSky.fits")
         palSKY.save(palskydata,"PalSky")
         palSKY.write(clobber=True)
-        
-    def BasicConfig(self):
+    
+    @depends("setup-dirs")    
+    @help("Generate a basic configuration file for this data set.")
+    def config_file(self):
         """Basic configrution file."""
         sourceDir = resource_filename(__name__,"/")
         sourceFile = self.config["Configurations"]["This"]
