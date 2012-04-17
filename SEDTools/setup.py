@@ -35,10 +35,6 @@ class SetupAgent(Simulator):
         self.config.setFile("Main")
         self.config.load()
         self.config.update({"Default":"*all"})
-        self._register_stages()
-        
-    def _register_stages(self):
-        """Register all of the required stages"""
         self.collect()
         self.registerStage(None,"make-specs",dependencies=["make-massey","make-hansuchik","make-turnrose","make-quimby","make-atmosphere","make-palsky"],include=True,help="Setup spectral FITS files")
      

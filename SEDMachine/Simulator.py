@@ -56,11 +56,11 @@ class SEDSimulator(Simulator,ImageObject):
         self.dataClasses = [SubImage]
         self.lenslets = {}
         self.ellipses = {}
-        self.qe = SpectraObject(dataClasses=[AnalyticSpectrum])
+        self.qe = SpectraObject(dataClasses=[AnalyticSpectrum,SpectraFrame])
         self.qe.save(FlatSpectrum(0.0))
-        self.spectra =  SpectraObject(dataClasses=[AnalyticSpectrum])
+        self.spectra =  SpectraObject(dataClasses=[AnalyticSpectrum,SpectraFrame])
         self.spectra.save(FlatSpectrum(0.0))
-        self.sky =  SpectraObject(dataClasses=[AnalyticSpectrum])
+        self.sky =  SpectraObject(dataClasses=[AnalyticSpectrum,SpectraFrame])
         self.sky.save(FlatSpectrum(0.0))
         self.astrologger = logging.getLogger("AstroObject")
         self.config.load(resource_filename(__name__,"SED.main.config.default.yaml"))
