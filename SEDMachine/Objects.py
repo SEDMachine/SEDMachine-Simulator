@@ -77,6 +77,10 @@ class SubImage(ImageFrame):
         else:
             self.log.log(5,"Generating an image HDU for %s" % self)
             HDU = pf.ImageHDU(self())
+        return HDU
+        
+    def __setheader__(self,HDU):
+        """Sets the header object"""
         HDU.header.update('object',self.label)
         HDU.header.update('SEDlabel',self.label)
         HDU.header.update('SEDconf',self.configHash)
@@ -84,9 +88,7 @@ class SubImage(ImageFrame):
         HDU.header.update('SEDcry',self.corner[1])
         HDU.header.update('SEDspec',self.spectrum)
         HDU.header.update('SEDlens',self.lensletNumber)
-        for key,value in self.header.iteritems():
-            HDU.header.update(key,value)
-        return HDU
+        return HDU        
     
     def __show__(self):
         """Plots the image in this frame using matplotlib's ``imshow`` function. The color map is set to an inverted binary, as is often useful when looking at astronomical images. The figure object is returned, and can be manipulated further.

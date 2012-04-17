@@ -39,6 +39,7 @@ from AstroObject.AstroSpectra import SpectraObject,SpectraFrame
 from AstroObject.AstroImage import ImageObject,ImageFrame
 from AstroObject.AnalyticSpectra import BlackBodySpectrum,GaussianSpectrum, AnalyticSpectrum, FlatSpectrum, InterpolatedSpectrum, UnitarySpectrum
 from AstroObject.Utilities import *
+from AstroObject.mpl_utilities import *
 
 from version import version as versionstr
 from Objects import *
