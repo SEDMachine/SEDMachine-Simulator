@@ -134,8 +134,8 @@ class SEDSimulator(Simulator,ImageObject):
         
         # Final Image work
         self.registerStage(self.ccd_crop,"crop")
-        self.registerStage(self.apply_noise,"add-noise")
         self.registerStage(self.apply_scatter,"add-scatter")
+        self.registerStage(self.apply_noise,"add-noise")
         self.registerStage(self.transpose,"transpose")
         self.registerStage(self.save_file,"save")
         
