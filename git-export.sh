@@ -36,6 +36,7 @@ elif [ -f $EXCLUDE ]; then
     echo "No Exclusions File found in source, using active copy..."
     files=`cat $EXCLUDE`
 else
+	echo "No Exclusions file found. Create a file called $EXCLUDE for use with this script."
     files=''
 fi
 
