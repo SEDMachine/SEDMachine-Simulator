@@ -46,6 +46,7 @@ class SetupAgent(Simulator):
         self.config.load()
         self.config.update({"Default":"*all"})
         self.collect()
+        self.registerStage(None,"test",dependencies=["make-test-data","config-file"],help="Set up the test pipeline run",description="Test Mode Setup")
          
     @include
     @description("Setting up directories")
@@ -65,6 +66,7 @@ class SetupAgent(Simulator):
             self.log.info("Created Directories %r" % new_dirs)
         else:
             self.log.info("No Directories needed to be created.")
+    
     
     @help("Generate test Data")
     def make_test_data(self):

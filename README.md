@@ -50,6 +50,18 @@ If you can't find the [documentation][Docs] online (or it has moved), then:
 
 You should then have a complete usable HTML copy of the documentation.
 
+# Introduction to the RCPipeline
+RCPipeline is a simple pipeline for basic reduction of Rainbow Camera data. It is far from complete, but demonstrates the operation of a pipeline in a `pythonic way`.
+
+RCPipeline works much the same way that SEDMsim does. First, ensure that you have [AstroObject][] installed with at least version 0.5-a1, so that it incldues IRAFTools. Then, install this module (using the same `setup.py` installation as SEDMsim. No need to run it twice.)
+
+	
+	$ sudo python setup.py install
+	$ cd working/directory/path/
+	$ RCsetup *all *test
+	$ RCpipeline *all
+	
+
 [Tutorial]: http://alexrudy.github.com/SEDMachine-Simulator/
 [Repo]: http://github.com/alexrudy/SEDMachine-Simulator/
 [Docs]: http://alexrudy.github.com/SEDMachine-Simulator/
