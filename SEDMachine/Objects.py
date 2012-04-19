@@ -599,7 +599,7 @@ class Lenslet(ImageObject):
         
         Subimage writes will clobber old images.
         """
-        fileName = "%(Caches)s/Subimage-%(num)4d%(ext)s" % dict(num=self.num,ext=".fits",**self.config["Dirs"])
+        fileName = "%(Caches)s/Subimage-%(num)04d%(ext)s" % dict(num=self.num,ext=".fits",**self.config["Dirs"])
         if os.access(fileName,os.F_OK):
             os.remove(fileName)
         self.write(fileName,primaryState="Raw Spectrum",clobber=True)
