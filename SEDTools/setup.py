@@ -35,10 +35,6 @@ class SetupAgent(Simulator):
         self.config.setFile("Main")
         self.config.load()
         self.config.update({"Default":"*all"})
-        self._register_stages()
-        
-    def _register_stages(self):
-        """Register all of the required stages"""
         self.collect()
         self.registerStage(None,"make-specs",dependencies=["make-massey","make-hansuchik","make-turnrose","make-quimby","make-atmosphere","make-palsky"],include=True,help="Setup spectral FITS files")
      
@@ -47,11 +43,19 @@ class SetupAgent(Simulator):
     @help("Make required Directories")   
     def setup_dirs(self):
         """Ensure that the required directories exist."""
+        new_dirs = []
         for key,directory in self.config["Dirs"].iteritems():
             try:
                 os.mkdir(directory)
             except os.error, e:
                 self.log.debug("Directory %s already exists." % directory)
+            else:
+                self.log.debug("Created directory %s" % directory)
+                new_dirs.append(directory)
+        if len(new_dirs) > 0:
+            self.log.info("Created Directories %r" % new_dirs)
+        else:
+            self.log.info("No Directories needed to be created.")
     
     @description("Collecting static (.dat) files")   
     @help("Populate data directory with included static data")
@@ -62,11 +66,14 @@ class SetupAgent(Simulator):
         sourceDir = resource_filename(__name__,"Data/")
         items = os.listdir(sourceDir)
         for item in items:
-            if (item.endswith(".dat") or item.endswith(".npy")) and not os.access(dataDir+item,os.F_OK):
-                shutil.copy(sourceDir+item,dataDir)
-                self.log.debug("Copied %s to %s" % (item,dataDir))
+            if (item.endswith(".dat") or item.endswith(".npy")):
+                if not os.access(dataDir+item,os.F_OK):
+                    shutil.copy(sourceDir+item,dataDir)
+                    self.log.debug("Copied %s to %s" % (item,dataDir))
+                else:
+                    self.log.debug("File %s already exists in destination %s" % (item,dataDir))
             else:
-                self.log.debug("Skipped copying %s" % (item))
+                self.log.debug("Skipped copying %s, not requried." % (item))
     
     @depends("setup-dirs")    
     def make_massey(self):

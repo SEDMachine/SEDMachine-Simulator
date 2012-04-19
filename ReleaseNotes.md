@@ -34,3 +34,5 @@
 	- Fixes for installation, data and exports
 * 0.3.5
 	- Fixes and upgrades to setuptools, as well as decorator based simulator
+* 0.3.6
+	- RCPipeline module using IRAF tools as an example pipeline entirley in python.

@@ -6,7 +6,7 @@
 #  
 #  Created by Alexander Rudy on 2012-02-08.
 #  Copyright 2012 Alexander Rudy. All rights reserved.
-#  Version 0.3.5-p1
+#  Version 0.3.6
 # 
 
 import numpy as np
@@ -39,6 +39,7 @@ from AstroObject.AstroSpectra import SpectraObject,SpectraFrame
 from AstroObject.AstroImage import ImageObject,ImageFrame
 from AstroObject.AnalyticSpectra import BlackBodySpectrum,GaussianSpectrum, AnalyticSpectrum, FlatSpectrum, InterpolatedSpectrum, UnitarySpectrum
 from AstroObject.Utilities import *
+from AstroObject.mpl_utilities import *
 
 from version import version as versionstr
 from Objects import *
@@ -55,11 +56,11 @@ class SEDSimulator(Simulator,ImageObject):
         self.dataClasses = [SubImage]
         self.lenslets = {}
         self.ellipses = {}
-        self.qe = SpectraObject(dataClasses=[AnalyticSpectrum])
+        self.qe = SpectraObject(dataClasses=[AnalyticSpectrum,SpectraFrame])
         self.qe.save(FlatSpectrum(0.0))
-        self.spectra =  SpectraObject(dataClasses=[AnalyticSpectrum])
+        self.spectra =  SpectraObject(dataClasses=[AnalyticSpectrum,SpectraFrame])
         self.spectra.save(FlatSpectrum(0.0))
-        self.sky =  SpectraObject(dataClasses=[AnalyticSpectrum])
+        self.sky =  SpectraObject(dataClasses=[AnalyticSpectrum,SpectraFrame])
         self.sky.save(FlatSpectrum(0.0))
         self.astrologger = logging.getLogger("AstroObject")
         self.config.load(resource_filename(__name__,"SED.main.config.default.yaml"))
@@ -133,8 +134,8 @@ class SEDSimulator(Simulator,ImageObject):
         
         # Final Image work
         self.registerStage(self.ccd_crop,"crop")
-        self.registerStage(self.apply_noise,"add-noise")
         self.registerStage(self.apply_scatter,"add-scatter")
+        self.registerStage(self.apply_noise,"add-noise")
         self.registerStage(self.transpose,"transpose")
         self.registerStage(self.save_file,"save")
         

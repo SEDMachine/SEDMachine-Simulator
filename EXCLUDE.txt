@@ -1,5 +1,5 @@
 bump-version.sh
 exclusions.txt
-export.sh
+git-export.sh
 .tm-properties
 .gitignore

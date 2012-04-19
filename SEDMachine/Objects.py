@@ -5,7 +5,7 @@
 #  
 #  Created by Alexander Rudy on 2012-01-31.
 #  Copyright 2012 Alexander Rudy. All rights reserved.
-#  Version 0.3.5-p1
+#  Version 0.3.6
 # 
 
 import numpy as np
@@ -77,6 +77,10 @@ class SubImage(ImageFrame):
         else:
             self.log.log(5,"Generating an image HDU for %s" % self)
             HDU = pf.ImageHDU(self())
+        return HDU
+        
+    def __setheader__(self,HDU):
+        """Sets the header object"""
         HDU.header.update('object',self.label)
         HDU.header.update('SEDlabel',self.label)
         HDU.header.update('SEDconf',self.configHash)
@@ -84,9 +88,7 @@ class SubImage(ImageFrame):
         HDU.header.update('SEDcry',self.corner[1])
         HDU.header.update('SEDspec',self.spectrum)
         HDU.header.update('SEDlens',self.lensletNumber)
-        for key,value in self.header.iteritems():
-            HDU.header.update(key,value)
-        return HDU
+        return HDU        
     
     def __show__(self):
         """Plots the image in this frame using matplotlib's ``imshow`` function. The color map is set to an inverted binary, as is often useful when looking at astronomical images. The figure object is returned, and can be manipulated further.
@@ -597,7 +599,7 @@ class Lenslet(ImageObject):
         
         Subimage writes will clobber old images.
         """
-        fileName = "%(Caches)s/Subimage-%(num)4d%(ext)s" % dict(num=self.num,ext=".fits",**self.config["Dirs"])
+        fileName = "%(Caches)s/Subimage-%(num)04d%(ext)s" % dict(num=self.num,ext=".fits",**self.config["Dirs"])
         if os.access(fileName,os.F_OK):
             os.remove(fileName)
         self.write(fileName,primaryState="Raw Spectrum",clobber=True)
