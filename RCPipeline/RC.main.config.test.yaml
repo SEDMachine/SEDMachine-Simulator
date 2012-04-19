@@ -1,0 +1,12 @@
+Data:
+  Files:
+    - Data.fits
+Flat:
+  Files:
+    - Flat.fits
+Dark:
+  Files:
+    - Dark.fits
+Bias:
+  Files:
+    - Bias.fits

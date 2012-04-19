@@ -21,6 +21,8 @@ class Version(Command):
         return
         
 
+ 
+
 #custom build_py overwrites version.py with a version overwriting the revno-generating version.py
 class SED_build_py(du_build_py):
     def run(self):
@@ -46,10 +48,24 @@ class SED_build_py(du_build_py):
         
 
 SEDpkgs = find_packages(exclude=['Tests'])
-AstroObjectReq = "0.4"
+AstroObjectReq = "0.5-a1"
 AstroObjectDep = "AstroObject>=" + AstroObjectReq
-AstroObjectVer = "0.4.0"
+AstroObjectVer = "0.5-a1"
 AstroObjectURL = "https://github.com/alexrudy/AstroObject/zipball/v%(ver)s#egg=AstroObject-%(ver)s" % { 'ver' : AstroObjectVer}
+
+class AstroObjectSourceURL(Command):
+    description = "Print the AstroObject URL"
+    user_options = []
+    def initialize_options(self):
+        pass
+        
+    def finalize_options (self):
+        pass
+        
+    def run(self):
+        print 'AstroObject:',AstroObjectURL
+        return
+
 
 setup(
     name = "SEDMachineSimulator",
@@ -62,11 +78,12 @@ setup(
     author = "Alexander Rudy",
     author_email = "dev@alexrudy.org",
     entry_points = {
-        'console_scripts' : ['SEDMsim = SEDMachine.Simulator:run', 'SEDMsetup = SEDTools.setup:run'],
+        'console_scripts' : ['SEDMsim = SEDMachine.Simulator:run', 'SEDMsetup = SEDTools.setup:run','RCpipeline = RCPipeline.pipeline:main','RCsetup = RCPipeline.tools:main'],
         'distutils.commands' : ['version = SEDMachine.version:show',],
     },
     cmdclass = {
         'build_py' : SED_build_py,
         'version' : Version,
+        'aosource': AstroObjectSourceURL,
     },
 )
