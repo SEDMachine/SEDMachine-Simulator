@@ -35,10 +35,10 @@ from AstroObject.AstroSimulator import (
     ignore,
     help
 )
-from AstroObject.AstroImage import ImageObject
+from AstroObject.AstroImage import ImageStack
 from AstroObject.iraftools import UseIRAFTools
 from AstroObject.AstroObjectLogging import logging
-ImageObject = UseIRAFTools(ImageObject)
+ImageStack = UseIRAFTools(ImageStack)
 
 class RCPipeline(Simulator):
     """A task manager for the RC Pipeline"""
@@ -63,7 +63,7 @@ class RCPipeline(Simulator):
     def load_bias(self):
         """Loading Raw Bias Frames"""
         # Load individual bias frames.
-        self.bias = ImageObject()
+        self.bias = ImageStack()
         self.load_type("Bias",self.bias)
         # Set Header Values for each image.
         for frame in self.bias.values():
@@ -74,7 +74,7 @@ class RCPipeline(Simulator):
     def load_dark(self):
         """Loading Dark Frames"""
         # Load individual bias frames.
-        self.dark = ImageObject()
+        self.dark = ImageStack()
         self.load_type("Dark",self.dark)
         # Set Header Values for each image.
         for frame in self.dark.values():
@@ -85,7 +85,7 @@ class RCPipeline(Simulator):
     def load_flat(self):
         """Loading Dark Frames"""
         # Load individual bias frames.
-        self.flat = ImageObject()
+        self.flat = ImageStack()
         self.load_type("Flat",self.flat)
         # Set Header Values for each image.
         for frame in self.flat.values():
@@ -142,7 +142,7 @@ class RCPipeline(Simulator):
         
     def load_data(self):
         """Loading Raw Data into the system."""
-        self.data = ImageObject()
+        self.data = ImageStack()
         self.load_type("Data",self.data)
         
     @include
@@ -183,15 +183,15 @@ class RCPipeline(Simulator):
     @depends("load-data")
     def save_file(self):
         """Save the new fits file"""
-        self.data.write("DataFile.fits",states=[self.data.statename],clobber=True)
+        self.data.write("DataFile.fits",frames=[self.data.framename],clobber=True)
         
     @help("Save Partial Images")
     @depends("create-flat","create-dark","create-bias")
     def save_partials(self):
         """Saving partial images"""
-        self.bias.write(states=["Bias"],filename=self.config["Bias"]["Master"],clobber=True)
-        self.dark.write(states=["Dark"],filename=self.config["Dark"]["Master"],clobber=True)
-        self.flat.write(states=["Flat"],filename=self.config["Flat"]["Master"],clobber=True)
+        self.bias.write(frames=["Bias"],filename=self.config["Bias"]["Master"],clobber=True)
+        self.dark.write(frames=["Dark"],filename=self.config["Dark"]["Master"],clobber=True)
+        self.flat.write(frames=["Flat"],filename=self.config["Flat"]["Master"],clobber=True)
         
         
 def main():

@@ -15,7 +15,7 @@ import numpy as np
 from pkg_resources import resource_filename
 
 from AstroObject.AstroSimulator import *
-from AstroObject.AstroSpectra import SpectraObject
+from AstroObject.AstroSpectra import SpectraStack
 import AstroObject.Utilities as AOU
 
 # Background Functions
@@ -83,7 +83,7 @@ class SetupAgent(Simulator):
         # Convert some sky spec from AB to fLambda
         # This sky spectrum is imported from the massey module, and uses the mag conversion functions above.
         skyflam = np.array([skyab[:,0], abmag_to_flambda(skyab[:,1], skyab[:,0])])
-        MasseySky = SpectraObject(filename=self.config["Dirs"]["Data"] + "/MasseySky.fits")
+        MasseySky = SpectraStack(filename=self.config["Dirs"]["Data"] + "/MasseySky.fits")
         MasseySky.save(skyab.T,"SkyAB")
         MasseySky.save(skyflam,"SkyFL")
         MasseySky.write(clobber=True)
@@ -93,7 +93,7 @@ class SetupAgent(Simulator):
         """Make Hansuchik.FITS file"""
         # Hansuchik.py -> HansuchikUVES.FITS
         from Data.Hansuchik import uves_sky
-        HansuchikUVES = SpectraObject(filename=self.config["Dirs"]["Data"] + "/UVESSky.fits")
+        HansuchikUVES = SpectraStack(filename=self.config["Dirs"]["Data"] + "/UVESSky.fits")
         HansuchikUVES.save(uves_sky.T,"UVESSky")
         HansuchikUVES.write(clobber=True)
     
@@ -102,7 +102,7 @@ class SetupAgent(Simulator):
         """Make Turnrose.FITS file"""
         # Turnrose.py -> Turnrose.FITS
         from Data.Turnrose import skyspec
-        TurnroseSKY = SpectraObject(filename=self.config["Dirs"]["Data"] + "/TurnroseSKY.fits")
+        TurnroseSKY = SpectraStack(filename=self.config["Dirs"]["Data"] + "/TurnroseSKY.fits")
         TurnroseSKY.save(skyspec.T,"TurnroseSKY")
         TurnroseSKY.write(clobber=True)
         
@@ -111,7 +111,7 @@ class SetupAgent(Simulator):
         """Make Quimby.FITS file"""
         # Quimby.py -> QuimbySky.FITS
         from Data.Quimby import quimby_sky
-        QuimbySKY = SpectraObject(filename=self.config["Dirs"]["Data"] + "/QuimbySky.fits")
+        QuimbySKY = SpectraStack(filename=self.config["Dirs"]["Data"] + "/QuimbySky.fits")
         QuimbySKY.save(quimby_sky.T,"QuimbySky")
         QuimbySKY.write(clobber=True)
     
@@ -120,7 +120,7 @@ class SetupAgent(Simulator):
         """Make Atmosphere.FITS file"""
         # atmosphere.py -> atmosphere.FITS
         from Data.atmosphere import palextinct
-        atmosphereEXT = SpectraObject(filename=self.config["Dirs"]["Data"] + "/atmosphere.fits")
+        atmosphereEXT = SpectraStack(filename=self.config["Dirs"]["Data"] + "/atmosphere.fits")
         atmosphereEXT.save(palextinct.T,"Atmosph")
         atmosphereEXT.write(clobber=True)
 
@@ -129,7 +129,7 @@ class SetupAgent(Simulator):
         """Make palsky.FITS file"""
         # palsky_100318.dat -> Palsky.FITS
         palskydata = np.genfromtxt(self.config["Dirs"]["Data"] + "/palsky_100318.dat").T
-        palSKY = SpectraObject(filename=self.config["Dirs"]["Data"] + "/PalSky.fits")
+        palSKY = SpectraStack(filename=self.config["Dirs"]["Data"] + "/PalSky.fits")
         palSKY.save(palskydata,"PalSky")
         palSKY.write(clobber=True)
     

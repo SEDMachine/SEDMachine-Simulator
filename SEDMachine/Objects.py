@@ -5,7 +5,7 @@
 #  
 #  Created by Alexander Rudy on 2012-01-31.
 #  Copyright 2012 Alexander Rudy. All rights reserved.
-#  Version 0.3.6
+#  Version 0.3.7
 # 
 
 import numpy as np
@@ -34,8 +34,8 @@ import gc
 import AstroObject
 import AstroObject.AstroSimulator
 from AstroObject.AstroCache import *
-from AstroObject.AstroSpectra import SpectraObject
-from AstroObject.AstroImage import ImageObject,ImageFrame
+from AstroObject.AstroSpectra import SpectraStack
+from AstroObject.AstroImage import ImageStack,ImageFrame
 from AstroObject.AnalyticSpectra import BlackBodySpectrum, AnalyticSpectrum, FlatSpectrum, InterpolatedSpectrum
 from AstroObject.Utilities import *
 
@@ -122,7 +122,7 @@ class SubImage(ImageFrame):
         return Object
 
 
-class Lenslet(ImageObject):
+class Lenslet(ImageStack):
     """An object-representation of a lenslet. Takes approximately all of the data we know about each lenslet.
     
     :param xs: Array of camera-center x positions
@@ -602,7 +602,7 @@ class Lenslet(ImageObject):
         fileName = "%(Caches)s/Subimage-%(num)04d%(ext)s" % dict(num=self.num,ext=".fits",**self.config["Dirs"])
         if os.access(fileName,os.F_OK):
             os.remove(fileName)
-        self.write(fileName,primaryState="Raw Spectrum",clobber=True)
+        self.write(fileName,primaryFrame="Raw Spectrum",clobber=True)
         self.clear()
         
     def read_subimage(self):
