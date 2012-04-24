@@ -35,8 +35,8 @@ import AstroObject
 from AstroObject.AstroSimulator import *
 from AstroObject.AstroCache import *
 from AstroObject.AstroConfig import *
-from AstroObject.AstroSpectra import SpectraObject,SpectraFrame
-from AstroObject.AstroImage import ImageObject,ImageFrame
+from AstroObject.AstroSpectra import SpectraStack,SpectraFrame
+from AstroObject.AstroImage import ImageStack,ImageFrame
 from AstroObject.AnalyticSpectra import BlackBodySpectrum,GaussianSpectrum, AnalyticSpectrum, FlatSpectrum, InterpolatedSpectrum, UnitarySpectrum
 from AstroObject.Utilities import *
 from AstroObject.mpl_utilities import *
@@ -45,7 +45,7 @@ from version import version as versionstr
 from Objects import *
 
 
-class SEDSimulator(Simulator,ImageObject):
+class SEDSimulator(Simulator,ImageStack):
     """A simulator implementation for the SED Machine.
     
     This simulator is based on :class:`AstroObject.AstroSimulator.Simulator`. It is designed to run as a series of dependent stages. The simulator is first setup, with basic data structures created in the constructor, and then simulator stages registered in :meth:`setup_stages`."""
@@ -56,11 +56,11 @@ class SEDSimulator(Simulator,ImageObject):
         self.dataClasses = [SubImage]
         self.lenslets = {}
         self.ellipses = {}
-        self.qe = SpectraObject(dataClasses=[AnalyticSpectrum,SpectraFrame])
+        self.qe = SpectraStack(dataClasses=[AnalyticSpectrum,SpectraFrame])
         self.qe.save(FlatSpectrum(0.0))
-        self.spectra =  SpectraObject(dataClasses=[AnalyticSpectrum,SpectraFrame])
+        self.spectra =  SpectraStack(dataClasses=[AnalyticSpectrum,SpectraFrame])
         self.spectra.save(FlatSpectrum(0.0))
-        self.sky =  SpectraObject(dataClasses=[AnalyticSpectrum,SpectraFrame])
+        self.sky =  SpectraStack(dataClasses=[AnalyticSpectrum,SpectraFrame])
         self.sky.save(FlatSpectrum(0.0))
         self.astrologger = logging.getLogger("AstroObject")
         self.config.load(resource_filename(__name__,"SED.main.config.default.yaml"))
@@ -355,7 +355,7 @@ class SEDSimulator(Simulator,ImageObject):
         self.log.warning("Stage 'setup-source' not ready yet, doing nothing!")
         return
         
-        Source = ImageObject()
+        Source = ImageStack()
         Source.read(self._dir_filename("Data",self.config["Source"]["CubeName"]))
         data = Source.data()
         shape = data.shape
@@ -466,9 +466,9 @@ class SEDSimulator(Simulator,ImageObject):
         
         # Sky Data (From sim_pdr.py by Nick, regenerated using SEDTools module's make_files.py script)
         # Each sky spectrum is saved in a FITS file for easy recall as a spectrum object.
-        self.SKYData = SpectraObject()
+        self.SKYData = SpectraStack()
         for label,d in self.config["Observation"]["Background"]["Files"].iteritems():
-            self.SKYData.load(self._dir_filename("Data",d["Filename"]),statename=label)
+            self.SKYData.load(self._dir_filename("Data",d["Filename"]),framename=label)
                 
         
         # Moon phase adjustments. These moon phase attenuation values are for different filter bands.
@@ -737,7 +737,7 @@ class SEDSimulator(Simulator,ImageObject):
                 self.log.debug(npArrayInfo(n,"Gauss Kernel"))
             area += n
         
-        state = self.statename
+        state = self.framename
         self.save(area,"Scatter")        
         self.select(state)
         
@@ -759,7 +759,7 @@ class SEDSimulator(Simulator,ImageObject):
     def setup_noise(self):
         """Makes noise masks"""
         
-        state = self.statename
+        state = self.framename
         
         read_noise = self.config["Instrument"]["Cameras"][self.config["Instrument"]["Cameras"]["Selected"]]["RN"]
         dark_noise = self.config["Instrument"]["Cameras"][self.config["Instrument"]["Cameras"]["Selected"]]["DC"] * self.config["Observation"]["exposure"]
@@ -803,7 +803,7 @@ class SEDSimulator(Simulator,ImageObject):
         
         
         data = self.data()
-        self.log.debug(npArrayInfo(data,"Data \'%s\'" % self.statename))
+        self.log.debug(npArrayInfo(data,"Data \'%s\'" % self.framename))
         
         
         if self.config["Instrument"]["Scatter"]["FFT"]:
@@ -842,7 +842,7 @@ class SEDSimulator(Simulator,ImageObject):
     def save_file(self):
         """Saves the file"""
         self.Filename = "%(Output)s/%(label)s-%(date)s.%(fmt)s" % dict(label=self.config["Output"]["Label"],date=time.strftime("%Y-%m-%d"), fmt=self.config["Output"]["Format"], **self.config["Dirs"] )
-        self.write(self.Filename,states=[self.statename],clobber=True)
+        self.write(self.Filename,frames=[self.framename],clobber=True)
         self.log.info("Wrote %s" % self.Filename)
         self.Filename = "%(Output)s/%(label)s-deep-%(date)s.%(fmt)s" % dict(label=self.config["Output"]["Label"],date=time.strftime("%Y-%m-%d"), fmt=self.config["Output"]["Format"], **self.config["Dirs"] )
         self.write(self.Filename,clobber=True)
@@ -873,7 +873,7 @@ class SEDSimulator(Simulator,ImageObject):
             raise SEDLimits
         
         data[xstart:xend,ystart:yend] += img
-        self.save(data,self.statename,clobber=True)    
+        self.save(data,self.framename,clobber=True)    
         
     
     
@@ -882,7 +882,7 @@ class SEDSimulator(Simulator,ImageObject):
         """Crops the provided image to twice the specified size, centered around the x and y coordinates provided."""
         if not ysize:
             ysize = xsize
-        cropped = self.states[self.statename].data[x-xsize:x+xsize,y-ysize:y+ysize]
+        cropped = self.d[x-xsize:x+xsize,y-ysize:y+ysize]
         self.log.debug("Cropped and Saved Image")
         if label == None:
             label = "Cropped"

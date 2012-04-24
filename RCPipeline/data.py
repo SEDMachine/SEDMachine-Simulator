@@ -19,11 +19,11 @@ import numpy as np
 # Package Resources Imports
 from pkg_resources import resource_filename
 
-from AstroObject.AstroImage import ImageObject
+from AstroObject.AstroImage import ImageStack
 from AstroObject.AstroObjectLogging import logging
 exptime = 1200
 
-images = ImageObject()
+images = ImageStack()
 images["BiasA"] = np.random.poisson(10,(1000,1000)).astype(np.uint16)
 images["BiasB"] = np.random.poisson(10,(1000,1000)).astype(np.uint16)
 images["BiasC"] = np.random.poisson(10,(1000,1000)).astype(np.uint16)
@@ -42,7 +42,7 @@ for image in ["DataA","DataB","DataC"]:
     images[image].header.update('exptime',exptime)
 
 
-images.write("Bias.fits",states=["BiasA","BiasB","BiasC"],clobber=True)
-images.write("Dark.fits",states=["DarkA","DarkB","DarkC"],clobber=True)
-images.write("Flat.fits",states=["FlatA","FlatB","FlatC"],clobber=True)
-images.write("Data.fits",states=["DataA","DataB","DataC"],clobber=True)
+images.write("Bias.fits",frames=["BiasA","BiasB","BiasC"],clobber=True)
+images.write("Dark.fits",frames=["DarkA","DarkB","DarkC"],clobber=True)
+images.write("Flat.fits",frames=["FlatA","FlatB","FlatC"],clobber=True)
+images.write("Data.fits",frames=["DataA","DataB","DataC"],clobber=True)
