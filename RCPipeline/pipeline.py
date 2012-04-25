@@ -103,9 +103,9 @@ class RCPipeline(Simulator):
         iraf.unlearn(iraf.zerocombine)
         iraf.zerocombine(self.bias.iinat(),
             output=self.bias.iout("Bias"),
-            combine=self.config["Bias"]["Combine"], 
+            combine=self.config["Bias.Combine"], 
             ccdtype="zero", 
-            reject=self.config["Bias"]["Reject"], 
+            reject=self.config["Bias.Reject"], 
             scale="none", nlow=0, nhigh=1, nkeep=1, mclip="yes", lsigma=3.0, hsigma=3.0, rdnoise="0.", gain ="1."
             )
         self.bias.idone()
@@ -118,9 +118,9 @@ class RCPipeline(Simulator):
         iraf.unlearn(iraf.darkcombine)
         iraf.darkcombine(self.dark.iinat(),
             output=self.dark.iout("Dark"),
-            combine=self.config["Dark"]["Combine"], 
+            combine=self.config["Dark.Combine"], 
             ccdtype="dark", 
-            reject=self.config["Dark"]["Reject"], 
+            reject=self.config["Dark.Reject"], 
             process="no", scale="exposure", nlow=0, nhigh=1, nkeep=1, mclip="yes", lsigma=3.0, hsigma=3.0, rdnoise="0.", gain ="1."
             )
         self.dark.idone()
@@ -133,10 +133,10 @@ class RCPipeline(Simulator):
         iraf.unlearn(iraf.flatcombine)
         iraf.flatcombine(self.flat.iraf.inatfile(),
             output=self.flat.iraf.outfile("Flat"), 
-            combine=self.config["Flat"]["Combine"], 
+            combine=self.config["Flat.Combine"], 
             ccdtype="flat",
-            reject=self.config["Flat"]["Reject"],
-            scale=self.config["Flat"]["Scale"], 
+            reject=self.config["Flat.Reject"],
+            scale=self.config["Flat.Scale"], 
             process="no", subsets="no", nlow=0, nhigh=1, nkeep=1, mclip="yes", lsigma=3.0, hsigma=3.0, rdnoise="0.", gain ="1.")
         self.flat.iraf.done()
         
@@ -189,9 +189,9 @@ class RCPipeline(Simulator):
     @depends("create-flat","create-dark","create-bias")
     def save_partials(self):
         """Saving partial images"""
-        self.bias.write(frames=["Bias"],filename=self.config["Bias"]["Master"],clobber=True)
-        self.dark.write(frames=["Dark"],filename=self.config["Dark"]["Master"],clobber=True)
-        self.flat.write(frames=["Flat"],filename=self.config["Flat"]["Master"],clobber=True)
+        self.bias.write(frames=["Bias"],filename=self.config["Bias.Master"],clobber=True)
+        self.dark.write(frames=["Dark"],filename=self.config["Dark.Master"],clobber=True)
+        self.flat.write(frames=["Flat"],filename=self.config["Flat.Master"],clobber=True)
         
         
 def main():
