@@ -21,7 +21,7 @@ from __future__ import division,with_statement
 major = 0
 minor = 3
 bugfix = 9
-patch = None
+patch = 1
 dev = True
 
 
@@ -144,7 +144,7 @@ def _get_git_devstatus():
         warn('Parts missing stuff: '+stdout)
         return False
         
-    if parts[2] == "release" or parts[2] == "master":
+    if parts[2] in ["release","master","hotfix"]:
         return False
     else:
         return True
