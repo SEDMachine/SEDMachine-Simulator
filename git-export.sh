@@ -24,7 +24,7 @@ then
 	exit
 fi
 
-DESTINATION=$1
+DESTINATION=${1%/}
 
 echo "Exporting branch $BRACNH to $DESTINATION"
 
