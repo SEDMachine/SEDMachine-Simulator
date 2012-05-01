@@ -83,7 +83,7 @@ to only examine 5 lenslets.
 Configuring :program:`SEDMsim`
 ------------------------------
 
-The SEDMsim program is primarily configuraed by a YAML file. The full configuration is described in :ref:`Configuration`. A simple configuration file is shown below::
+The SEDMsim program is primarily configuraed by a YAML file. The full configuration is described in :ref:`SEDM_Configuration`. A simple configuration file is shown below::
 	
 	Instrument:
 	  density: 5
