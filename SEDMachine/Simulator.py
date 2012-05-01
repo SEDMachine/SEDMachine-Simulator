@@ -193,9 +193,9 @@ class SEDSimulator(Simulator,ImageStack):
         self.Caches["PSF"] = NumpyCache(self.get_psf_kern,filename=self.config["Caches.PSF"])
         self.Caches["CONV"] = NumpyCache(lambda : sp.signal.convolve(self.Caches["PSF"],self.Caches["TEL"],mode='same'),filename=self.config["Caches.CONV"])
         
-        if "clear_cache" in self.options and self.options["clear_cache"]:
+        if "clear_cache" in self.config["Options"] and self.config["Options"]["clear_cache"]:
             self.Caches.flag('enabled',False)
-        if "cache" in self.options and not self.options["cache"]:
+        if "cache" in self.config["Options"] and not self.config["Options"]["cache"]:
             self.Caches.flag('saving',False)
     
     
@@ -256,7 +256,7 @@ class SEDSimulator(Simulator,ImageStack):
        """
        # Load Lenslet Specification File
        self.log.debug("Opening filename %s" % self.config["Instrument.files.lenslets"])
-       ix, xps, yps, lams, xcs, ycs, xls, yls, xas, yas, xbs, ybs, rs = np.genfromtxt(self._dir_filename("Data",self.config["Instrument.files.lenslets"]),skip_header=1,comments="#",unpack=True)
+       ix, xps, yps, lams, xcs, ycs, xls, yls, xas, yas, xbs, ybs, rs = np.genfromtxt(self.dir_filename("Data",self.config["Instrument.files.lenslets"]),skip_header=1,comments="#",unpack=True)
        # This data describes the following:
        # ix - Index (number)
        # xps - Pupil position in the x-direction
@@ -356,7 +356,7 @@ class SEDSimulator(Simulator,ImageStack):
         return
         
         Source = ImageStack()
-        Source.read(self._dir_filename("Data",self.config["Source.CubeName"]))
+        Source.read(self.dir_filename("Data",self.config["Source.CubeName"]))
         data = Source.data()
         shape = data.shape
         
@@ -395,7 +395,7 @@ class SEDSimulator(Simulator,ImageStack):
         There is no amplification applied to the source. Sources are expected to be in cgs units during input.
             
         """        
-        WL,FL = np.genfromtxt(self._dir_filename("Data",self.config["Source.Filename"]),unpack=True,comments="#")
+        WL,FL = np.genfromtxt(self.dir_filename("Data",self.config["Source.Filename"]),unpack=True,comments="#")
         FL /= self.const["hc"] / WL
         FL *= 1e10 #Spectrum was per Angstrom, should now be per Meter
         WL *= 1e-10
@@ -468,7 +468,7 @@ class SEDSimulator(Simulator,ImageStack):
         # Each sky spectrum is saved in a FITS file for easy recall as a spectrum object.
         self.SKYData = SpectraStack()
         for label,d in self.config["Observation.Background.Files"].iteritems():
-            self.SKYData.load(self._dir_filename("Data",d["Filename"]),framename=label)
+            self.SKYData.load(self.dir_filename("Data",d["Filename"]),framename=label)
                 
         
         # Moon phase adjustments. These moon phase attenuation values are for different filter bands.
@@ -501,7 +501,7 @@ class SEDSimulator(Simulator,ImageStack):
         
         # Throughputs are generated from Nick's simulation scripts in throughput.py
         # They are simply re-read here.
-        thpts = np.load(self._dir_filename("Data",self.config["Instrument.Thpt.File"]))[0]
+        thpts = np.load(self.dir_filename("Data",self.config["Instrument.Thpt.File"]))[0]
         WL = thpts["lambda"]* 1e-10
         self.qe["prism_pi"] = InterpolatedSpectrum(np.array([WL, thpts["thpt-prism-PI"]]),"PI Prism")
         self.qe["prism_andor"] = InterpolatedSpectrum(np.array([WL, thpts["thpt-prism-Andor"]]),"Andor Prism")
@@ -608,7 +608,7 @@ class SEDSimulator(Simulator,ImageStack):
     @depends("setup-config","setup-constants")
     def setup_line_list(self):
         """Set up a line-list based spectrum for wavelength calibration."""
-        linelist = np.asarray(np.genfromtxt(self._dir_filename("Data",self.config["Source.Lines.List"]),comments="#"))
+        linelist = np.asarray(np.genfromtxt(self.dir_filename("Data",self.config["Source.Lines.List"]),comments="#"))
         if linelist.ndim < 1:
             linelist = linelist.flatten()
         CalSpec = FlatSpectrum(0.0)
@@ -1628,7 +1628,7 @@ class SEDSimulator(Simulator,ImageStack):
             size = 0
             truncate = False
         try:
-            PSFIMG = self.psf_kern(self._dir_filename("Data",self.config["Instrument.files.encircledenergy"]),size,truncate)
+            PSFIMG = self.psf_kern(self.dir_filename("Data",self.config["Instrument.files.encircledenergy"]),size,truncate)
         except IOError as e:
             self.log.warning("Could not access encircled energy file: %s" % e)
             PSFIMG = self.gauss_kern( (self.config["Instrument.PSF.stdev.px"] * self.config["Instrument.density"]) )
@@ -1694,16 +1694,16 @@ class SEDSimulator(Simulator,ImageStack):
         return dense_wavelengths, dense_resolution
     
     @ignore
-    def _setUnits(self,config,parent):
+    def _setUnits(self,r,parent):
         """docstring for _setUnits"""
-        r = copy.deepcopy(config)
-        for k, v in config.iteritems():
+        for k in r.keys():
+            v = r[k]
             if isinstance(v, collections.Mapping):
                 r[k] = self._setUnits(r[k],k)
             elif k == "mm":
                 if ("calc" in r) and ("px" in r):
                     pass
-                elif ("calc" not in config):
+                elif ("calc" not in r):
                     r["px"] = v * self.config["Instrument.convert.mmtopx"]
                     r["calc"] = True
                 else:
