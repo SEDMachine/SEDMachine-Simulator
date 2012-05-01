@@ -8,7 +8,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>3. SEDMsim Program for running simulations &mdash; SEDMsim 0.3.5-p1 documentation</title>
+    <title>3. SEDMsim Program for running simulations &mdash; SEDMsim 0.3.9-p1 documentation</title>
     
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -16,7 +16,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.3.5-p1',
+        VERSION:     '0.3.9-p1',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -25,7 +25,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="SEDMsim 0.3.5-p1 documentation" href="index.html" />
+    <link rel="top" title="SEDMsim 0.3.9-p1 documentation" href="index.html" />
     <link rel="next" title="4. SEDMsetup Program managing environments" href="SEDMsetup.html" />
     <link rel="prev" title="2. Basic Tutorial" href="tutorial.html" /> 
   </head>
@@ -45,7 +45,7 @@
         <li class="right" >
           <a href="tutorial.html" title="2. Basic Tutorial"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">SEDMsim 0.3.5-p1 documentation</a> &raquo;</li> 
+        <li><a href="index.html">SEDMsim 0.3.9-p1 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -355,7 +355,7 @@ $ SEDMsim *none</pre>
 </div></blockquote>
 </div>
 <div class="section" id="sedmsim-configuration-files">
-<span id="configuration"></span><h2>3.3. <strong class="program">SEDMsim</strong> Configuration Files<a class="headerlink" href="#sedmsim-configuration-files" title="Permalink to this headline">¶</a></h2>
+<span id="sedm-configuration"></span><h2>3.3. <strong class="program">SEDMsim</strong> Configuration Files<a class="headerlink" href="#sedmsim-configuration-files" title="Permalink to this headline">¶</a></h2>
 <p><strong class="program">SEDMsim</strong> configuration files are YAML files which contain a dictionary structure. All values in the YAML files are basic yaml, and contain no python-specific directives. To find out what the default or current configuration is, use the <a class="reference internal" href="#cmdoption-SEDMsim--dump"><em class="xref std std-option">--dump</em></a> command. The file produced from this will contain a YAML structure for the configuration in use when the system started up. The various directives in the configuration file are described below.</p>
 <p>In general, the configuration is minimally set. If you don&#8217;t know what a value does, don&#8217;t set it! The defaults should do just fine. If you need to see what a minimal configuration looks like, examine the <strong class="program">SEDMsetup</strong> <tt class="docutils literal"><span class="pre">*config-file</span></tt> stage.</p>
 <p>The configuration is documented with Dot-syntax. Each dot represnets a new sub-level. As such, <strong>Instrument.Scatter.Kernel.[].mag</strong> would be written as</p>
@@ -509,7 +509,7 @@ $ SEDMsim *none</pre>
 <dl class="object">
 <dt>
 <tt class="descname">Instrument.Lenslets.strict</tt></dt>
-<dd><p>Determines whether lenslets are included in a strict fashion, or whether any possible lenslet should be calculated. Should only be turned off during advanced debugging, as in general, the strict validity checks will not eliminate any lenslet which has any effect on the system. See <tt class="xref py py-meth docutils literal"><span class="pre">SEDMachine.Objects.Lenslet.valid()</span></tt>.</p>
+<dd><p>Determines whether lenslets are included in a strict fashion, or whether any possible lenslet should be calculated. Should only be turned off during advanced debugging, as in general, the strict validity checks will not eliminate any lenslet which has any effect on the system. See <a class="reference internal" href="Lenslets.html#SEDMachine.Objects.Lenslet.valid" title="SEDMachine.Objects.Lenslet.valid"><tt class="xref py py-meth docutils literal"><span class="pre">SEDMachine.Objects.Lenslet.valid()</span></tt></a>.</p>
 </dd></dl>
 
 <dl class="object">
@@ -818,7 +818,7 @@ $ SEDMsim *none</pre>
         <li class="right" >
           <a href="tutorial.html" title="2. Basic Tutorial"
              >previous</a> |</li>
-        <li><a href="index.html">SEDMsim 0.3.5-p1 documentation</a> &raquo;</li> 
+        <li><a href="index.html">SEDMsim 0.3.9-p1 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">

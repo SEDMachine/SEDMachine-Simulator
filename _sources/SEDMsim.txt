@@ -188,7 +188,7 @@ The following are the most commonly used :program:`SEDMsim` stages in a producti
 	- Wavelength vs. effective sampling resolution. ``%(Partials)s/Instrument-%(num)04d-WL%(ext)s``
 	
 
-.. _Configuration:
+.. _SEDM_Configuration:
 
 :program:`SEDMsim` Configuration Files
 --------------------------------------
