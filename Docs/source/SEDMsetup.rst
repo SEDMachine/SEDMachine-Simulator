@@ -67,8 +67,7 @@ The basic, important stages are:
 	
  .. object:: *config-file
  	
-	Generates a simple configuration file which correctly uses the packaged data. The basic configuration file contains all instrument-specific values (as opposed to algorithm or operationally specific values). To get a full configuration file (which includes all values...) use
-::
+	Generates a simple configuration file which correctly uses the packaged data. The basic configuration file contains all instrument-specific values (as opposed to algorithm or operationally specific values). To get a full configuration file (which includes all values...) use::
 	
 	$ SEDMsim --dump *none
 	

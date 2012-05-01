@@ -4,13 +4,13 @@
 ===================================
 
 .. autoclass:: 
-    SEDMachine.Lenslet.Lenslet
+    SEDMachine.Objects.Lenslet
     :members:
 
 .. autoclass:: 
-    SEDMachine.Lenslet.SourcePixel
+    SEDMachine.Objects.SourcePixel
     :members:
 
 .. autoclass:: 
-    SEDMachine.Lenslet.SubImage
+    SEDMachine.Objects.SubImage
     :members:
