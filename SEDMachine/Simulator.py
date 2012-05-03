@@ -614,7 +614,7 @@ class SEDSimulator(Simulator,ImageStack):
         CalSpec = FlatSpectrum(0.0)
         sigma = self.config["Source.Lines.sigma"]
         for line in linelist:
-            if self.config["Source.Lines.peaks"]:
+            if self.config.get("Source.Lines.peaks",False):
                 value = line[1]
                 center = line[0]
             else:
