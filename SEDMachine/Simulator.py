@@ -621,12 +621,12 @@ class SEDSimulator(Simulator,ImageStack):
                 value = self.config["Source.Lines.value"]
                 center = line
             CalSpec += GaussianSpectrum(center,sigma,value,"Line %g" % line)
-        self.spectra.save(UnitarySpectrum(CalSpec,method='resolve_and_integrate',label="Calibration Lamp"),select=False)
+        self.spectra.save(UnitarySpectrum(CalSpec,method='resample',label="Calibration Lamp"),select=False)
         
     
     @description("Using calibration lamp source")
     @help("Use a calibration lamp source")
-    @depends("setup-lenslets","setup-lines","setup")
+    @depends("setup-lenslets","setup-lines")
     @replaces("setup-source","geometric-resample","setup-source-pixels","apply-sky","apply-atmosphere")
     def line_source(self):
         """Use the line spectrum only"""
@@ -1195,6 +1195,11 @@ class SEDSimulator(Simulator,ImageStack):
         self.log.debug(npArrayInfo(WL,"Wavelength from Moon Plot"))
         self.log.debug(npArrayInfo(FL,"Flux from Moon Plot"))
         plt.semilogy(WL*1e6,FL,'m-',linestyle='-',label="Moon",zorder=0.5)
+        
+        if axis[2] < 100.0:
+            xmin, xmax, ymin, ymax = axis
+            ymin = 100
+            axis = (xmin,xmax,ymin,ymax)
         
         plt.axis(axis)
         
