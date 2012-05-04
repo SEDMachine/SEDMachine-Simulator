@@ -537,7 +537,7 @@ class SEDSimulator(Simulator,ImageStack):
         
     
     @description("Applying atmospheric extinction term")
-    @depends("setup-sky")
+    @depends("setup-sky","geometric-resample")
     def apply_atmosphere(self):
         """Apply the atmospheric extinction term."""
         self.map_over_lenslets(self._apply_atmosphere,color=False)
@@ -550,21 +550,21 @@ class SEDSimulator(Simulator,ImageStack):
         
     
     @description("Setting up lenslet hexagons")
-    @depends("setup-lenslets")
+    @depends("setup-lenslets","geometric-resample")
     def setup_hexagons(self):
         """Make the lenslet hexagons"""
         self.map_over_lenslets(lambda l: l.make_hexagon(),color="green")
         
     
     @description("Making source pixels")
-    @depends("setup-source")
+    @depends("setup-source","geometric-resample")
     def setup_source_pixels(self):
         """Setup source pixels"""
         self.map_over_pixels(lambda p: p.make_pixel_square(),color="green")
        
     
     @description("Applying Sky Spectrum to Source")
-    @depends("setup-sky")
+    @depends("setup-sky","geometric-resample")
     def apply_sky(self):
         """Apply Sky Spectrum to each lenslet"""
         self.map_over_lenslets(self._apply_sky_spectrum,color=False)
@@ -581,7 +581,7 @@ class SEDSimulator(Simulator,ImageStack):
         
     
     @description("Applying Quantum Efficiency Functions")
-    @depends("setup-sky")
+    @depends("setup-sky","geometric-resample")
     def apply_qe(self):
         """Apply the instrument quantum efficiency"""
         self.map_over_lenslets(self._apply_qe_spectrum,color=False)
