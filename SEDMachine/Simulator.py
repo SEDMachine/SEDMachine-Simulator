@@ -594,7 +594,7 @@ class SEDSimulator(Simulator,ImageStack):
         
     
     @description("Performing geometric resample")
-    @depends("setup-source-pixels","setup-hexagons")
+    @depends("setup-source-pixels","setup-hexagons","setup-lenslets")
     def geometric_resample(self):
         """docstring for fname"""
         n = len(self.SourcePixels)
