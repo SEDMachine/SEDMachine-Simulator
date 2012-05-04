@@ -6,7 +6,7 @@
 #  
 #  Created by Alexander Rudy on 2012-02-08.
 #  Copyright 2012 Alexander Rudy. All rights reserved.
-#  Version 0.3.9-p1
+#  Version 0.3.9-p2
 # 
 
 import numpy as np
@@ -537,7 +537,7 @@ class SEDSimulator(Simulator,ImageStack):
         
     
     @description("Applying atmospheric extinction term")
-    @depends("setup-sky")
+    @depends("setup-sky","geometric-resample")
     def apply_atmosphere(self):
         """Apply the atmospheric extinction term."""
         self.map_over_lenslets(self._apply_atmosphere,color=False)
@@ -564,7 +564,7 @@ class SEDSimulator(Simulator,ImageStack):
        
     
     @description("Applying Sky Spectrum to Source")
-    @depends("setup-sky")
+    @depends("setup-sky","geometric-resample")
     def apply_sky(self):
         """Apply Sky Spectrum to each lenslet"""
         self.map_over_lenslets(self._apply_sky_spectrum,color=False)
@@ -581,7 +581,7 @@ class SEDSimulator(Simulator,ImageStack):
         
     
     @description("Applying Quantum Efficiency Functions")
-    @depends("setup-sky")
+    @depends("setup-sky","geometric-resample")
     def apply_qe(self):
         """Apply the instrument quantum efficiency"""
         self.map_over_lenslets(self._apply_qe_spectrum,color=False)
@@ -594,7 +594,7 @@ class SEDSimulator(Simulator,ImageStack):
         
     
     @description("Performing geometric resample")
-    @depends("setup-source-pixels","setup-hexagons")
+    @depends("setup-source-pixels","setup-hexagons","setup-lenslets")
     def geometric_resample(self):
         """docstring for fname"""
         n = len(self.SourcePixels)
@@ -614,19 +614,19 @@ class SEDSimulator(Simulator,ImageStack):
         CalSpec = FlatSpectrum(0.0)
         sigma = self.config["Source.Lines.sigma"]
         for line in linelist:
-            if self.config["Source.Lines.peaks"]:
+            if self.config.get("Source.Lines.peaks",False):
                 value = line[1]
                 center = line[0]
             else:
                 value = self.config["Source.Lines.value"]
                 center = line
             CalSpec += GaussianSpectrum(center,sigma,value,"Line %g" % line)
-        self.spectra.save(UnitarySpectrum(CalSpec,method='resolve_and_integrate',label="Calibration Lamp"),select=False)
+        self.spectra.save(UnitarySpectrum(CalSpec,method='resample',label="Calibration Lamp"),select=False)
         
     
     @description("Using calibration lamp source")
     @help("Use a calibration lamp source")
-    @depends("setup-lenslets","setup-lines","setup")
+    @depends("setup-lenslets","setup-lines")
     @replaces("setup-source","geometric-resample","setup-source-pixels","apply-sky","apply-atmosphere")
     def line_source(self):
         """Use the line spectrum only"""
@@ -1195,6 +1195,11 @@ class SEDSimulator(Simulator,ImageStack):
         self.log.debug(npArrayInfo(WL,"Wavelength from Moon Plot"))
         self.log.debug(npArrayInfo(FL,"Flux from Moon Plot"))
         plt.semilogy(WL*1e6,FL,'m-',linestyle='-',label="Moon",zorder=0.5)
+        
+        if axis[2] < 100.0:
+            xmin, xmax, ymin, ymax = axis
+            ymin = 100
+            axis = (xmin,xmax,ymin,ymax)
         
         plt.axis(axis)
         
