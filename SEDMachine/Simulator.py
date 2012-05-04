@@ -550,14 +550,14 @@ class SEDSimulator(Simulator,ImageStack):
         
     
     @description("Setting up lenslet hexagons")
-    @depends("setup-lenslets","geometric-resample")
+    @depends("setup-lenslets")
     def setup_hexagons(self):
         """Make the lenslet hexagons"""
         self.map_over_lenslets(lambda l: l.make_hexagon(),color="green")
         
     
     @description("Making source pixels")
-    @depends("setup-source","geometric-resample")
+    @depends("setup-source")
     def setup_source_pixels(self):
         """Setup source pixels"""
         self.map_over_pixels(lambda p: p.make_pixel_square(),color="green")
