@@ -5,7 +5,7 @@
 #  
 #  Created by Alexander Rudy on 2012-01-31.
 #  Copyright 2012 Alexander Rudy. All rights reserved.
-#  Version 0.3.9-p1
+#  Version 0.3.9-p2
 # 
 
 import numpy as np
