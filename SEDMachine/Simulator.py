@@ -1680,9 +1680,7 @@ class SEDSimulator(Simulator,ImageStack):
         
         self.config["Instrument.wavelengths.values"] = wl
         self.config["Instrument.wavelengths.resolutions"] = r
-        
-        sys.setrecursionlimit(10000000)
-    
+            
     @ignore
     def get_resolution_spectrum(self,minwl,maxwl,resolution):
         """docstring for get_resolution_spectrum"""
