@@ -582,7 +582,7 @@ class Lenslet(ImageStack):
         fileName = "%(Caches)s/Subimage-%(num)04d%(ext)s" % dict(num=self.num,ext=".fits",**self.config["Dirs"])
         if os.access(fileName,os.F_OK):
             os.remove(fileName)
-        self.f.configHash = hash(self.config.store)
+        self.f.configHash = hash(str(self.config.store))
         self.write(fileName,primaryFrame="Raw Spectrum",clobber=True)
         self.clear()
         
@@ -592,8 +592,9 @@ class Lenslet(ImageStack):
         frame = self.frame()
         self.num = frame.lensletNumber
         self.subcorner = frame.corner
-        if frame.configHash != hash(self.config.store):
-            self.log.warning("Configuration hashes do not match: %r = %r" % (frame.configHash,hash(self.config.store)))
+        self.configHash = hash(str(self.config.store))
+        if frame.configHash != self.configHash:
+            self.log.warning("Configuration hashes do not match: %r = %r" % (frame.configHash,self.configHash))
         
         
     def bin_subimage(self):
