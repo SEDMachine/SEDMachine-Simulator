@@ -48,9 +48,9 @@ class SED_build_py(du_build_py):
         
 
 SEDpkgs = find_packages(exclude=['Tests'])
-AstroObjectReq = "0.5.3"
+AstroObjectReq = "0.5.3-p1"
 AstroObjectDep = "AstroObject>=" + AstroObjectReq
-AstroObjectVer = "0.5.3"
+AstroObjectVer = "0.5.3-p1"
 AstroObjectURL = "https://github.com/alexrudy/AstroObject/zipball/v%(ver)s#egg=AstroObject-%(ver)s" % { 'ver' : AstroObjectVer}
 
 class AstroObjectSourceURL(Command):

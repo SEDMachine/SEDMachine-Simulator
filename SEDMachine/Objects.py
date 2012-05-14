@@ -61,9 +61,10 @@ class SubImage(ImageFrame):
     log = logging.getLogger("SEDMachine")
     
         
-    def sync_header(self):
+    def __getheader__(self,HDU):
         """Synchronizes the header dictionary with the HDU header"""
         # assert self.label == self.header['SEDlabel'], "Label does not match value specified in header: %s and %s" % (self.label,self.header['SEDlabel'])
+        super(SubImage, self).__getheader__(HDU)
         self.configHash = self.header['SEDconf']
         self.corner = [self.header['SEDcrx'],self.header['SEDcry']]
         self.spectrum = self.header['SEDspec']
@@ -100,27 +101,6 @@ class SubImage(ImageFrame):
         figure = plt.imshow(self())
         figure.set_cmap('binary_r')
         return figure
-    
-    @classmethod
-    def __read__(cls,HDU,label):
-        """Attempts to convert a given HDU into an object of type :class:`ImageFrame`. This method is similar to the :meth:`__save__` method, but instead of taking data as input, it takes a full HDU. The use of a full HDU allows this method to check for the correct type of HDU, and to gather header information from the HDU. When reading data from a FITS file, this is the prefered method to initialize a new frame.
-        """
-        cls.log.debug("Attempting to read as %s" % cls)
-        if not isinstance(HDU,(pf.ImageHDU,pf.PrimaryHDU)):
-            msg = "Must save a PrimaryHDU or ImageHDU to a %s, found %s" % (cls.__name__,type(HDU))
-            raise AbstractError(msg)
-        if not isinstance(HDU.data,np.ndarray):
-            msg = "HDU Data must be %s for %s, found data of %s" % (np.ndarray,cls.__name__,type(HDU.data))
-            raise AbstractError(msg)
-        try:
-            Object = cls(HDU.data,label,header=HDU.header)
-        except AssertionError as AE:
-            msg = "%s data did not validate: %s" % (cls.__name__,AE)
-            raise AbstractError(msg)
-        cls.log.debug("Created %s" % Object)
-        Object.sync_header()
-        return Object
-
 
 class Lenslet(ImageStack):
     """An object-representation of a lenslet. Takes approximately all of the data we know about each lenslet.
