@@ -78,13 +78,13 @@ class SEDSimulator(Simulator,ImageStack):
         
         This function is **ONLY** used to register stages and configuration options with the command-line parser. It is called by :class:`SEDSimulator` during construction.
         """
-        self.registerConfigOpts("D",{"Lenslets":{"start":2100,"number":50},"Debug":True,"Output":{"Label":"DFlag",},},help="Debug, Limit lenslets (50,start from 2100)")
-        self.registerConfigOpts("S",{"Lenslets":{"start":2100,"number":5},"Debug":True,"Output":{"Label":"SFlag",},},help="Debug, Limit lenslets (5,start from 2100)")
-        self.registerConfigOpts("T",{"Lenslets":{"start":2100,"number":50},"Debug":False,"Output":{"Label":"TFlag",},},help="Limit lenslets (50,start from 2100)")
-        self.registerConfigOpts("M",{"Lenslets":{"start":1000,"number":500},"Debug":True,"Output":{"Label":"MFlag",},},help="Limit lenslets (500,start from 1000)")
-        self.registerConfigOpts("N",{"Lenslets":{"start":1000,"number":500},"Debug":False,"Output":{"Label":"NFlag",},},help="Limit lenslets (500,start from 1000)")
-        self.registerConfigOpts("A",{"Lenslets":{"start":2100,"number":1},"Debug":True,"Output":{"Label":"AFlag",},},help="Debug, Single lenslets (start from 2100)")
-        self.registerConfigOpts("C",{"Lenslets":{"position":{"x":0.0,"y":0.0},"radius":0.01},"Debug":True,"Output":{"Label":"CFlag",},},help="Debug, Central Lenslets")
+        self.registerConfigOpts("D",{"Lenslets":{"start":2100,"number":50},"Debug":True,"Output":{"Name":["DFlag"],},},help="Debug, Limit lenslets (50,start from 2100)")
+        self.registerConfigOpts("S",{"Lenslets":{"start":2100,"number":5},"Debug":True,"Output":{"Name":["SFlag"],},},help="Debug, Limit lenslets (5,start from 2100)")
+        self.registerConfigOpts("T",{"Lenslets":{"start":2100,"number":50},"Debug":False,"Output":{"Name":["TFlag"],},},help="Limit lenslets (50,start from 2100)")
+        self.registerConfigOpts("M",{"Lenslets":{"start":1000,"number":500},"Debug":True,"Output":{"Name":["MFlag"],},},help="Limit lenslets (500,start from 1000)")
+        self.registerConfigOpts("N",{"Lenslets":{"start":1000,"number":500},"Debug":False,"Output":{"Name":["NFlag"],},},help="Limit lenslets (500,start from 1000)")
+        self.registerConfigOpts("A",{"Lenslets":{"start":2100,"number":1},"Debug":True,"Output":{"Name":["AFlag"],},},help="Debug, Single lenslets (start from 2100)")
+        self.registerConfigOpts("C",{"Lenslets":{"position":{"x":0.0,"y":0.0},"radius":0.01},"Debug":True,"Output":{"Name":["CFlag"],},},help="Debug, Central Lenslets")
         
         # SETUP Stages
         self.registerStage(self.setup_caches,"setup-caches")
