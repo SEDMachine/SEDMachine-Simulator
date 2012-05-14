@@ -117,7 +117,9 @@ Observation:
   number: 3
 Output:
   Format: fits
-  Label: Generated
+  Label: SEDM
+  Name:
+    - sim
 Plots:
   format: .pdf
 Source:

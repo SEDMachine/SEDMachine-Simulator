@@ -630,7 +630,7 @@ class SEDSimulator(Simulator,ImageStack):
     @replaces("setup-source","geometric-resample","setup-source-pixels","apply-sky","apply-atmosphere")
     def line_source(self):
         """Use the line spectrum only"""
-        self.config["Output.Label"] += "-cal-"
+        self.config["Output.Name"] += ["cal"]
         self.replace_source(self.spectra.frame("Calibration Lamp"))
         
     
@@ -640,7 +640,7 @@ class SEDSimulator(Simulator,ImageStack):
     @replaces("setup-source","geometric-resample","setup-source-pixels")
     def sky_source(self):
         """Use the sky spectrum only"""
-        self.config["Output.Label"] += "-sky-"
+        self.config["Output.Name"] += ["sky"]
         self.replace_source(self.sky.frame())
 
     
@@ -665,7 +665,7 @@ class SEDSimulator(Simulator,ImageStack):
     @replaces("setup-source","geometric-resample","setup-source-pixels","apply-sky","apply-atmosphere")
     def flat_source(self):
         """Replace the default file-source with a flat spectrum"""
-        self.config["Output.Label"] += "-flat-"
+        self.config["Output.Name"] += ["flat"]
         self.replace_source(FlatSpectrum(self.config["Source.Flat.value"]))
         
     
@@ -841,10 +841,10 @@ class SEDSimulator(Simulator,ImageStack):
     @description("Saving image to disk")
     def save_file(self):
         """Saves the file"""
-        self.Filename = "%(Output)s/%(label)s-%(date)s.%(fmt)s" % dict(label=self.config["Output.Label"],date=time.strftime("%Y-%m-%d"), fmt=self.config["Output.Format"], **self.config["Dirs"] )
+        self.Filename = "%(Output)s/%(label)s-%(name)s-%(date)s.%(fmt)s" % dict(label=self.config["Output.Label"],date=time.strftime("%Y-%m-%d"), name="-".join(self.config["Output.Name"]), fmt=self.config["Output.Format"], **self.config["Dirs"] )
         self.write(self.Filename,frames=[self.framename],clobber=True)
         self.log.info("Wrote %s" % self.Filename)
-        self.Filename = "%(Output)s/%(label)s-deep-%(date)s.%(fmt)s" % dict(label=self.config["Output.Label"],date=time.strftime("%Y-%m-%d"), fmt=self.config["Output.Format"], **self.config["Dirs"] )
+        self.Filename = "%(Output)s/%(label)s-%(name)s-%(date)s.%(fmt)s" % dict(label=self.config["Output.Label"],date=time.strftime("%Y-%m-%d"),name="-".join(["deep"] + self.config["Output.Name"]), fmt=self.config["Output.Format"], **self.config["Dirs"] )
         self.write(self.Filename,clobber=True)
         self.log.info("Wrote %s" % self.Filename)
     
