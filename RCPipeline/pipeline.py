@@ -43,7 +43,7 @@ ImageStack = UseIRAFTools(ImageStack)
 class RCPipeline(Simulator):
     """A task manager for the RC Pipeline"""
     def __init__(self):
-        super(RCPipeline, self).__init__(commandLine=True)
+        super(RCPipeline, self).__init__(commandLine=True,version="0.3.9-p3")
         self.config.load(resource_filename(__name__,"Defaults.yaml"))
         self.config.setFile("Main")
         self.config.load()
