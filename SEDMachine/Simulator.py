@@ -6,7 +6,7 @@
 #  
 #  Created by Alexander Rudy on 2012-02-08.
 #  Copyright 2012 Alexander Rudy. All rights reserved.
-#  Version 0.3.9-p2
+#  Version 0.3.9-p3
 # 
 
 import numpy as np
@@ -34,12 +34,12 @@ from pkg_resources import resource_filename
 import AstroObject
 from AstroObject.AstroSimulator import *
 from AstroObject.AstroCache import *
-from AstroObject.AstroConfig import *
+from AstroObject.AstroConfig import StructuredConfiguration, DottedConfiguration
 from AstroObject.AstroSpectra import SpectraStack,SpectraFrame
 from AstroObject.AstroImage import ImageStack,ImageFrame
 from AstroObject.AnalyticSpectra import BlackBodySpectrum,GaussianSpectrum, AnalyticSpectrum, FlatSpectrum, InterpolatedSpectrum, UnitarySpectrum
-from AstroObject.Utilities import *
-from AstroObject.mpl_utilities import *
+from AstroObject.util.mpl import LogFormatterTeXExponent
+from AstroObject.util import npArrayInfo
 
 from version import version as versionstr
 from Objects import *
@@ -1680,9 +1680,7 @@ class SEDSimulator(Simulator,ImageStack):
         
         self.config["Instrument.wavelengths.values"] = wl
         self.config["Instrument.wavelengths.resolutions"] = r
-        
-        sys.setrecursionlimit(10000000)
-    
+            
     @ignore
     def get_resolution_spectrum(self,minwl,maxwl,resolution):
         """docstring for get_resolution_spectrum"""

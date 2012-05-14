@@ -124,7 +124,7 @@ Source:
   CubeName: CUBE.fits
   Filename: SNIa.R1000.dat
   Flat:
-    value: 1.0e-06
+    value: 1.0e-02
   Lines:
     List: Data/Lines.dat
     sigma: 1.0e-09
@@ -137,7 +137,6 @@ logging:
     enable: true
     format: '%(levelname)-8s... %(message)s'
     level: 20
-    message: '...%(message)s'
   file:
     dateformat: '%Y-%m-%d-%H:%M:%S'
     enable: true

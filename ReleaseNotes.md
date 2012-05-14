@@ -1,5 +1,9 @@
 # Release Notes
-
+* 0.3.9
+	- Renamed ``lenslets`` to ``objects`` for support module
+	- Calibration lamps no longer undergo integration
+* 0.3.8
+	- Dotted configuration names.
 * 0.3.7
 	- Uses AstroObject 0.5 vocabulary
 * 0.3.6

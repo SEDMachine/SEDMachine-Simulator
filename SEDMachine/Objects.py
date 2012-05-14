@@ -5,7 +5,7 @@
 #  
 #  Created by Alexander Rudy on 2012-01-31.
 #  Copyright 2012 Alexander Rudy. All rights reserved.
-#  Version 0.3.9-p2
+#  Version 0.3.9-p3
 # 
 
 import numpy as np
@@ -37,10 +37,10 @@ from AstroObject.AstroCache import *
 from AstroObject.AstroSpectra import SpectraStack
 from AstroObject.AstroImage import ImageStack,ImageFrame
 from AstroObject.AnalyticSpectra import BlackBodySpectrum, AnalyticSpectrum, FlatSpectrum, InterpolatedSpectrum
-from AstroObject.Utilities import *
+from AstroObject.util import getVersion, npArrayInfo
 
 
-__version__ = getVersion(__name__)
+__version__ = getVersion()
 __all__ = ["SEDLimits","Lenslet","SubImage","SourcePixel"]
 
 class SEDLimits(Exception):
