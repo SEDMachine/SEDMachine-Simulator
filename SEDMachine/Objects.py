@@ -607,7 +607,7 @@ class Lenslet(ImageStack):
         
     def read_subimage(self):
         """Read a subimage from file and set the lenslet number and corner from data contained in the file. The filenames for subimages conform to the format ``%(Caches)s/Subimage-%(num)4d.fits``, similar to :meth:`write_subimage`. Frames are :class:`SubImage` classes so that they can safely store and retrieve their lenslet numbers and corner positions."""
-        self.read("%(Caches)s/Subimage-%(num)4d%(ext)s" % dict(num=self.num,ext=".fits",**self.config["Dirs"]))
+        self.read("%(Caches)s/Subimage-%(num)04d%(ext)s" % dict(num=self.num,ext=".fits",**self.config["Dirs"]))
         frame = self.frame()
         self.num = frame.lensletNumber
         self.subcorner = frame.corner
