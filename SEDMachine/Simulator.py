@@ -864,10 +864,10 @@ class SEDSimulator(Simulator,ImageStack):
             raise SEDLimits("Data ends after shape. Shape: %r, Ends: %r" % (data.shape,(xend,yend))) 
         
         if xstart < 0 or ystart < 0:
-            raise SEDLimits("Data starts less than zero. Start Limits: %r Start: %r" % ((0,0),tuple(xstart,ystart)))
+            raise SEDLimits("Data starts less than zero. Start Limits: %r Start: %r" % ((0,0),(xstart,ystart)))
         
         if xend < 0 or yend < 0:
-            raise SEDLimits("Data ends less than zero. End Limits: %r End: %r" % ((0,0),tuple(xend,yend)))
+            raise SEDLimits("Data ends less than zero. End Limits: %r End: %r" % ((0,0),(xend,yend)))
         
         data[xstart:xend,ystart:yend] += img
         self.save(data,self.framename,clobber=True)    
