@@ -124,7 +124,7 @@ Source:
   CubeName: CUBE.fits
   Filename: SNIa.R1000.dat
   Flat:
-    value: 1.0e-06
+    value: 1.0e-02
   Lines:
     List: Data/Lines.dat
     sigma: 1.0e-09

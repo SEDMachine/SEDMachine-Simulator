@@ -34,12 +34,12 @@ from pkg_resources import resource_filename
 import AstroObject
 from AstroObject.AstroSimulator import *
 from AstroObject.AstroCache import *
-from AstroObject.AstroConfig import *
+from AstroObject.AstroConfig import StructuredConfiguration, DottedConfiguration
 from AstroObject.AstroSpectra import SpectraStack,SpectraFrame
 from AstroObject.AstroImage import ImageStack,ImageFrame
 from AstroObject.AnalyticSpectra import BlackBodySpectrum,GaussianSpectrum, AnalyticSpectrum, FlatSpectrum, InterpolatedSpectrum, UnitarySpectrum
-from AstroObject.Utilities import *
-from AstroObject.mpl_utilities import *
+from AstroObject.util.mpl import LogFormatterTeXExponent
+from AstroObject.util import npArrayInfo
 
 from version import version as versionstr
 from Objects import *
