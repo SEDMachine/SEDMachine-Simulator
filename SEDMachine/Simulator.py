@@ -264,7 +264,7 @@ class SEDSimulator(Simulator,ImageStack):
        # lams - wavelengths for this position
        # xs - X position (in mm, offest from top right corner) of this wavelength
        # ys - Y Position (in mm, offset from top right corner) of this wavelength
-        
+       
        # Correctly Type Lenslet Specification Data
        ix = ix.astype(np.int) #Indicies should always be integers
         
@@ -279,23 +279,20 @@ class SEDSimulator(Simulator,ImageStack):
        
         
        # Progress bar for lenslet creation and validation
-      
-       total = len(self.lensletIndex)
-       self._start_progress_bar(total,"green")
-        
+       inpvars = (ix, xps, yps, lams, xcs, ycs, xls, yls, xas, yas, xbs, ybs, rs)
+       def lenslet_creator(self,idx,stream,ix, xps, yps, lams, xcs, ycs, xls, yls, xas, yas, xbs, ybs, rs):
+           select = idx == ix
+           lenslet = Lenslet(xps[select],yps[select],lams[select],idx,xcs[select], ycs[select],xls[select], yls[select],  xas[select], yas[select], xbs[select], ybs[select], rs[select],self.config,self.Caches)
+           if lenslet.valid(strict=self.config["Instrument.Lenslets.strict"]):
+               self.lenslets[idx] = lenslet
+               stream.write(lenslet.introspect())           
+           
+       
        # Variables for lenslet use
        FileName = "%(Partials)s/%(name)s%(ext)s" % dict(name="Lenslets-raw",ext=".dat",**self.config["Dirs"])
        with open(FileName,'w') as stream:
-           for idx in self.lensletIndex:
-               select = idx == ix
-               lenslet = Lenslet(xps[select],yps[select],lams[select],idx,xcs[select], ycs[select],xls[select], yls[select],  xas[select], yas[select], xbs[select], ybs[select], rs[select],self.config,self.Caches)
-               if lenslet.valid(strict=self.config["Instrument.Lenslets.strict"]):
-                   self.lenslets[idx] = lenslet
-                   stream.write(lenslet.introspect())
-               self.progress += 1
-               self.progressbar.update(self.progress)
+           self.map(lambda idx : lenslet_creator(self, idx, stream, *inpvars), self.lensletIndex)
        self.lensletIndex = np.asarray(self.lenslets.keys())
-       self._end_progress_bar()
        
        
        # Central Lenslet Output
