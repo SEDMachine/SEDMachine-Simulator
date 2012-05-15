@@ -4,6 +4,7 @@ Caches:
   PSF: SED.psf.npy
   Telescope: SED.tel.npy
   const: SED.const.yaml
+  CFG: SED.config.yaml
 Configurations:
   Main: SED.main.config.yaml
   This: SED.main.config.yaml

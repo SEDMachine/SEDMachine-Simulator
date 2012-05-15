@@ -89,7 +89,6 @@ class SEDSimulator(Simulator,ImageStack):
         # SETUP Stages
         self.registerStage(self.setup_caches,"setup-caches")
         self.registerStage(self.setup_configuration,"setup-config")
-        self.registerStage(self.debug_config,"debug-config")
         self.registerStage(self.setup_constants,"setup-constants")
         self.registerStage(self.setup_cameras,"setup-cameras")
         self.registerStage(self.setup_lenslets,"setup-lenslets")
@@ -180,25 +179,19 @@ class SEDSimulator(Simulator,ImageStack):
         
         
         self.registerStage(None,"plot",help="Create all plots",description="Plotting everything",dependencies=["plot-lenslet-xy","plot-lenslets","plot-sky","plot-qe","plot-source","plot-p-geometry","plot-hexagons","plot-pixels","plot-spectrum-tests","plot-kernel"])
-        
-    
+            
     @description("Setting up Caches")
     def setup_caches(self):
         """Establish Cache objects for image kernels. The Caching algorithm doesn't quite work properly yet, so this method is really superfluous.
         
         **Command Name:** ``*setup-caches``
         """
-        for key in self.config["Caches"]:
-            self.config["Caches"][key] = "%s/%s" % (self.config["Dirs.Caches"],self.config["Caches"][key])
+        
+        self.Caches["CFG"] = YAMLCache(lambda : self.config.store,filename=self.config["Caches.CFG"])
+        self.Caches["CFG"] # Forces this cache to run at some point.
         self.Caches["TEL"] = NumpyCache(self.get_tel_kern,filename=self.config["Caches.Telescope"])
         self.Caches["PSF"] = NumpyCache(self.get_psf_kern,filename=self.config["Caches.PSF"])
-        self.Caches["CONV"] = NumpyCache(lambda : sp.signal.convolve(self.Caches["PSF"],self.Caches["TEL"],mode='same'),filename=self.config["Caches.CONV"])
-        
-        if "clear_cache" in self.config["Options"] and self.config["Options"]["clear_cache"]:
-            self.Caches.flag('enabled',False)
-        if "cache" in self.config["Options"] and not self.config["Options"]["cache"]:
-            self.Caches.flag('saving',False)
-    
+        self.Caches["CONV"] = NumpyCache(lambda : sp.signal.convolve(self.Caches["PSF"],self.Caches["TEL"],mode='same'),filename=self.config["Caches.CONV"])    
     
     
     @description("Setting up operational constants")
@@ -215,9 +208,7 @@ class SEDSimulator(Simulator,ImageStack):
         
         """
         self.const = StructuredConfiguration()
-        self.const.setFile("const","SED.const.config.yaml")
         self.const["hc"] = 1.98644521e-8 # erg angstrom
-        self.Caches["CONST"] = ConfigCache(self.const,filename=self.config["Caches.const"])
         
     
     
@@ -691,12 +682,22 @@ class SEDSimulator(Simulator,ImageStack):
         """Place each spectrum into the subimage"""
         self.map_over_lenslets(self._lenslet_place,color="yellow")
         
+    def _lenslet_make_cache(self,l):
+        """Make a lenslet into a cache object"""
+        cache = Cache(lambda : l, l.read_subimage, lambda data,stream : data.write_subimage(stream), filename="Subimage-%04d.fits" % l.num)
+        cacheName = "LENS%04d" % l.num
+        self.Caches[cacheName] = cache
+        self.Caches.flag('loading',False,cacheName)
+        self.Caches[cacheName]
+        self.Caches.flag('loading',True,cacheName)
+        self.Caches.reset(cacheName)
+        l.clear()
     
     @ignore
     def _lenslet_place(self,l):
         """docstring for _lenslet_place"""
         l.place_trace(self.get_conv)
-        l.write_subimage()
+        self._lenslet_make_cache(l)
     
     
     @include
@@ -714,10 +715,10 @@ class SEDSimulator(Simulator,ImageStack):
     @ignore
     def _lenslet_merge(self,lenslet):
         """Merge a single lenslet into the master image"""
-        lenslet.read_subimage()
-        lenslet.bin_subimage()
-        self.place(lenslet.data(),lenslet.subcorner)
-        lenslet.clear(delete=True)
+        l = self.Caches["LENS%04d" % lenslet.num]
+        l.bin_subimage()
+        self.place(l.data(),l.subcorner)
+        l.clear(delete=True)
     
     
     
