@@ -58,14 +58,13 @@ class SubImage(ImageFrame):
         self.configHash = hash(0)
         self.spectrum = "NO SPEC"
 
-    log = logging.getLogger("SEDMachine")
+    log = logging.getLogger(__name__)
     
         
     def __getheader__(self,HDU):
         """Synchronizes the header dictionary with the HDU header"""
         # assert self.label == self.header['SEDlabel'], "Label does not match value specified in header: %s and %s" % (self.label,self.header['SEDlabel'])
         super(SubImage, self).__getheader__(HDU)
-        self.configHash = self.header['SEDconf']
         self.corner = [self.header['SEDcrx'],self.header['SEDcry']]
         self.spectrum = self.header['SEDspec']
         self.lensletNumber = self.header['SEDlens']
@@ -84,7 +83,6 @@ class SubImage(ImageFrame):
         """Sets the header object"""
         HDU.header.update('object',self.label)
         HDU.header.update('SEDlabel',self.label)
-        HDU.header.update('SEDconf',self.configHash)
         HDU.header.update('SEDcrx',self.corner[0])
         HDU.header.update('SEDcry',self.corner[1])
         HDU.header.update('SEDspec',self.spectrum)
@@ -116,9 +114,8 @@ class Lenslet(ImageStack):
     
     """
     def __init__(self,p1s,p2s,ls,ix,xcs, ycs, xls, yls, xas, yas, xbs, ybs, rs,config,caches):
-        super(Lenslet, self).__init__()
-        self.dataClasses = [SubImage]
-        self.log = logging.getLogger("SEDMachine")
+        super(Lenslet, self).__init__(dataClasses=[SubImage])
+        self.log = logging.getLogger(__name__)
         self.config = config
         self.num = ix
         
@@ -572,29 +569,22 @@ class Lenslet(ImageStack):
         frame = self.frame()
         frame.lensletNumber = self.num
         frame.corner = self.subcorner
-        frame.configHash = hash(str(self.config.extract()))
     
-    def write_subimage(self):
+    def write_subimage(self,filename):
         """Writes a subimage to file and then clears the subimage from this lenslet's memory. The subimage is written to a file with a name formatted as ``%(Caches)s/Subimage-%(num)4d.fits`` where the fields to the format string are relatively self explanatory.
         
         Subimage writes will clobber old images.
         """
-        fileName = "%(Caches)s/Subimage-%(num)04d%(ext)s" % dict(num=self.num,ext=".fits",**self.config["Dirs"])
-        if os.access(fileName,os.F_OK):
-            os.remove(fileName)
-        self.f.configHash = hash(str(self.config.store))
-        self.write(fileName,primaryFrame="Raw Spectrum",clobber=True)
-        self.clear()
+        write = self.write(filename,primaryFrame="Raw Spectrum",clobber=True)
+        self.log.info("Cache written %r" % str(write))
         
-    def read_subimage(self):
+    def read_subimage(self,filename):
         """Read a subimage from file and set the lenslet number and corner from data contained in the file. The filenames for subimages conform to the format ``%(Caches)s/Subimage-%(num)4d.fits``, similar to :meth:`write_subimage`. Frames are :class:`SubImage` classes so that they can safely store and retrieve their lenslet numbers and corner positions."""
-        self.read("%(Caches)s/Subimage-%(num)04d%(ext)s" % dict(num=self.num,ext=".fits",**self.config["Dirs"]))
-        frame = self.frame()
-        self.num = frame.lensletNumber
-        self.subcorner = frame.corner
-        self.configHash = hash(str(self.config.store))
-        if frame.configHash != self.configHash:
-            self.log.warning("Configuration hashes do not match: %r = %r" % (frame.configHash,self.configHash))
+        read = self.read(filename,clobber=True)
+        self.log.info("Cache read %s" % str(read))
+        self.num = self.f.lensletNumber
+        self.subcorner = self.f.corner
+        return self
         
         
     def bin_subimage(self):
