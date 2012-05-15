@@ -89,6 +89,7 @@ class SEDSimulator(Simulator,ImageStack):
         # SETUP Stages
         self.registerStage(self.setup_caches,"setup-caches")
         self.registerStage(self.setup_configuration,"setup-config")
+        self.registerStage(self.debug_config,"debug-config")
         self.registerStage(self.setup_constants,"setup-constants")
         self.registerStage(self.setup_cameras,"setup-cameras")
         self.registerStage(self.setup_lenslets,"setup-lenslets")
@@ -755,18 +756,10 @@ class SEDSimulator(Simulator,ImageStack):
     @depends("setup-config","setup-cameras")
     def setup_noise(self):
         """Makes noise masks"""
-        
-        state = self.framename
-        
         read_noise = self.config["Instrument.Cameras"][self.config["Instrument.Cameras.Selected"]]["RN"]
-        dark_noise = self.config["Instrument.Cameras"][self.config["Instrument.Cameras.Selected"]]["DC"] * self.config["Observation.exposure"]
-        
         self.generate_poisson_noise("Read",read_noise,self.config["Observation.number"])
-        
-        self.generate_poisson_noise("Dark",dark_noise)
-        
-        self.select(state)
-    
+        dark_noise = self.config["Instrument.Cameras"][self.config["Instrument.Cameras.Selected"]]["DC"] * self.config["Observation.exposure"]
+        self.generate_poisson_noise("Dark",dark_noise)    
         
     
     @include
@@ -1467,7 +1460,7 @@ class SEDSimulator(Simulator,ImageStack):
         noise = np.zeros(shape)
         for i in range(num):
             noise += distribution(*arguments)
-        self.save(noise,label)
+        self.save(noise,label,select=False)
     
     @ignore
     def get_conv(self,wavelength,a=None,b=None,rot=None):
@@ -1677,6 +1670,11 @@ class SEDSimulator(Simulator,ImageStack):
         
         self.config["Instrument.wavelengths.values"] = wl
         self.config["Instrument.wavelengths.resolutions"] = r
+    
+    @depends("setup-config")
+    def debug_config(self):
+        """Debug Hash Configuration"""
+        self.log.info("CONFIG HASH: %r" % hash(str(self.config.store)))
             
     @ignore
     def get_resolution_spectrum(self,minwl,maxwl,resolution):
