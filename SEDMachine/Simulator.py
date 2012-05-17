@@ -1127,10 +1127,9 @@ class SEDSimulator(Simulator,ImageStack):
         plt.savefig(FileName)
 
         plt.clf()
-        plt.title("Source Spectrum")
+        # plt.title("Source Spectrum")
         WL,FL = self.spectra.frame(self.config["Source.Filename"]+" (O)")(wavelengths=WL,resolution=RS)
-        plt.semilogy(WL*1e6,FL,'r.',linestyle='-',label="Source")
-        
+        plt.plot(WL*1e6,FL,'r.',linestyle='-',label="Source")
         plt.xlabel("Wavelength ($\mu$m)")
         plt.ylabel("Flux (Photons)")
         plt.legend(loc=4)
@@ -1373,7 +1372,8 @@ class SEDSimulator(Simulator,ImageStack):
         ETEL = self.get_tel_kern(major,minor)
         ECONV = sp.signal.convolve(self.Caches["PSF"],ETEL,mode='same')
         plt.clf()
-        plt.imshow(ETEL,interpolation='nearest')
+        figure = plt.imshow(ETEL,interpolation='nearest')
+        figure.set_cmap('binary_r')
         plt.title("Telescope Image (Ellipse)")
         plt.colorbar()
         plt.savefig("%s/Instrument-ETEL-Kernel%s" % (self.config["Dirs.Partials"],self.config["Plots.format"]))
