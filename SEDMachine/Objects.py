@@ -729,6 +729,10 @@ class Lenslet(ImageStack):
         self.log.debug(npArrayInfo(self.tfl,"Flux"))
         plt.clf()
         plt.semilogy(self.twl*1e6,self.tfl,"b.")
+        xmin,xmax,ymin,ymax = plt.axis()
+        if ymin < 1e-4:
+            ymin = 1e-4
+        plt.axis((xmin,xmax,ymin,ymax))
         plt.title("Generated, Fluxed Spectra (%d)" % self.num)
         plt.xlabel("Wavelength ($\mu m$)")
         plt.ylabel("Flux (Electrons)")
