@@ -296,7 +296,8 @@ class SEDSimulator(Simulator,ImageStack):
        
        
        if "start" in self.config["Lenslets"]:
-           self.lensletIndex = self.lensletIndex[self.config["Lenslets.start"]:]
+           index = self.lenslets.keys().index(self.config["Lenslets.start"])
+           self.lensletIndex = self.lensletIndex[index:]
        if "number" in self.config["Lenslets"]:
            self.lensletIndex = self.lensletIndex[:self.config["Lenslets.number"]]
        if "radius" in self.config["Lenslets"] and "position" in self.config["Lenslets"]:
