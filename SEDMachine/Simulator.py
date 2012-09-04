@@ -162,9 +162,9 @@ class SEDSimulator(Simulator,ImageStack):
         self.registerStage(self.plot_sky_original,"plot-sky-o")
         self.registerStage(self.plot_sky,"plot-sky")
         self.registerStage(self.plot_qe,"plot-qe")
+        self.registerStage(self.save_source,"save-source")
         
         self.registerStage(None,"plot-spectra",help=False,dependencies=["plot-qe","plot-sky","plot-source","plot-cal-o"])
-        
         
         # Dispersion plotting functions
         self.registerStage(self.plot_ellipses,"plot-lenslet-es")
@@ -576,7 +576,7 @@ class SEDSimulator(Simulator,ImageStack):
         self.map_over_lenslets(self._apply_qe_spectrum,color=False)
         self.sky.save(self.sky.frame() * self.config["Instrument.Tel.area"] * self.config["Observation.exposure"] * self.config["Instrument.eADU"],"Sky Mul")
         self.sky.save(self.sky.frame() * self.qe.frame())
-        self.spectra.save(self.spectra.frame() * self.config["Instrument.Tel.area"] * self.config["Observation.exposure"] * self.config["Instrument.eADU"],"Spec Mul")
+        self.spectra.save(self.spectra.frame() * self.config["Instrument.Tel.area"] * self.config["Observation.exposure"] * self.config["Instrument.eADU"],framename="Spec Mul")
         self.spectra.save(self.spectra.frame() * self.qe.frame())
         self.sky.save(self.sky.frame("Moon") * self.config["Instrument.Tel.area"] * self.config["Observation.exposure"] * self.config["Instrument.eADU"],"Moon Mul",select=False)
         self.sky.save(self.sky.frame("Moon Mul") * self.qe.frame(),"Moon QE",select=False)
@@ -1200,7 +1200,40 @@ class SEDSimulator(Simulator,ImageStack):
         plt.savefig(FileName)
         plt.clf()
         
-    
+    @description("Exporting Source Spectra")
+    @depends("setup-sky","setup-source","apply-sky","apply-qe","apply-atmosphere")
+    def save_source(self):
+        """Save the source spectra to files."""
+        SPECTRA = SpectraStack()
+        WL = self.config["Instrument.wavelengths.values"]
+        RS = self.config["Instrument.wavelengths.resolutions"]
+        SPECTRA.save(np.array([WL,RS]),"Instrument Resolution")
+        SPECTRA.write(filename="%(Partials)s/Instrument-Resolution.dat" % self.config["Dirs"], frames=["Instrument Resolution"],clobber=True)
+        GWL,GFL = self.spectra.data("Original")
+        SPECTRA.save(np.array([GWL[:-1],GWL[:-1]/np.diff(GWL)]),framename="Raw Input Data")
+        SPECTRA.write(filename="%(Partials)s/Input-Source-Resolution.dat" % self.config["Dirs"],frames=["Raw Input Data"],clobber=True)
+        
+        SPECTRA.save(self.spectra.frame()(wavelengths=WL,resolution=RS),framename="Combined")
+        SPECTRA.write(filename="%(Partials)s/Combined-Spectrum.dat" % self.config["Dirs"],frames=["Combined"],clobber=True)
+        
+        SPECTRA.save((self.spectra.frame() / self.sky.frame("Atmosphere"))(wavelengths=WL,resolution=RS),framename="Source (qe)")
+        SPECTRA.write(filename="%(Partials)s/Source+QE-Spectrum.dat" % self.config["Dirs"],frames=["Source (qe)"],clobber=True)
+        
+        SPECTRA.save(self.sky.frame()(wavelengths=WL,resolution=RS),framename="Sky (qe)")
+        SPECTRA.write(filename="%(Partials)s/Sky+QE-Spectrum.dat" % self.config["Dirs"],frames=["Sky (qe)"],clobber=True)
+        
+        SPECTRA.save(self.sky.frame("Sky Mul")(wavelengths=WL,resolution=RS),framename="Sky + Moon")
+        SPECTRA.write(filename="%(Partials)s/Sky+Moon-Spectrum.dat" % self.config["Dirs"],frames=["Sky + Moon"],clobber=True)
+        
+        SPECTRA.save((self.sky.frame("Sky Mul") - self.sky.frame("Moon Mul"))(wavelengths=WL,resolution=RS),framename="Sky")
+        SPECTRA.write(filename="%(Partials)s/Sky-Spectrum.dat" % self.config["Dirs"],frames=["Sky"],clobber=True)
+
+        SPECTRA.save((self.spectra.frame("Spec Mul") - self.sky.frame("Moon Mul"))(wavelengths=WL,resolution=RS),framename="Source")
+        SPECTRA.write(filename="%(Partials)s/Source-Spectrum.dat" % self.config["Dirs"],frames=["Source"],clobber=True)
+        
+        SPECTRA.save(self.sky.frame("Moon Mul")(wavelengths=WL,resolution=RS),framename="Moon")
+        SPECTRA.write(filename="%(Partials)s/Moon-Spectrum.dat" % self.config["Dirs"],frames=["Moon"],clobber=True)
+        
     @description("Plotting QE Spectrum")
     @depends("setup-sky")
     def plot_qe(self):
