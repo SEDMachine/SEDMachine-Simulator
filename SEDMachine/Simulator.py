@@ -162,7 +162,7 @@ class SEDSimulator(Simulator,ImageStack):
         self.registerStage(self.plot_sky_original,"plot-sky-o")
         self.registerStage(self.plot_sky,"plot-sky")
         self.registerStage(self.plot_qe,"plot-qe")
-        self.registerStage(self.save_source,"save-source")
+        self.registerStage(self.save_source,"save-source",help="Export example source data")
         
         self.registerStage(None,"plot-spectra",help=False,dependencies=["plot-qe","plot-sky","plot-source","plot-cal-o"])
         
@@ -175,6 +175,7 @@ class SEDSimulator(Simulator,ImageStack):
         self.registerStage(self.plot_dispersion_data,"plot-dispersion")
         self.registerStage(self.plot_trace_data,"plot-trace")
         self.registerStage(self.plot_spectrum_data,"plot-spectrum")
+        self.registerStage(self.export_trace_data,"save-trace",help="Export trace data to file")
         self.registerStage(None,"plot-lenslets",help=False,description="Plotting data about each lenslet",dependencies=["plot-dispersion","plot-trace","plot-spectrum"])
         
         
@@ -899,6 +900,12 @@ class SEDSimulator(Simulator,ImageStack):
     def plot_spectrum_data(self):
         """Outputs plots about each lenslet trace"""
         self.map_over_lenslets(lambda l: l.plot_spectrum(),color="cyan")
+        
+    @description("Saving Trace data for each lenslet")
+    @depends("trace")
+    def export_trace_data(self):
+        """docstring for export_trace_data"""
+        self.map_over_lenslets(lambda l: l.export_trace_data(),color="cyan")
     
     @description("Plotting lenslet positions")
     @depends("setup-lenslets")

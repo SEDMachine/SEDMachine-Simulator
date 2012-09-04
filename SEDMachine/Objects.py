@@ -592,6 +592,12 @@ class Lenslet(ImageStack):
         """
         self["Binned Spectrum"] = self.bin(self.data(),self.config["Instrument"]["density"])
     
+    def export_trace_data(self):
+        """Save textfiles with the raw data from this lenslet."""
+        SPECTRA = SpectraStack()
+        SPECTRA.save(np.array([self.twl,self.tfl]),"Instrument Resolution")
+        SPECTRA.write(filename="%(Partials)s/%(Number)s-Instrument-Spectrum.dat" % dict(Number=self.num, **self.config["Dirs"]), frames=["Instrument Resolution"],clobber=True)
+    
     def plot_raw_data(self):
         """Save a plot figure for raw-data from the lenslet.
         
