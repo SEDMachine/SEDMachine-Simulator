@@ -62,7 +62,6 @@ class SEDSimulator(Simulator,ImageStack):
         self.spectra.save(FlatSpectrum(0.0))
         self.sky =  SpectraStack(dataClasses=[AnalyticSpectrum,SpectraFrame])
         self.sky.save(FlatSpectrum(0.0))
-        self.astrologger = logging.getLogger("AstroObject")
         self.config.load(resource_filename(__name__,"SED.main.config.default.yaml"))
         self.config.setFile("Main")
         self.setup_stages()
@@ -1690,12 +1689,7 @@ class SEDSimulator(Simulator,ImageStack):
                 mm: 30
         
         
-        """
-        self.config.load()
-        self.astrologger.configure(configFile = self.config["Configurations.This"])
-        self.astrologger.start()
-        self.astrologger.useConsole(False)
-        
+        """        
         if "calc" not in self.config["Instrument.convert"]:
             if "mmtopx" not in self.config["Instrument.convert"] and "pxtomm" in self.config["Instrument.convert"]:
                 self.config["Instrument.convert.mmtopx"] = 1.0 / self.config["Instrument.convert.pxtomm"]
