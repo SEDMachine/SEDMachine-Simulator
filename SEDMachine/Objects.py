@@ -480,10 +480,10 @@ class Lenslet(ImageStack):
         
         # Find the first (by the flatten method) corner of the subimage,
         # useful for placing the sub-image into the full image.
-        corner = np.array([ xint[np.argmax(x)], yint[np.argmin(y)]])
+        corner = np.array([ xint[np.argmin(x)], yint[np.argmin(y)]])
         self.log.debug("Corner Position in Integer Space: %s" % corner)
         corner *= self.config["Instrument"]["density"]
-        realcorner = np.array([ xorig[np.argmax(x)], yorig[np.argmin(y)]])
+        realcorner = np.array([ xorig[np.argmin(x)], yorig[np.argmin(y)]])
         offset = corner - realcorner
         corner /= self.config["Instrument"]["density"]
         self.log.debug("Corner Position Offset in Dense Space: %s" % (offset))
@@ -498,8 +498,8 @@ class Lenslet(ImageStack):
         # Create our sub-image, using the x and y width of the spectrum, plus 2 padding widths.
         # Padding is specified in full-size pixels to ensure that the final image is an integer
         # number of full-size pixels across.
-        xsize = xdist+2*self.config["Instrument"]["padding"]*self.config["Instrument"]["density"]
-        ysize = ydist+2*self.config["Instrument"]["padding"]*self.config["Instrument"]["density"]
+        xsize = xdist+2*self.config["Instrument"]["padding"]*self.config["Instrument"]["density"] + offset[0]
+        ysize = ydist+2*self.config["Instrument"]["padding"]*self.config["Instrument"]["density"] + offset[1]
         
         # Calculate the resolution inherent to the pixels asked for
         WLS = self.dwl
