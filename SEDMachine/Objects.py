@@ -485,7 +485,7 @@ class Lenslet(ImageStack):
         if self.log.getEffectiveLevel() <= logging.DEBUG:
             with open("%(Partials)s/Instrument-Offsets.dat" % self.config["Dirs"],'a') as handle:
                 np.savetxt(handle,offset)
-        corner -= np.array([-self.config["Instrument"]["padding"],self.config["Instrument"]["padding"]])
+        corner -= np.array([self.config["Instrument"]["padding"],self.config["Instrument"]["padding"]])
         
         x += offset[0]
         y += offset[1]
