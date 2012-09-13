@@ -30,7 +30,7 @@ Assuming you have [Matplotlib][], [Numpy][] and [Scipy][] installed, run:
 	
 	$ sudo python setup.py install
 	$ cd working/directory/path/
-	$ SEDMsetup *all *config-files
+	$ SEDMsetup *all *config-file
 	$ SEDMsim *all
 	
 to perform a basic simulation. Simulations can take quite a long time to run. As such, you might want to try:

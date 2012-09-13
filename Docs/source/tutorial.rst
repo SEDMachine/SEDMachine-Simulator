@@ -35,7 +35,7 @@ Setup of your environment is handled by the ``SEDMsetup`` command::
 
 This creates all of the necessary data and directory files for use with the program. Next, you will need a configuration file. A basic configuration file that works with the data provided can be generated using::
 	
-	$ SEDMsetup *config-files
+	$ SEDMsetup *config-file
 	
 
 If you change values in the configuration file (Such as the directory information), you may want to run ``SEDMsetup`` again to make sure you have the correct data files available.
