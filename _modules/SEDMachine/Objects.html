@@ -7,7 +7,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>SEDMachine.Objects &mdash; SEDMsim 0.3.9-p3 documentation</title>
+    <title>SEDMachine.Objects &mdash; SEDMsim 0.3.9-p4.dev-git-5af64738fc596222798156d6509b3ea67b4d4e09 documentation</title>
     
     <link rel="stylesheet" href="../../_static/nature.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../../',
-        VERSION:     '0.3.9-p3',
+        VERSION:     '0.3.9-p4.dev-git-5af64738fc596222798156d6509b3ea67b4d4e09',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -24,7 +24,7 @@
     <script type="text/javascript" src="../../_static/jquery.js"></script>
     <script type="text/javascript" src="../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../_static/doctools.js"></script>
-    <link rel="top" title="SEDMsim 0.3.9-p3 documentation" href="../../index.html" />
+    <link rel="top" title="SEDMsim 0.3.9-p4.dev-git-5af64738fc596222798156d6509b3ea67b4d4e09 documentation" href="../../index.html" />
     <link rel="up" title="Module code" href="../index.html" /> 
   </head>
   <body>
@@ -37,7 +37,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li><a href="../../index.html">SEDMsim 0.3.9-p3 documentation</a> &raquo;</li>
+        <li><a href="../../index.html">SEDMsim 0.3.9-p4.dev-git-5af64738fc596222798156d6509b3ea67b4d4e09 documentation</a> &raquo;</li>
           <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
       </ul>
     </div>  
@@ -55,7 +55,7 @@
 <span class="c">#  </span>
 <span class="c">#  Created by Alexander Rudy on 2012-01-31.</span>
 <span class="c">#  Copyright 2012 Alexander Rudy. All rights reserved.</span>
-<span class="c">#  Version 0.3.9-p1</span>
+<span class="c">#  Version 0.3.9-p4</span>
 <span class="c"># </span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
@@ -87,10 +87,10 @@
 <span class="kn">from</span> <span class="nn">AstroObject.AstroSpectra</span> <span class="kn">import</span> <span class="n">SpectraStack</span>
 <span class="kn">from</span> <span class="nn">AstroObject.AstroImage</span> <span class="kn">import</span> <span class="n">ImageStack</span><span class="p">,</span><span class="n">ImageFrame</span>
 <span class="kn">from</span> <span class="nn">AstroObject.AnalyticSpectra</span> <span class="kn">import</span> <span class="n">BlackBodySpectrum</span><span class="p">,</span> <span class="n">AnalyticSpectrum</span><span class="p">,</span> <span class="n">FlatSpectrum</span><span class="p">,</span> <span class="n">InterpolatedSpectrum</span>
-<span class="kn">from</span> <span class="nn">AstroObject.Utilities</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">AstroObject.util</span> <span class="kn">import</span> <span class="n">getVersion</span><span class="p">,</span> <span class="n">npArrayInfo</span>
 
 
-<span class="n">__version__</span> <span class="o">=</span> <span class="n">getVersion</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="n">getVersion</span><span class="p">()</span>
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;SEDLimits&quot;</span><span class="p">,</span><span class="s">&quot;Lenslet&quot;</span><span class="p">,</span><span class="s">&quot;SubImage&quot;</span><span class="p">,</span><span class="s">&quot;SourcePixel&quot;</span><span class="p">]</span>
 
 <span class="k">class</span> <span class="nc">SEDLimits</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
@@ -108,17 +108,17 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">configHash</span> <span class="o">=</span> <span class="nb">hash</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">spectrum</span> <span class="o">=</span> <span class="s">&quot;NO SPEC&quot;</span>
 
-    <span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s">&quot;SEDMachine&quot;</span><span class="p">)</span>
+    <span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
     
         
-<div class="viewcode-block" id="SubImage.sync_header"><a class="viewcode-back" href="../../Lenslets.html#SEDMachine.Objects.SubImage.sync_header">[docs]</a>    <span class="k">def</span> <span class="nf">sync_header</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__getheader__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">HDU</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Synchronizes the header dictionary with the HDU header&quot;&quot;&quot;</span>
         <span class="c"># assert self.label == self.header[&#39;SEDlabel&#39;], &quot;Label does not match value specified in header: %s and %s&quot; % (self.label,self.header[&#39;SEDlabel&#39;])</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">configHash</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;SEDconf&#39;</span><span class="p">]</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SubImage</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__getheader__</span><span class="p">(</span><span class="n">HDU</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">corner</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;SEDcrx&#39;</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;SEDcry&#39;</span><span class="p">]]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">spectrum</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;SEDspec&#39;</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">lensletNumber</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;SEDlens&#39;</span><span class="p">]</span>
-    </div>
+    
     <span class="k">def</span> <span class="nf">__hdu__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">primary</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Retruns an HDU which represents this frame. HDUs are either ``pyfits.PrimaryHDU`` or ``pyfits.ImageHDU`` depending on the *primary* keyword.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">primary</span><span class="p">:</span>
@@ -133,7 +133,6 @@
         <span class="sd">&quot;&quot;&quot;Sets the header object&quot;&quot;&quot;</span>
         <span class="n">HDU</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s">&#39;object&#39;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="p">)</span>
         <span class="n">HDU</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s">&#39;SEDlabel&#39;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="p">)</span>
-        <span class="n">HDU</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s">&#39;SEDconf&#39;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">configHash</span><span class="p">)</span>
         <span class="n">HDU</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s">&#39;SEDcrx&#39;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">corner</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
         <span class="n">HDU</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s">&#39;SEDcry&#39;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">corner</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
         <span class="n">HDU</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s">&#39;SEDspec&#39;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">spectrum</span><span class="p">)</span>
@@ -150,27 +149,6 @@
         <span class="n">figure</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="bp">self</span><span class="p">())</span>
         <span class="n">figure</span><span class="o">.</span><span class="n">set_cmap</span><span class="p">(</span><span class="s">&#39;binary_r&#39;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">figure</span>
-    
-    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">__read__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span><span class="n">HDU</span><span class="p">,</span><span class="n">label</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Attempts to convert a given HDU into an object of type :class:`ImageFrame`. This method is similar to the :meth:`__save__` method, but instead of taking data as input, it takes a full HDU. The use of a full HDU allows this method to check for the correct type of HDU, and to gather header information from the HDU. When reading data from a FITS file, this is the prefered method to initialize a new frame.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">cls</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Attempting to read as </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">cls</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">HDU</span><span class="p">,(</span><span class="n">pf</span><span class="o">.</span><span class="n">ImageHDU</span><span class="p">,</span><span class="n">pf</span><span class="o">.</span><span class="n">PrimaryHDU</span><span class="p">)):</span>
-            <span class="n">msg</span> <span class="o">=</span> <span class="s">&quot;Must save a PrimaryHDU or ImageHDU to a </span><span class="si">%s</span><span class="s">, found </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">cls</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span><span class="nb">type</span><span class="p">(</span><span class="n">HDU</span><span class="p">))</span>
-            <span class="k">raise</span> <span class="n">AbstractError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">HDU</span><span class="o">.</span><span class="n">data</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
-            <span class="n">msg</span> <span class="o">=</span> <span class="s">&quot;HDU Data must be </span><span class="si">%s</span><span class="s"> for </span><span class="si">%s</span><span class="s">, found data of </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span><span class="n">cls</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span><span class="nb">type</span><span class="p">(</span><span class="n">HDU</span><span class="o">.</span><span class="n">data</span><span class="p">))</span>
-            <span class="k">raise</span> <span class="n">AbstractError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">Object</span> <span class="o">=</span> <span class="n">cls</span><span class="p">(</span><span class="n">HDU</span><span class="o">.</span><span class="n">data</span><span class="p">,</span><span class="n">label</span><span class="p">,</span><span class="n">header</span><span class="o">=</span><span class="n">HDU</span><span class="o">.</span><span class="n">header</span><span class="p">)</span>
-        <span class="k">except</span> <span class="ne">AssertionError</span> <span class="k">as</span> <span class="n">AE</span><span class="p">:</span>
-            <span class="n">msg</span> <span class="o">=</span> <span class="s">&quot;</span><span class="si">%s</span><span class="s"> data did not validate: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">cls</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span><span class="n">AE</span><span class="p">)</span>
-            <span class="k">raise</span> <span class="n">AbstractError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-        <span class="n">cls</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Created </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">Object</span><span class="p">)</span>
-        <span class="n">Object</span><span class="o">.</span><span class="n">sync_header</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">Object</span>
-
 </div>
 <div class="viewcode-block" id="Lenslet"><a class="viewcode-back" href="../../Lenslets.html#SEDMachine.Objects.Lenslet">[docs]</a><span class="k">class</span> <span class="nc">Lenslet</span><span class="p">(</span><span class="n">ImageStack</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;An object-representation of a lenslet. Takes approximately all of the data we know about each lenslet.</span>
@@ -186,9 +164,8 @@
 <span class="sd">    </span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">p1s</span><span class="p">,</span><span class="n">p2s</span><span class="p">,</span><span class="n">ls</span><span class="p">,</span><span class="n">ix</span><span class="p">,</span><span class="n">xcs</span><span class="p">,</span> <span class="n">ycs</span><span class="p">,</span> <span class="n">xls</span><span class="p">,</span> <span class="n">yls</span><span class="p">,</span> <span class="n">xas</span><span class="p">,</span> <span class="n">yas</span><span class="p">,</span> <span class="n">xbs</span><span class="p">,</span> <span class="n">ybs</span><span class="p">,</span> <span class="n">rs</span><span class="p">,</span><span class="n">config</span><span class="p">,</span><span class="n">caches</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">Lenslet</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">dataClasses</span> <span class="o">=</span> <span class="p">[</span><span class="n">SubImage</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s">&quot;SEDMachine&quot;</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Lenslet</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">dataClasses</span><span class="o">=</span><span class="p">[</span><span class="n">SubImage</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">num</span> <span class="o">=</span> <span class="n">ix</span>
         
@@ -538,14 +515,9 @@
         <span class="n">x</span> <span class="o">-=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
         <span class="n">y</span> <span class="o">-=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
         
-        <span class="c"># Get the approximate size of our spectra</span>
-        <span class="n">xdist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-        <span class="n">ydist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">y</span><span class="p">)</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+
         
-        <span class="c"># Convert this size into an integer number of pixels for our subimage. This makes it</span>
-        <span class="c"># *much* easier to register our sub-image to the master, larger pixel image</span>
-        <span class="n">xdist</span> <span class="o">+=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;density&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">xdist</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;density&quot;</span><span class="p">])</span>
-        <span class="n">ydist</span> <span class="o">+=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;density&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">ydist</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;density&quot;</span><span class="p">])</span>
+        
         
         <span class="c"># Move our x and y coordinates to the middle of our sub image by applying padding below each one.</span>
         <span class="n">x</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;padding&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;density&quot;</span><span class="p">]</span>
@@ -553,10 +525,10 @@
         
         <span class="c"># Find the first (by the flatten method) corner of the subimage,</span>
         <span class="c"># useful for placing the sub-image into the full image.</span>
-        <span class="n">corner</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span> <span class="n">xint</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">x</span><span class="p">)],</span> <span class="n">yint</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">y</span><span class="p">)]])</span>
+        <span class="n">corner</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span> <span class="n">xint</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">x</span><span class="p">)],</span> <span class="n">yint</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">y</span><span class="p">)]])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Corner Position in Integer Space: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">corner</span><span class="p">)</span>
         <span class="n">corner</span> <span class="o">*=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;density&quot;</span><span class="p">]</span>
-        <span class="n">realcorner</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span> <span class="n">xorig</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">x</span><span class="p">)],</span> <span class="n">yorig</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">y</span><span class="p">)]])</span>
+        <span class="n">realcorner</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span> <span class="n">xorig</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">x</span><span class="p">)],</span> <span class="n">yorig</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">y</span><span class="p">)]])</span>
         <span class="n">offset</span> <span class="o">=</span> <span class="n">corner</span> <span class="o">-</span> <span class="n">realcorner</span>
         <span class="n">corner</span> <span class="o">/=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;density&quot;</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Corner Position Offset in Dense Space: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">offset</span><span class="p">))</span>
@@ -567,6 +539,15 @@
         
         <span class="n">x</span> <span class="o">+=</span> <span class="n">offset</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">y</span> <span class="o">+=</span> <span class="n">offset</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        
+        <span class="c"># Get the approximate size of our spectra</span>
+        <span class="n">xdist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">ydist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">y</span><span class="p">)</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+        
+        <span class="c"># Convert this size into an integer number of pixels for our subimage. This makes it</span>
+        <span class="c"># *much* easier to register our sub-image to the master, larger pixel image</span>
+        <span class="n">xdist</span> <span class="o">+=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;density&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">xdist</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;density&quot;</span><span class="p">])</span>
+        <span class="n">ydist</span> <span class="o">+=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;density&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">ydist</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;density&quot;</span><span class="p">])</span>
         
         <span class="c"># Create our sub-image, using the x and y width of the spectrum, plus 2 padding widths.</span>
         <span class="c"># Padding is specified in full-size pixels to ensure that the final image is an integer</span>
@@ -642,31 +623,34 @@
         <span class="n">frame</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="p">()</span>
         <span class="n">frame</span><span class="o">.</span><span class="n">lensletNumber</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">num</span>
         <span class="n">frame</span><span class="o">.</span><span class="n">corner</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subcorner</span>
-        <span class="n">frame</span><span class="o">.</span><span class="n">configHash</span> <span class="o">=</span> <span class="nb">hash</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">extract</span><span class="p">()))</span>
     </div>
-<div class="viewcode-block" id="Lenslet.write_subimage"><a class="viewcode-back" href="../../Lenslets.html#SEDMachine.Objects.Lenslet.write_subimage">[docs]</a>    <span class="k">def</span> <span class="nf">write_subimage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Lenslet.write_subimage"><a class="viewcode-back" href="../../Lenslets.html#SEDMachine.Objects.Lenslet.write_subimage">[docs]</a>    <span class="k">def</span> <span class="nf">write_subimage</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Writes a subimage to file and then clears the subimage from this lenslet&#39;s memory. The subimage is written to a file with a name formatted as ``%(Caches)s/Subimage-%(num)4d.fits`` where the fields to the format string are relatively self explanatory.</span>
 <span class="sd">        </span>
 <span class="sd">        Subimage writes will clobber old images.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">fileName</span> <span class="o">=</span> <span class="s">&quot;</span><span class="si">%(Caches)s</span><span class="s">/Subimage-</span><span class="si">%(num)04d%(ext)s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">dict</span><span class="p">(</span><span class="n">num</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num</span><span class="p">,</span><span class="n">ext</span><span class="o">=</span><span class="s">&quot;.fits&quot;</span><span class="p">,</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Dirs&quot;</span><span class="p">])</span>
-        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">access</span><span class="p">(</span><span class="n">fileName</span><span class="p">,</span><span class="n">os</span><span class="o">.</span><span class="n">F_OK</span><span class="p">):</span>
-            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">fileName</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">fileName</span><span class="p">,</span><span class="n">primaryFrame</span><span class="o">=</span><span class="s">&quot;Raw Spectrum&quot;</span><span class="p">,</span><span class="n">clobber</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="n">write</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span><span class="n">primaryFrame</span><span class="o">=</span><span class="s">&quot;Raw Spectrum&quot;</span><span class="p">,</span><span class="n">clobber</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Cache written </span><span class="si">%r</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">write</span><span class="p">))</span>
         </div>
-<div class="viewcode-block" id="Lenslet.read_subimage"><a class="viewcode-back" href="../../Lenslets.html#SEDMachine.Objects.Lenslet.read_subimage">[docs]</a>    <span class="k">def</span> <span class="nf">read_subimage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Lenslet.read_subimage"><a class="viewcode-back" href="../../Lenslets.html#SEDMachine.Objects.Lenslet.read_subimage">[docs]</a>    <span class="k">def</span> <span class="nf">read_subimage</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Read a subimage from file and set the lenslet number and corner from data contained in the file. The filenames for subimages conform to the format ``%(Caches)s/Subimage-%(num)4d.fits``, similar to :meth:`write_subimage`. Frames are :class:`SubImage` classes so that they can safely store and retrieve their lenslet numbers and corner positions.&quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s">&quot;</span><span class="si">%(Caches)s</span><span class="s">/Subimage-</span><span class="si">%(num)4d%(ext)s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">dict</span><span class="p">(</span><span class="n">num</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num</span><span class="p">,</span><span class="n">ext</span><span class="o">=</span><span class="s">&quot;.fits&quot;</span><span class="p">,</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Dirs&quot;</span><span class="p">]))</span>
-        <span class="n">frame</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">num</span> <span class="o">=</span> <span class="n">frame</span><span class="o">.</span><span class="n">lensletNumber</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">subcorner</span> <span class="o">=</span> <span class="n">frame</span><span class="o">.</span><span class="n">corner</span>
+        <span class="n">read</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span><span class="n">clobber</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Cache read </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">read</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">lensletNumber</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">subcorner</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">corner</span>
+        <span class="k">return</span> <span class="bp">self</span>
         </div>
 <div class="viewcode-block" id="Lenslet.bin_subimage"><a class="viewcode-back" href="../../Lenslets.html#SEDMachine.Objects.Lenslet.bin_subimage">[docs]</a>    <span class="k">def</span> <span class="nf">bin_subimage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Bin the selected subimage using the :meth:`bin` function, and binning based on the configured density. This function also sets the final data type as ``np.int16``.</span>
 <span class="sd">        </span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="p">[</span><span class="s">&quot;Binned Spectrum&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">(),</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Instrument&quot;</span><span class="p">][</span><span class="s">&quot;density&quot;</span><span class="p">])</span>
+    </div>
+<div class="viewcode-block" id="Lenslet.export_trace_data"><a class="viewcode-back" href="../../Lenslets.html#SEDMachine.Objects.Lenslet.export_trace_data">[docs]</a>    <span class="k">def</span> <span class="nf">export_trace_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Save textfiles with the raw data from this lenslet.&quot;&quot;&quot;</span>
+        <span class="n">SPECTRA</span> <span class="o">=</span> <span class="n">SpectraStack</span><span class="p">()</span>
+        <span class="n">SPECTRA</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">twl</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">tfl</span><span class="p">]),</span><span class="s">&quot;Instrument Resolution&quot;</span><span class="p">)</span>
+        <span class="n">SPECTRA</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s">&quot;</span><span class="si">%(Partials)s</span><span class="s">/</span><span class="si">%(Number)s</span><span class="s">-Instrument-Spectrum.dat&quot;</span> <span class="o">%</span> <span class="nb">dict</span><span class="p">(</span><span class="n">Number</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;Dirs&quot;</span><span class="p">]),</span> <span class="n">frames</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;Instrument Resolution&quot;</span><span class="p">],</span><span class="n">clobber</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
     </div>
 <div class="viewcode-block" id="Lenslet.plot_raw_data"><a class="viewcode-back" href="../../Lenslets.html#SEDMachine.Objects.Lenslet.plot_raw_data">[docs]</a>    <span class="k">def</span> <span class="nf">plot_raw_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Save a plot figure for raw-data from the lenslet.</span>
@@ -779,6 +763,10 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">npArrayInfo</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tfl</span><span class="p">,</span><span class="s">&quot;Flux&quot;</span><span class="p">))</span>
         <span class="n">plt</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span>
         <span class="n">plt</span><span class="o">.</span><span class="n">semilogy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">twl</span><span class="o">*</span><span class="mf">1e6</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">tfl</span><span class="p">,</span><span class="s">&quot;b.&quot;</span><span class="p">)</span>
+        <span class="n">xmin</span><span class="p">,</span><span class="n">xmax</span><span class="p">,</span><span class="n">ymin</span><span class="p">,</span><span class="n">ymax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">ymin</span> <span class="o">&lt;</span> <span class="mf">1e-4</span><span class="p">:</span>
+            <span class="n">ymin</span> <span class="o">=</span> <span class="mf">1e-4</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">((</span><span class="n">xmin</span><span class="p">,</span><span class="n">xmax</span><span class="p">,</span><span class="n">ymin</span><span class="p">,</span><span class="n">ymax</span><span class="p">))</span>
         <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">&quot;Generated, Fluxed Spectra (</span><span class="si">%d</span><span class="s">)&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">num</span><span class="p">)</span>
         <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">&quot;Wavelength ($\mu m$)&quot;</span><span class="p">)</span>
         <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">&quot;Flux (Electrons)&quot;</span><span class="p">)</span>
@@ -981,7 +969,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li><a href="../../index.html">SEDMsim 0.3.9-p3 documentation</a> &raquo;</li>
+        <li><a href="../../index.html">SEDMsim 0.3.9-p4.dev-git-5af64738fc596222798156d6509b3ea67b4d4e09 documentation</a> &raquo;</li>
           <li><a href="../index.html" >Module code</a> &raquo;</li> 
       </ul>
     </div>

@@ -7,7 +7,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>7. Lenslets Suppporting Classes &mdash; SEDMsim 0.3.9-p3 documentation</title>
+    <title>7. Lenslets Suppporting Classes &mdash; SEDMsim 0.3.9-p4.dev-git-5af64738fc596222798156d6509b3ea67b4d4e09 documentation</title>
     
     <link rel="stylesheet" href="_static/nature.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.3.9-p3',
+        VERSION:     '0.3.9-p4.dev-git-5af64738fc596222798156d6509b3ea67b4d4e09',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -24,7 +24,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="SEDMsim 0.3.9-p3 documentation" href="index.html" />
+    <link rel="top" title="SEDMsim 0.3.9-p4.dev-git-5af64738fc596222798156d6509b3ea67b4d4e09 documentation" href="index.html" />
     <link rel="next" title="An Example Simulator" href="SimulatorExample.html" />
     <link rel="prev" title="6. Simulator Operational Algorithms" href="Simulator.html" /> 
   </head>
@@ -44,7 +44,7 @@
         <li class="right" >
           <a href="Simulator.html" title="6. Simulator Operational Algorithms"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">SEDMsim 0.3.9-p3 documentation</a> &raquo;</li> 
+        <li><a href="index.html">SEDMsim 0.3.9-p4.dev-git-5af64738fc596222798156d6509b3ea67b4d4e09 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -258,14 +258,14 @@
 
 <dl class="method">
 <dt id="SEDMachine.Objects.Lenslet.write_subimage">
-<tt class="descname">write_subimage</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Objects.html#Lenslet.write_subimage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Objects.Lenslet.write_subimage" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">write_subimage</tt><big>(</big><em>filename</em><big>)</big><a class="reference internal" href="_modules/SEDMachine/Objects.html#Lenslet.write_subimage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Objects.Lenslet.write_subimage" title="Permalink to this definition">¶</a></dt>
 <dd><p>Writes a subimage to file and then clears the subimage from this lenslet&#8217;s memory. The subimage is written to a file with a name formatted as <tt class="docutils literal"><span class="pre">%(Caches)s/Subimage-%(num)4d.fits</span></tt> where the fields to the format string are relatively self explanatory.</p>
 <p>Subimage writes will clobber old images.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="SEDMachine.Objects.Lenslet.read_subimage">
-<tt class="descname">read_subimage</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Objects.html#Lenslet.read_subimage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Objects.Lenslet.read_subimage" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">read_subimage</tt><big>(</big><em>filename</em><big>)</big><a class="reference internal" href="_modules/SEDMachine/Objects.html#Lenslet.read_subimage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Objects.Lenslet.read_subimage" title="Permalink to this definition">¶</a></dt>
 <dd><p>Read a subimage from file and set the lenslet number and corner from data contained in the file. The filenames for subimages conform to the format <tt class="docutils literal"><span class="pre">%(Caches)s/Subimage-%(num)4d.fits</span></tt>, similar to <tt class="xref py py-meth docutils literal"><span class="pre">write_subimage()</span></tt>. Frames are <tt class="xref py py-class docutils literal"><span class="pre">SubImage</span></tt> classes so that they can safely store and retrieve their lenslet numbers and corner positions.</p>
 </dd></dl>
 
@@ -273,6 +273,12 @@
 <dt id="SEDMachine.Objects.Lenslet.bin_subimage">
 <tt class="descname">bin_subimage</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Objects.html#Lenslet.bin_subimage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Objects.Lenslet.bin_subimage" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bin the selected subimage using the <tt class="xref py py-meth docutils literal"><span class="pre">bin()</span></tt> function, and binning based on the configured density. This function also sets the final data type as <tt class="docutils literal"><span class="pre">np.int16</span></tt>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="SEDMachine.Objects.Lenslet.export_trace_data">
+<tt class="descname">export_trace_data</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Objects.html#Lenslet.export_trace_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Objects.Lenslet.export_trace_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Save textfiles with the raw data from this lenslet.</p>
 </dd></dl>
 
 <dl class="method">
@@ -517,12 +523,6 @@
 <dt id="SEDMachine.Objects.SubImage">
 <em class="property">class </em><tt class="descclassname">SEDMachine.Objects.</tt><tt class="descname">SubImage</tt><big>(</big><em>array</em>, <em>label</em>, <em>header=None</em>, <em>metadata=None</em><big>)</big><a class="reference internal" href="_modules/SEDMachine/Objects.html#SubImage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Objects.SubImage" title="Permalink to this definition">¶</a></dt>
 <dd><p>A custom frame type for SEDMachine Sub-Images</p>
-<dl class="method">
-<dt id="SEDMachine.Objects.SubImage.sync_header">
-<tt class="descname">sync_header</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/SEDMachine/Objects.html#SubImage.sync_header"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#SEDMachine.Objects.SubImage.sync_header" title="Permalink to this definition">¶</a></dt>
-<dd><p>Synchronizes the header dictionary with the HDU header</p>
-</dd></dl>
-
 </dd></dl>
 
 </div>
@@ -576,7 +576,7 @@
         <li class="right" >
           <a href="Simulator.html" title="6. Simulator Operational Algorithms"
              >previous</a> |</li>
-        <li><a href="index.html">SEDMsim 0.3.9-p3 documentation</a> &raquo;</li> 
+        <li><a href="index.html">SEDMsim 0.3.9-p4.dev-git-5af64738fc596222798156d6509b3ea67b4d4e09 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">

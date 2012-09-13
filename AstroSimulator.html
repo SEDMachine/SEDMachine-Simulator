@@ -7,7 +7,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>5. Simulator AstroSimulator &mdash; SEDMsim 0.3.9-p3 documentation</title>
+    <title>5. Simulator AstroSimulator &mdash; SEDMsim 0.3.9-p4.dev-git-5af64738fc596222798156d6509b3ea67b4d4e09 documentation</title>
     
     <link rel="stylesheet" href="_static/nature.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.3.9-p3',
+        VERSION:     '0.3.9-p4.dev-git-5af64738fc596222798156d6509b3ea67b4d4e09',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -24,7 +24,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="SEDMsim 0.3.9-p3 documentation" href="index.html" />
+    <link rel="top" title="SEDMsim 0.3.9-p4.dev-git-5af64738fc596222798156d6509b3ea67b4d4e09 documentation" href="index.html" />
     <link rel="next" title="6. Simulator Operational Algorithms" href="Simulator.html" />
     <link rel="prev" title="4. SEDMsetup Program managing environments" href="SEDMsetup.html" /> 
   </head>
@@ -44,7 +44,7 @@
         <li class="right" >
           <a href="SEDMsetup.html" title="4. SEDMsetup Program managing environments"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">SEDMsim 0.3.9-p3 documentation</a> &raquo;</li> 
+        <li><a href="index.html">SEDMsim 0.3.9-p4.dev-git-5af64738fc596222798156d6509b3ea67b4d4e09 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -308,7 +308,7 @@ $ Simulator *none</pre>
 
 <dl class="method">
 <dt id="AstroObject.AstroSimulator.Simulator.registerStage">
-<tt class="descname">registerStage</tt><big>(</big><em>stage</em>, <em>name=None</em>, <em>description=None</em>, <em>exceptions=None</em>, <em>include=None</em>, <em>help=False</em>, <em>dependencies=None</em>, <em>replaces=None</em>, <em>optional=False</em><big>)</big><a class="reference internal" href="_modules/AstroObject/AstroSimulator.html#Simulator.registerStage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#AstroObject.AstroSimulator.Simulator.registerStage" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">registerStage</tt><big>(</big><em>stage</em>, <em>name=None</em>, <em>description=None</em>, <em>exceptions=None</em>, <em>include=None</em>, <em>help=False</em>, <em>dependencies=None</em>, <em>replaces=None</em>, <em>triggers=None</em>, <em>optional=False</em><big>)</big><a class="reference internal" href="_modules/AstroObject/AstroSimulator.html#Simulator.registerStage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#AstroObject.AstroSimulator.Simulator.registerStage" title="Permalink to this definition">¶</a></dt>
 <dd><p>Register a stage for operation with the simulator. The stage will then be available as a command line option, and will be operated with the simulator. Stages should be registered early in the operation of the simulator (preferably in the initialization, after the simulator class itself has initialized) so that the program is aware of the stages for running.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -323,6 +323,7 @@ $ Simulator *none</pre>
 <li><strong>help</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#string" title="(in Python v2.7)"><em>string</em></a>) &#8211; Help text for the command line argument. A value of False excludes the help, None includes generic help.</li>
 <li><strong>dependencies</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#list" title="(in Python v2.7)"><em>list</em></a>) &#8211; An ordered list of the stages which must run before this stage can run. Dependencies will be deep-searched.</li>
 <li><strong>replaces</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#list" title="(in Python v2.7)"><em>list</em></a>) &#8211; A list of stages which can be replaced by this stage. This stage will now satisfy those dependencies.</li>
+<li><strong>triggers</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#list" title="(in Python v2.7)"><em>list</em></a>) &#8211; A list of stages which should be triggered by this stage. These stages will be run if they occur (are registered) after this stage.</li>
 <li><strong>optional</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; A boolean about wheather this stage can be skipped. If so, warnings will not be raised when this stage is explicitly skipped (like <tt class="docutils literal"><span class="pre">-stage</span></tt> would do)</li>
 </ul>
 </td>
@@ -428,7 +429,7 @@ $ Simulator *none</pre>
 </tbody>
 </table>
 <p>This command can be used to run specific stages and their dependents. The control is far less flow control than the command-line interface (there is currently no argument interface to inclusion and exclusion lists, <tt class="docutils literal"><span class="pre">+</span></tt> and <tt class="docutils literal"><span class="pre">-</span></tt>.), but can be used to call single macros in simulators froms scripts. In these cases, it is often beneficial to set up your own macro (calling <a class="reference internal" href="#AstroObject.AstroSimulator.Simulator.registerStage" title="AstroObject.AstroSimulator.Simulator.registerStage"><tt class="xref py py-func docutils literal"><span class="pre">registerStage()</span></tt></a> with <tt class="docutils literal"><span class="pre">None</span></tt> as the stage action) to wrap the actions you want taken in each phase.</p>
-<p>It is possible to stop execution in the middle of this function. Simply set the simulator&#8217;s <tt class="docutils literal"><span class="pre">paused</span></tt> variable to <tt class="docutils literal"><span class="pre">True</span></tt> and the simulator will remain in a state where you are free to call <a class="reference internal" href="#AstroObject.AstroSimulator.Simulator.do" title="AstroObject.AstroSimulator.Simulator.do"><tt class="xref py py-meth docutils literal"><span class="pre">do()</span></tt></a> again.</p>
+<p>It is possible to stop execution in the middle of this function. Simply raise an <tt class="xref py py-exc docutils literal"><span class="pre">SimulatorPause</span></tt> exception and the simulator will return, and remain in a state where you are free to call <a class="reference internal" href="#AstroObject.AstroSimulator.Simulator.do" title="AstroObject.AstroSimulator.Simulator.do"><tt class="xref py py-meth docutils literal"><span class="pre">do()</span></tt></a> again.</p>
 </dd></dl>
 
 <dl class="method">
@@ -464,19 +465,19 @@ $ Simulator *none</pre>
 <dl class="function">
 <dt id="AstroObject.AstroSimulator.collect">
 <tt class="descclassname">AstroObject.AstroSimulator.</tt><tt class="descname">collect</tt><big>(</big><em>collect=True</em><big>)</big><a class="reference internal" href="_modules/AstroObject/AstroSimulator.html#collect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#AstroObject.AstroSimulator.collect" title="Permalink to this definition">¶</a></dt>
-<dd><p>Include stage explicitly in collection</p>
+<dd><p>Include stage explicitly in simulator automated stage collection</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="AstroObject.AstroSimulator.ignore">
 <tt class="descclassname">AstroObject.AstroSimulator.</tt><tt class="descname">ignore</tt><big>(</big><em>ignore=True</em><big>)</big><a class="reference internal" href="_modules/AstroObject/AstroSimulator.html#ignore"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#AstroObject.AstroSimulator.ignore" title="Permalink to this definition">¶</a></dt>
-<dd><p>Ignore stage explicitly in collection</p>
+<dd><p>Ignore stage explicitly in simulator automated stage collection</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="AstroObject.AstroSimulator.include">
 <tt class="descclassname">AstroObject.AstroSimulator.</tt><tt class="descname">include</tt><big>(</big><em>include=True</em><big>)</big><a class="reference internal" href="_modules/AstroObject/AstroSimulator.html#include"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#AstroObject.AstroSimulator.include" title="Permalink to this definition">¶</a></dt>
-<dd><p>Commands this object to be included</p>
+<dd><p>Commands this object to be included in the <tt class="docutils literal"><span class="pre">*all</span></tt> method.</p>
 </dd></dl>
 
 <dl class="function">
@@ -494,25 +495,32 @@ $ Simulator *none</pre>
 <dl class="function">
 <dt id="AstroObject.AstroSimulator.depends">
 <tt class="descclassname">AstroObject.AstroSimulator.</tt><tt class="descname">depends</tt><big>(</big><em>*dependencies</em><big>)</big><a class="reference internal" href="_modules/AstroObject/AstroSimulator.html#depends"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#AstroObject.AstroSimulator.depends" title="Permalink to this definition">¶</a></dt>
-<dd><p>Registers dependencies for this function</p>
+<dd><p>Registers dependencies for this function. Dependencies will be completed before this stage is called.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="AstroObject.AstroSimulator.triggers">
+<tt class="descclassname">AstroObject.AstroSimulator.</tt><tt class="descname">triggers</tt><big>(</big><em>*triggers</em><big>)</big><a class="reference internal" href="_modules/AstroObject/AstroSimulator.html#triggers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#AstroObject.AstroSimulator.triggers" title="Permalink to this definition">¶</a></dt>
+<dd><p>Registers triggers for this function. Triggers are stages which should be added to the run queue if this stage is called.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="AstroObject.AstroSimulator.replaces">
 <tt class="descclassname">AstroObject.AstroSimulator.</tt><tt class="descname">replaces</tt><big>(</big><em>*replaces</em><big>)</big><a class="reference internal" href="_modules/AstroObject/AstroSimulator.html#replaces"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#AstroObject.AstroSimulator.replaces" title="Permalink to this definition">¶</a></dt>
-<dd><p>Registers replacements for this stage</p>
+<dd><p>Registers replacements for this stage. This stage will satisfy any dependencies which call for <tt class="docutils literal"><span class="pre">replaces</span></tt> if this stage is run before those dependencies are requested.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="AstroObject.AstroSimulator.optional">
 <tt class="descclassname">AstroObject.AstroSimulator.</tt><tt class="descname">optional</tt><big>(</big><em>optional=True</em><big>)</big><a class="reference internal" href="_modules/AstroObject/AstroSimulator.html#optional"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#AstroObject.AstroSimulator.optional" title="Permalink to this definition">¶</a></dt>
-<dd><p>Makes this object optional</p>
+<dd><p>Makes this object optional. This stage will now trap all exceptions, and will not cause the simulator to fail if it fails.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="AstroObject.AstroSimulator.excepts">
 <tt class="descclassname">AstroObject.AstroSimulator.</tt><tt class="descname">excepts</tt><big>(</big><em>*exceptions</em><big>)</big><a class="reference internal" href="_modules/AstroObject/AstroSimulator.html#excepts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#AstroObject.AstroSimulator.excepts" title="Permalink to this definition">¶</a></dt>
-<dd><p>Registers exceptions for this function.</p>
+<dd><p>Registers exceptions for this function. Exceptions listed here are deemed &#8216;acceptable failures&#8217; for this stage, and will allow the simulator to continue operating
+without error.</p>
 </dd></dl>
 
 <dl class="function">
@@ -653,7 +661,7 @@ $ Simulator *none</pre>
 
 <dl class="class">
 <dt id="AstroObject.AstroSimulator.Stage">
-<em class="property">class </em><tt class="descclassname">AstroObject.AstroSimulator.</tt><tt class="descname">Stage</tt><big>(</big><em>stage</em>, <em>name='a Stage'</em>, <em>description=None</em>, <em>exceptions=None</em>, <em>dependencies=None</em>, <em>replaces=None</em>, <em>optional=False</em><big>)</big><a class="reference internal" href="_modules/AstroObject/AstroSimulator.html#Stage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#AstroObject.AstroSimulator.Stage" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">AstroObject.AstroSimulator.</tt><tt class="descname">Stage</tt><big>(</big><em>stage</em>, <em>name='a Stage'</em>, <em>description=None</em>, <em>exceptions=None</em>, <em>dependencies=None</em>, <em>replaces=None</em>, <em>triggers=None</em>, <em>optional=False</em><big>)</big><a class="reference internal" href="_modules/AstroObject/AstroSimulator.html#Stage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#AstroObject.AstroSimulator.Stage" title="Permalink to this definition">¶</a></dt>
 <dd><p>A stage object for maintaing data structure. This object is only created internally by the <a class="reference internal" href="#AstroObject.AstroSimulator.Simulator" title="AstroObject.AstroSimulator.Simulator"><tt class="xref py py-class docutils literal"><span class="pre">Simulator</span></tt></a> class. The attributes of this class are directly called. The class does not provide accessor or setter methods, and should never be called externally.</p>
 <dl class="attribute">
 <dt id="AstroObject.AstroSimulator.Stage.do">
@@ -773,7 +781,7 @@ $ Simulator *none</pre>
         <li class="right" >
           <a href="SEDMsetup.html" title="4. SEDMsetup Program managing environments"
              >previous</a> |</li>
-        <li><a href="index.html">SEDMsim 0.3.9-p3 documentation</a> &raquo;</li> 
+        <li><a href="index.html">SEDMsim 0.3.9-p4.dev-git-5af64738fc596222798156d6509b3ea67b4d4e09 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
