@@ -465,14 +465,9 @@ class Lenslet(ImageStack):
         x -= np.min(x)
         y -= np.min(y)
         
-        # Get the approximate size of our spectra
-        xdist = np.max(x)-np.min(x)
-        ydist = np.max(y)-np.min(y)
+
         
-        # Convert this size into an integer number of pixels for our subimage. This makes it
-        # *much* easier to register our sub-image to the master, larger pixel image
-        xdist += (self.config["Instrument"]["density"] - xdist % self.config["Instrument"]["density"])
-        ydist += (self.config["Instrument"]["density"] - ydist % self.config["Instrument"]["density"])
+        
         
         # Move our x and y coordinates to the middle of our sub image by applying padding below each one.
         x += self.config["Instrument"]["padding"] * self.config["Instrument"]["density"]
@@ -495,11 +490,20 @@ class Lenslet(ImageStack):
         x += offset[0]
         y += offset[1]
         
+        # Get the approximate size of our spectra
+        xdist = np.max(x)-np.min(x)
+        ydist = np.max(y)-np.min(y)
+        
+        # Convert this size into an integer number of pixels for our subimage. This makes it
+        # *much* easier to register our sub-image to the master, larger pixel image
+        xdist += (self.config["Instrument"]["density"] - xdist % self.config["Instrument"]["density"])
+        ydist += (self.config["Instrument"]["density"] - ydist % self.config["Instrument"]["density"])
+        
         # Create our sub-image, using the x and y width of the spectrum, plus 2 padding widths.
         # Padding is specified in full-size pixels to ensure that the final image is an integer
         # number of full-size pixels across.
-        xsize = xdist+2*self.config["Instrument"]["padding"]*self.config["Instrument"]["density"] + offset[0]
-        ysize = ydist+2*self.config["Instrument"]["padding"]*self.config["Instrument"]["density"] + offset[1]
+        xsize = xdist+2*self.config["Instrument"]["padding"]*self.config["Instrument"]["density"]
+        ysize = ydist+2*self.config["Instrument"]["padding"]*self.config["Instrument"]["density"]
         
         # Calculate the resolution inherent to the pixels asked for
         WLS = self.dwl
