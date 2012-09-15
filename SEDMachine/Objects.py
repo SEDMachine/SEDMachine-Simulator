@@ -501,8 +501,8 @@ class Lenslet(ImageStack):
         # Create our sub-image, using the x and y width of the spectrum, plus 2 padding widths.
         # Padding is specified in full-size pixels to ensure that the final image is an integer
         # number of full-size pixels across.
-        xsize = xdist+2*self.config["Instrument"]["padding"]*self.config["Instrument"]["density"]
-        ysize = ydist+2*self.config["Instrument"]["padding"]*self.config["Instrument"]["density"]
+        xsize = xdist+self.config["Instrument"]["padding"]*self.config["Instrument"]["density"]
+        ysize = ydist+self.config["Instrument"]["padding"]*self.config["Instrument"]["density"]
         
         # Calculate the resolution inherent to the pixels asked for
         WLS = self.dwl
