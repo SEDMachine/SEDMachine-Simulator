@@ -134,8 +134,8 @@ class Lenslet(ImageStack):
         self.points = np.array([self.xcs,self.ycs]).T
         
         # Convert the xs and ys to pixel positions
-        self.xpixs = (self.xcs * self.config["Instrument"]["convert"]["mmtopx"],0).astype(np.int)
-        self.ypixs = (self.ycs * self.config["Instrument"]["convert"]["mmtopx"],0).astype(np.int)
+        self.xpixs = np.asarray(self.xcs * self.config["Instrument"]["convert"]["mmtopx"]).astype(np.int)
+        self.ypixs = np.asarray(self.ycs * self.config["Instrument"]["convert"]["mmtopx"]).astype(np.int)
         self.pixs = np.array([self.xpixs,self.ypixs]).T
         self.ps = np.array([p1s,p2s]).T
         self.ls = np.array(ls)
