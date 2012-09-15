@@ -143,6 +143,7 @@ class SEDSimulator(Simulator,ImageStack):
         
         
         # Plotting geometry functions
+        self.registerStage(self.region_file,"region-file")
         self.registerStage(self.plot_kernel_partials,"plot-kernel")
         self.registerStage(self.plot_hexagons,"plot-hexagons")
         self.registerStage(self.plot_invalid_hexagons,"plot-bad-hexagons")
@@ -884,6 +885,28 @@ class SEDSimulator(Simulator,ImageStack):
     #######################
     ## DEBUGGING METHODS ##
     #######################
+    
+    @depends("setup-lenslets")
+    def region_file(self):
+        """Produce a region file for ds9"""
+        x,y = self.center
+        size = self.config["Instrument.ccd.size.px"] / 2.0
+        self._offset = [x-size,y-size]
+        filelines = []
+        filelines += ["# Region file format: DS9 version 4.1",
+        "# Filename: SEDM-Offset-NFlag-sim-flat-2012-09-14.fits",
+        "global color=green dashlist=8 3 width=1 font=\"helvetica 10 normal roman\" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 delete=1 include=1 source=1",
+        "physical",""]
+        with open("Partials/region.ds9.reg",'w') as stream:
+            stream.write("\n".join(filelines))
+            self.map_over_lenslets(lambda l : self._region_file(stream,l),color="cyan")
+    
+    def _region_file(self,stream,lenslet):
+        """docstring for _region_file"""
+        lines = lenslet.region_line(self._offset)
+        self.log.debug("Region Lines: %r" % "\n".join(lines) )
+        stream.write("\n".join(lines))
+        stream.write("\n")
     
     @depends("dispersion")
     @description("Plotting dispersion for each lenslet")
