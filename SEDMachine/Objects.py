@@ -486,8 +486,8 @@ class Lenslet(ImageStack):
             handle.write("L%(l)04d:(%(x)d,%(y)d)\n" % { 'l': self.num, 'x': offset[0], 'y': offset[1]})
         corner -= np.array([self.config["Instrument"]["padding"],self.config["Instrument"]["padding"]])
         
-        x += offset[0]
-        y += offset[1]
+        x -= offset[0]
+        y -= offset[1]
         
         # Get the approximate size of our spectra
         xdist = np.max(x)-np.min(x)
