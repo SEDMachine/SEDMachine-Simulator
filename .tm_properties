@@ -1,5 +1,5 @@
 # TextMate Properties for this Project
-windowTitle = "SEDMachine Simulator - DEV - $TM_DISPLAYNAME"
+windowTitle = "SEDMachine Simulator - DEV - $TM_DISPLAYNAME$windowTitleSCM"
 
 [ *.yaml ]
 softTabs = true
