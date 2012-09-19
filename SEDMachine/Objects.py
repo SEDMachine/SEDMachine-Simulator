@@ -134,8 +134,8 @@ class Lenslet(ImageStack):
         self.points = np.array([self.xcs,self.ycs]).T
         
         # Convert the xs and ys to pixel positions
-        self.xpixs = np.round(self.xcs * self.config["Instrument"]["convert"]["mmtopx"],0).astype(np.int)
-        self.ypixs = np.round(self.ycs * self.config["Instrument"]["convert"]["mmtopx"],0).astype(np.int)
+        self.xpixs = np.asarray(self.xcs * self.config["Instrument"]["convert"]["mmtopx"]).astype(np.int)
+        self.ypixs = np.asarray(self.ycs * self.config["Instrument"]["convert"]["mmtopx"]).astype(np.int)
         self.pixs = np.array([self.xpixs,self.ypixs]).T
         self.ps = np.array([p1s,p2s]).T
         self.ls = np.array(ls)
@@ -191,10 +191,10 @@ class Lenslet(ImageStack):
         
         """
         STR  = "--Lenslet %(index)04d is %(valid)s\n" % {'index':self.num, 'valid': 'valid' if self.valid() else 'invalid'}
-        STR += "|    x    |    y    |    xp    |    yp    |    p1    |    p2    |    wl    |\n"
+        STR += "|    x    |    y    |    xp    |    yp    |    p1    |    p2    |    wl    |   x(fpx) |  y(fpx) |\n"
         for xy,pixs,p,wl in zip(self.points,self.pixs,self.ps,self.ls):
-            data = { 'x': xy[0], 'y': xy[1], 'pA': p[0], 'pB': p[1], 'wl': wl ,'pxA':pixs[0],'pxB':pixs[1]}
-            STR += "|%(x) 9.6g|%(y) 9.6g|%(pxA) 10.6g|%(pxB) 10.6g|%(pA) 10.6g|%(pB) 10.6g|%(wl) 10.6g|\n" % data
+            data = { 'x': xy[0], 'y': xy[1], 'pA': p[0], 'pB': p[1], 'wl': wl ,'pxA':pixs[0],'pxB':pixs[1],'xfpx':xy[0] * self.config["Instrument.convert.mmtopx"], 'yfpx': xy[1] * self.config["Instrument.convert.mmtopx"]}
+            STR += "|%(x) 9.6g|%(y) 9.6g|%(pxA) 10.6g|%(pxB) 10.6g|%(pA) 10.6g|%(pB) 10.6g|%(wl) 10.6g|%(xfpx) 10.6g|%(yfpx) 10.6g|\n" % data
         return STR
     
     def valid(self,strict=True):
@@ -482,17 +482,16 @@ class Lenslet(ImageStack):
         offset = corner - realcorner
         corner /= self.config["Instrument"]["density"]
         self.log.debug("Corner Position Offset in Dense Space: %s" % (offset))
-        if self.log.getEffectiveLevel() <= logging.DEBUG:
-            with open("%(Partials)s/Instrument-Offsets.dat" % self.config["Dirs"],'a') as handle:
-                np.savetxt(handle,offset)
-        corner -= np.array([-self.config["Instrument"]["padding"],self.config["Instrument"]["padding"]])
+        with open("%(Partials)s/Instrument-Offsets.dat" % self.config["Dirs"],'a') as handle:
+            handle.write("L%(l)04d:(%(x)d,%(y)d)\n" % { 'l': self.num, 'x': offset[0], 'y': offset[1]})
+        corner -= np.array([self.config["Instrument"]["padding"],self.config["Instrument"]["padding"]])
         
-        x += offset[0]
-        y += offset[1]
+        x -= offset[0]
+        y -= offset[1]
         
         # Get the approximate size of our spectra
-        xdist = np.max(x)-np.min(x)
-        ydist = np.max(y)-np.min(y)
+        xdist = np.max(x)
+        ydist = np.max(y)
         
         # Convert this size into an integer number of pixels for our subimage. This makes it
         # *much* easier to register our sub-image to the master, larger pixel image
@@ -502,8 +501,8 @@ class Lenslet(ImageStack):
         # Create our sub-image, using the x and y width of the spectrum, plus 2 padding widths.
         # Padding is specified in full-size pixels to ensure that the final image is an integer
         # number of full-size pixels across.
-        xsize = xdist+2*self.config["Instrument"]["padding"]*self.config["Instrument"]["density"]
-        ysize = ydist+2*self.config["Instrument"]["padding"]*self.config["Instrument"]["density"]
+        xdist += self.config["Instrument"]["padding"]*self.config["Instrument"]["density"]
+        ydist += self.config["Instrument"]["padding"]*self.config["Instrument"]["density"]
         
         # Calculate the resolution inherent to the pixels asked for
         WLS = self.dwl
@@ -527,7 +526,7 @@ class Lenslet(ImageStack):
         self.twl = WLS
         self.tdw = DWL
         self.trs = RS
-        self.subshape = (xsize,ysize)
+        self.subshape = (xdist,ydist)
         self.subcorner = corner
         self.spectrum = spectrum
         self.traced = True
@@ -554,8 +553,8 @@ class Lenslet(ImageStack):
         
         """
         
+
         img = np.zeros(self.subshape)
-        
         for x,y,wl,flux in zip(self.txs,self.tys,self.twl,self.tfl):
             if self.config["Instrument"]["Tel"]["ellipse"]:
                 a = self.fa(wl)
@@ -595,6 +594,23 @@ class Lenslet(ImageStack):
         
         """
         self["Binned Spectrum"] = self.bin(self.data(),self.config["Instrument"]["density"])
+    
+    def region_line(self,offset=None):
+        """Return a region file line"""
+        if offset is None:
+            offset = np.array([0,0])
+        else:
+            offset = np.asarray(offset)
+        regionlines = []
+        for xy,pixs,p,wl in zip(self.points,self.pixs,self.ps,self.ls):
+            if wl > 9e-7 or wl < 4e-7 or (wl > 6.4e-7 and wl < 6.5e-7):
+                regionlines += ["circle(%(x)04d,%(y)04d,%(r)02d) # text={%(label)s}" % {
+                    'x' : pixs[0]-offset[0],
+                    'y' : pixs[1]-offset[1],
+                    'r' : 2.0,
+                    'label' : "L%04d@%3d" % (self.num,wl*10e9),
+                }]
+        return regionlines
     
     def export_trace_data(self):
         """Save textfiles with the raw data from this lenslet."""
