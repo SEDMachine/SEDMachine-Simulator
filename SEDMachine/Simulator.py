@@ -82,6 +82,8 @@ class SEDSimulator(Simulator,ImageStack):
         self.registerConfigOpts("T",{"Lenslets":{"start":2100,"number":50},"Debug":False,"Output":{"Name":["TFlag"],},},help="Limit lenslets (50,start from 2100)")
         self.registerConfigOpts("M",{"Lenslets":{"start":1000,"number":500},"Debug":True,"Output":{"Name":["MFlag"],},},help="Limit lenslets (500,start from 1000)")
         self.registerConfigOpts("N",{"Lenslets":{"start":1000,"number":500},"Debug":False,"Output":{"Name":["NFlag"],},},help="Limit lenslets (500,start from 1000)")
+        self.registerConfigOpts("O",{"Lenslets":{"start":2000,"number":500},"Debug":False,"Output":{"Name":["NFlag"],},},help="Limit lenslets (500,start from 2000)")
+        self.registerConfigOpts("P",{"Lenslets":{"start":3000,"number":500},"Debug":False,"Output":{"Name":["NFlag"],},},help="Limit lenslets (500,start from 3000)")
         self.registerConfigOpts("A",{"Lenslets":{"start":2100,"number":1},"Debug":True,"Output":{"Name":["AFlag"],},},help="Debug, Single lenslets (start from 2100)")
         self.registerConfigOpts("C",{"Lenslets":{"position":{"x":0.0,"y":0.0},"radius":0.01},"Debug":True,"Output":{"Name":["CFlag"],},},help="Debug, Central Lenslets")
         
